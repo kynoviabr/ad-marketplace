@@ -1,10 +1,11 @@
 -- =============================================================================
 -- Migration: 20260818000004_locations_and_search.sql
--- FASE 04 — Locations, Search, Filters & Ranking Foundation (Revised)
+-- FASE 04 — Locations, Search, Filters & Ranking Foundation (Hardened)
 -- =============================================================================
 -- Creates the normalized geographic hierarchy (countries, states, cities,
 -- marketplace_locations), the N:N relation professional_profile_locations,
--- the atomic save_profile_service_areas RPC, search indexes, RLS, and seed data.
+-- the hardened atomic save_profile_service_areas RPC, search indexes, RLS,
+-- strict grants, and seed data for São Paulo.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -12,7 +13,7 @@
 -- -----------------------------------------------------------------------------
 
 -- 1.1. Countries
-CREATE TABLE public.countries (
+CREATE TABLE IF NOT EXISTS public.countries (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT NOT NULL,
   code        VARCHAR(2) NOT NULL UNIQUE, -- 'BR'
@@ -22,7 +23,7 @@ CREATE TABLE public.countries (
 );
 
 -- 1.2. States
-CREATE TABLE public.states (
+CREATE TABLE IF NOT EXISTS public.states (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   country_id  UUID NOT NULL REFERENCES public.countries(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
@@ -35,7 +36,7 @@ CREATE TABLE public.states (
 );
 
 -- 1.3. Cities
-CREATE TABLE public.cities (
+CREATE TABLE IF NOT EXISTS public.cities (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   state_id    UUID NOT NULL REFERENCES public.states(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
@@ -47,7 +48,7 @@ CREATE TABLE public.cities (
 );
 
 -- 1.4. Marketplace Locations (Public Service Areas)
-CREATE TABLE public.marketplace_locations (
+CREATE TABLE IF NOT EXISTS public.marketplace_locations (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   city_id       UUID NOT NULL REFERENCES public.cities(id) ON DELETE CASCADE,
   name          TEXT NOT NULL,
@@ -67,7 +68,7 @@ CREATE TABLE public.marketplace_locations (
 -- 2. TABLE: professional_profile_locations (N:N Join Table)
 -- -----------------------------------------------------------------------------
 
-CREATE TABLE public.professional_profile_locations (
+CREATE TABLE IF NOT EXISTS public.professional_profile_locations (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id    UUID NOT NULL REFERENCES public.professional_profiles(id) ON DELETE CASCADE,
   location_id   UUID NOT NULL REFERENCES public.marketplace_locations(id) ON DELETE RESTRICT,
@@ -77,23 +78,29 @@ CREATE TABLE public.professional_profile_locations (
 );
 
 -- Partial Unique Index: Exactly one primary location per profile at database level
-CREATE UNIQUE INDEX uq_idx_single_primary_location_per_profile
+CREATE UNIQUE INDEX IF NOT EXISTS uq_idx_single_primary_location_per_profile
   ON public.professional_profile_locations (profile_id)
   WHERE is_primary = TRUE;
 
 -- -----------------------------------------------------------------------------
--- 3. ESSENTIAL INDEXES (Without Redundancy)
+-- 3. ESSENTIAL NON-REDUNDANT INDEXES (Justified by Real Queries)
 -- -----------------------------------------------------------------------------
 
-CREATE INDEX idx_states_country_id ON public.states (country_id);
-CREATE INDEX idx_cities_state_id ON public.cities (state_id);
-CREATE INDEX idx_locations_city_id ON public.marketplace_locations (city_id);
-CREATE INDEX idx_locations_zone ON public.marketplace_locations (zone);
-CREATE INDEX idx_profile_locations_profile_id ON public.professional_profile_locations (profile_id);
-CREATE INDEX idx_profile_locations_location_id ON public.professional_profile_locations (location_id);
+-- 3.1. Filter locations by zone within a city
+CREATE INDEX IF NOT EXISTS idx_locations_zone ON public.marketplace_locations (zone);
+
+-- 3.2. Reverse lookup: Find all profiles servicing a specific marketplace location (Critical for Search)
+CREATE INDEX IF NOT EXISTS idx_profile_locations_location_id ON public.professional_profile_locations (location_id);
+
+-- Note:
+-- - `(profile_id, location_id)` is already indexed by `uq_profile_locations_profile_location`.
+-- - `(city_id, slug)` is already indexed by `uq_marketplace_locations_city_slug`.
+-- - `(state_id, slug)` is already indexed by `uq_cities_state_slug`.
+-- - `(country_id, code)` is already indexed by `uq_states_country_code`.
+-- Redundant indexes leading with these columns were explicitly avoided.
 
 -- -----------------------------------------------------------------------------
--- 4. ATOMIC TRANSACTIONAL FUNCTION: save_profile_service_areas
+-- 4. HARDENED ATOMIC TRANSACTIONAL RPC: save_profile_service_areas
 -- -----------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.save_profile_service_areas(
@@ -104,24 +111,49 @@ CREATE OR REPLACE FUNCTION public.save_profile_service_areas(
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
+DECLARE
+  v_valid_count INTEGER;
+  v_input_count INTEGER;
 BEGIN
-  -- 1. Validate that primary location belongs to selected array
-  IF NOT (p_primary_location_id = ANY(p_location_ids)) THEN
-    RAISE EXCEPTION 'A localização principal deve estar contida nos bairros selecionados';
+  v_input_count := array_length(p_location_ids, 1);
+
+  -- 1. If location array is provided, validate counts and primary
+  IF v_input_count IS NOT NULL AND v_input_count > 0 THEN
+    -- Primary location is mandatory and must belong to p_location_ids
+    IF p_primary_location_id IS NULL OR NOT (p_primary_location_id = ANY(p_location_ids)) THEN
+      RAISE EXCEPTION 'A localização principal deve ser informada e estar contida nos bairros selecionados';
+    END IF;
+
+    -- Verify that all location IDs exist and are active
+    SELECT count(id) INTO v_valid_count
+    FROM public.marketplace_locations
+    WHERE id = ANY(p_location_ids) AND active = TRUE;
+
+    IF v_valid_count <> v_input_count THEN
+      RAISE EXCEPTION 'Uma ou mais localizações informadas são inválidas ou inativas';
+    END IF;
+  ELSE
+    -- If empty, primary must be NULL
+    IF p_primary_location_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Localização principal não pode ser definida para lista vazia';
+    END IF;
   END IF;
 
-  -- 2. Atomically delete previous service locations for this profile
+  -- 2. Atomically delete previous relations for this profile
   DELETE FROM public.professional_profile_locations
   WHERE profile_id = p_profile_id;
 
-  -- 3. Atomically batch insert the new service locations
-  INSERT INTO public.professional_profile_locations (profile_id, location_id, is_primary)
-  SELECT
-    p_profile_id,
-    loc_id,
-    (loc_id = p_primary_location_id)
-  FROM unnest(p_location_ids) AS loc_id;
+  -- 3. Atomically batch insert the new service locations if non-empty
+  IF v_input_count IS NOT NULL AND v_input_count > 0 THEN
+    INSERT INTO public.professional_profile_locations (profile_id, location_id, is_primary)
+    SELECT
+      p_profile_id,
+      loc_id,
+      (loc_id = p_primary_location_id)
+    FROM unnest(p_location_ids) AS loc_id;
+  END IF;
 
   -- 4. Update profile updated_at timestamp
   UPDATE public.professional_profiles
@@ -129,6 +161,10 @@ BEGIN
   WHERE id = p_profile_id;
 END;
 $$;
+
+-- Security Hardening: Revoke public/client execution; allow only service_role
+REVOKE ALL ON FUNCTION public.save_profile_service_areas(UUID, UUID[], UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.save_profile_service_areas(UUID, UUID[], UUID) TO service_role;
 
 -- -----------------------------------------------------------------------------
 -- 5. RLS & GRANTS MATRIX
@@ -141,9 +177,16 @@ ALTER TABLE public.marketplace_locations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.professional_profile_locations ENABLE ROW LEVEL SECURITY;
 
 -- 5.1. Geographic Catalog: Public Read
+DROP POLICY IF EXISTS "countries_public_read" ON public.countries;
 CREATE POLICY "countries_public_read" ON public.countries FOR SELECT TO public USING (active = true);
+
+DROP POLICY IF EXISTS "states_public_read" ON public.states;
 CREATE POLICY "states_public_read" ON public.states FOR SELECT TO public USING (active = true);
+
+DROP POLICY IF EXISTS "cities_public_read" ON public.cities;
 CREATE POLICY "cities_public_read" ON public.cities FOR SELECT TO public USING (active = true);
+
+DROP POLICY IF EXISTS "locations_public_read" ON public.marketplace_locations;
 CREATE POLICY "locations_public_read" ON public.marketplace_locations FOR SELECT TO public USING (active = true);
 
 GRANT SELECT ON public.countries TO anon, authenticated;
@@ -157,8 +200,13 @@ GRANT ALL ON public.cities TO service_role;
 GRANT ALL ON public.marketplace_locations TO service_role;
 
 -- 5.2. Professional Profile Locations: No direct client mutations or raw anon queries
+DROP POLICY IF EXISTS "profile_locations_deny_client_insert" ON public.professional_profile_locations;
 CREATE POLICY "profile_locations_deny_client_insert" ON public.professional_profile_locations FOR INSERT TO authenticated WITH CHECK (false);
+
+DROP POLICY IF EXISTS "profile_locations_deny_client_update" ON public.professional_profile_locations;
 CREATE POLICY "profile_locations_deny_client_update" ON public.professional_profile_locations FOR UPDATE TO authenticated USING (false);
+
+DROP POLICY IF EXISTS "profile_locations_deny_client_delete" ON public.professional_profile_locations;
 CREATE POLICY "profile_locations_deny_client_delete" ON public.professional_profile_locations FOR DELETE TO authenticated USING (false);
 
 REVOKE ALL ON public.professional_profile_locations FROM anon, authenticated;

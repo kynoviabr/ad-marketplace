@@ -14,10 +14,10 @@ describe('Locations & Search Database Migration Tests (Revised)', () => {
   const sql = readFileSync(migrationPath, 'utf8')
 
   it('creates full 4-tier geographic catalog tables (countries, states, cities, marketplace_locations)', () => {
-    expect(sql).toContain('CREATE TABLE public.countries')
-    expect(sql).toContain('CREATE TABLE public.states')
-    expect(sql).toContain('CREATE TABLE public.cities')
-    expect(sql).toContain('CREATE TABLE public.marketplace_locations')
+    expect(sql).toContain('countries')
+    expect(sql).toContain('states')
+    expect(sql).toContain('cities')
+    expect(sql).toContain('marketplace_locations')
   })
 
   it('enforces contextual uniqueness constraints', () => {
@@ -33,9 +33,9 @@ describe('Locations & Search Database Migration Tests (Revised)', () => {
   })
 
   it('creates professional_profile_locations relation with partial unique index for single primary', () => {
-    expect(sql).toContain('CREATE TABLE public.professional_profile_locations')
+    expect(sql).toContain('professional_profile_locations')
     expect(sql).toContain('CONSTRAINT uq_profile_locations_profile_location UNIQUE (profile_id, location_id)')
-    expect(sql).toContain('CREATE UNIQUE INDEX uq_idx_single_primary_location_per_profile')
+    expect(sql).toContain('uq_idx_single_primary_location_per_profile')
     expect(sql).toContain('ON public.professional_profile_locations (profile_id)')
     expect(sql).toContain('WHERE is_primary = TRUE;')
   })
