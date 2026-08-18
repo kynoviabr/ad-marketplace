@@ -29,6 +29,38 @@ export function isProfileStructurallySearchReady(
 }
 
 /**
+ * Publication Readiness Evaluator (FASE 06 Domain Invariant).
+ *
+ * A profile is publication-ready when:
+ * 1. Account is ACTIVE
+ * 2. KYC is VERIFIED with confirmed adult age (18+)
+ * 3. Profile data is complete (status is READY_FOR_REVIEW or ACTIVE; never DRAFT)
+ * 4. Profile content moderation status is APPROVED (never PENDING, REJECTED, or FLAGGED)
+ * 5. At least 1 service location area is configured
+ * 6. At least 1 photo has status = 'APPROVED'
+ */
+export function isPublicationReady(
+  profile: Pick<ProfessionalProfile, 'status' | 'content_moderation_status'> | null,
+  account: Pick<AccountUser, 'status'> | null,
+  verification: Pick<IdentityVerification, 'status' | 'identity_verified' | 'age_verified'> | null,
+  locationsCount: number,
+  approvedPhotosCount: number
+): boolean {
+  if (!profile || !account || !verification) return false
+
+  return (
+    account.status === 'ACTIVE' &&
+    verification.status === 'VERIFIED' &&
+    verification.identity_verified === true &&
+    verification.age_verified === true &&
+    (profile.status === 'READY_FOR_REVIEW' || profile.status === 'ACTIVE') &&
+    profile.content_moderation_status === 'APPROVED' &&
+    locationsCount >= 1 &&
+    approvedPhotosCount >= 1
+  )
+}
+
+/**
  * Public Search Eligibility (Production Mode — Fail Closed).
  * Requires the full multi-gate publication pipeline:
  * 1. Account is ACTIVE

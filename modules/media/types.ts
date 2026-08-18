@@ -1,5 +1,5 @@
 /**
- * Media domain types — FASE 05
+ * Media domain types — FASE 05 / FASE 06
  */
 
 export type MediaStatus =
@@ -11,6 +11,8 @@ export type MediaStatus =
   | 'REJECTED'
   | 'QUARANTINED'
   | 'DELETED'
+
+export type AllowedMimeType = 'image/jpeg' | 'image/png' | 'image/webp'
 
 export interface ProfileMedia {
   id: string

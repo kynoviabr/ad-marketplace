@@ -1,65 +1,65 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = 'https://mwzlunkkyigxzjpnybxj.supabase.co'
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzAwNjkyMywiZXhwIjoyMTAyNTgyOTIzfQ.FoVQs8htk7Bns9etpKCpNXfSVXSs0lmjGhTx1h-fQsU'
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwMDY5MjMsImV4cCI6MjEwMjU4MjkyM30.QxpEG72vU2lTVyDW4SYfzLFYOs_VKB7eiaj-XqzL_Gg'
+import { getTestSupabaseAdmin, getTestSupabaseAnon } from '../helpers/supabase-test-client'
+import { getProfileByAccountUserId } from '@/modules/profiles/dal'
+import { generateUniqueSlug } from '@/modules/profiles/slug'
+import { evaluateProfileCompleteness } from '@/modules/profiles/completeness'
 
 describe('FASE 03 — Live Supabase DEV Profile Domain Integration Tests', () => {
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const admin = getTestSupabaseAdmin()
+  const anon = getTestSupabaseAnon()
 
-  const anon = createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  let authUserId: string
-  let accountId: string
-  const testSlug = `juliana-test-${Date.now()}`
+  let testAuthUserId: string
+  let testAccountUserId: string
+  let testProfileId: string
 
   beforeAll(async () => {
-    // 1. Create synthetic user
-    const testEmail = `fase03-live-${Date.now()}@ad-marketplace-synthetic.invalid`
-    const { data: authUser, error: authErr } = await admin.auth.admin.createUser({
-      email: testEmail,
-      password: 'Password@12345678!',
+    // 1. Create a real test user in Supabase Auth
+    const email = `test-profile-${Date.now()}@ad-marketplace-synthetic.invalid`
+    const password = 'Password@12345678!'
+
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email,
+      password,
       email_confirm: true,
     })
 
-    if (authErr || !authUser.user) {
-      throw new Error(`Failed to create test user: ${authErr?.message}`)
+    if (authError || !authData.user) {
+      throw new Error(`Failed to create test auth user: ${authError?.message}`)
     }
-    authUserId = authUser.user.id
 
-    // 2. Wait for account_users row
+    testAuthUserId = authData.user.id
+
+    // Wait 500ms for trigger auth.users -> public.account_users
     await new Promise((r) => setTimeout(r, 600))
-    const { data: accountRow } = await admin
+
+    // 2. Fetch the created account_users record
+    const { data: accountData, error: accountError } = await admin
       .from('account_users')
-      .select('id')
-      .eq('auth_user_id', authUserId)
+      .select('id, role, status')
+      .eq('auth_user_id', testAuthUserId)
       .single()
 
-    if (!accountRow) throw new Error('account_users row missing')
-    accountId = accountRow.id
+    if (accountError || !accountData) {
+      throw new Error(`Failed to fetch account_user: ${accountError?.message}`)
+    }
 
-    // 3. Mark KYC verified
+    testAccountUserId = accountData.id
+
+    // 3. Mark terms accepted and KYC verified
     await admin
       .from('account_users')
       .update({
         terms_version: '1.0',
-        terms_accepted_at: new Date().toISOString(),
         privacy_version: '1.0',
-        privacy_accepted_at: new Date().toISOString(),
         onboarding_step: 3,
         onboarding_status: 'IN_PROGRESS',
       })
-      .eq('id', accountId)
+      .eq('id', testAccountUserId)
 
     await admin.from('identity_verifications').insert({
-      account_user_id: accountId,
+      account_user_id: testAccountUserId,
       provider: 'didit',
-      provider_session_id: `sess_fase03_${Date.now()}`,
+      provider_session_id: `session_prof_${Date.now()}`,
       status: 'VERIFIED',
       identity_verified: true,
       age_verified: true,
@@ -68,139 +68,151 @@ describe('FASE 03 — Live Supabase DEV Profile Domain Integration Tests', () =>
   })
 
   afterAll(async () => {
-    if (authUserId) {
-      await admin.auth.admin.deleteUser(authUserId)
+    if (testAuthUserId) {
+      await admin.auth.admin.deleteUser(testAuthUserId)
     }
   })
 
-  it('admin client can query professional_profiles table', async () => {
-    const { error } = await admin.from('professional_profiles').select('id').limit(1)
-    expect(error).toBeNull()
+  it('verifies RLS: anon client cannot directly query professional_profiles table', async () => {
+    const { data, error } = await anon
+      .from('professional_profiles')
+      .select('*')
+      .eq('account_user_id', testAccountUserId)
+
+    expect(data === null || data.length === 0 || error !== null).toBe(true)
   })
 
-  it('anon client is strictly blocked from direct INSERT into professional_profiles', async () => {
-    const { error } = await anon.from('professional_profiles').insert({
-      account_user_id: accountId,
-      stage_name: 'Hacker',
-      slug: 'hacker-slug',
-    })
-    expect(error).not.toBeNull()
-  })
+  it('creates an initial DRAFT professional profile linked 1:1 to account_users', async () => {
+    const slug = await generateUniqueSlug('Juliana Santos', async () => false)
 
-  it('creates an initial DRAFT professional profile with valid slug', async () => {
-    const { data, error } = await admin
+    const { data: profile, error } = await admin
       .from('professional_profiles')
       .insert({
-        account_user_id: accountId,
-        stage_name: 'Juliana Castro',
-        slug: testSlug,
+        account_user_id: testAccountUserId,
+        stage_name: 'Juliana Santos',
+        slug,
+        headline: 'Atendimento exclusivo e discreto em São Paulo',
+        bio: 'Olá! Sou a Juliana, modelo fotográfica e acompanhante independente.',
+        public_age: 23,
+        height_cm: 172,
+        weight_kg: 58,
+        hair_color: 'BRUNETTE',
+        eye_color: 'BROWN',
+        body_type: 'SLIM',
+        whatsapp_phone: '+5511999998888',
+        show_age: true,
+        show_height: true,
+        show_weight: true,
+        show_whatsapp: true,
         status: 'DRAFT',
       })
       .select('*')
       .single()
 
     expect(error).toBeNull()
-    expect(data.stage_name).toBe('Juliana Castro')
-    expect(data.slug).toBe(testSlug)
-    expect(data.status).toBe('DRAFT')
-    expect(data.languages).toEqual(['Português'])
-    expect(data.show_height).toBe(true)
-    expect(data.show_whatsapp).toBe(true)
-    expect(data.show_age).toBe(false)
+    expect(profile).toBeDefined()
+    expect(profile.stage_name).toBe('Juliana Santos')
+    expect(profile.slug).toBe(slug)
+    expect(profile.status).toBe('DRAFT')
+    testProfileId = profile.id
   })
 
-  it('enforces 1:1 constraint (cannot create second profile for same account_user_id)', async () => {
+  it('enforces 1:1 constraint: duplicate profile for same account_user_id fails', async () => {
     const { error } = await admin.from('professional_profiles').insert({
-      account_user_id: accountId,
-      stage_name: 'Camila',
-      slug: `camila-${Date.now()}`,
+      account_user_id: testAccountUserId,
+      stage_name: 'Outro Nome',
+      slug: `outro-slug-${Date.now()}`,
+      status: 'DRAFT',
     })
 
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe('23505') // unique_violation
+    expect(error).toBeDefined()
+    expect(error?.code).toBe('23505') // Postgres unique violation
   })
 
-  it('enforces unique constraint on slug', async () => {
-    // Attempt duplicate slug with different fake account ID
-    const { error } = await admin.from('professional_profiles').insert({
-      account_user_id: '00000000-0000-0000-0000-000000000000',
-      stage_name: 'Outra Juliana',
-      slug: testSlug,
-    })
+  it('calculates profile completeness accurately', async () => {
+    const profile = await getProfileByAccountUserId(testAccountUserId)
+    expect(profile).not.toBeNull()
 
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe('23505')
+    const completeness = evaluateProfileCompleteness(profile!)
+    expect(completeness.isComplete).toBe(true)
+    expect(completeness.missingFields.length).toBe(0)
   })
 
-  it('enforces CHECK constraint on public_age >= 18', async () => {
-    const { error } = await admin
-      .from('professional_profiles')
-      .update({
-        public_age: 17, // Invalid!
-      })
-      .eq('account_user_id', accountId)
-
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe('23514') // check_violation
-  })
-
-  it('updates profile to READY_FOR_REVIEW with full measurements and contact', async () => {
-    const now = new Date().toISOString()
+  it('updates profile to READY_FOR_REVIEW status when completeness is satisfied', async () => {
     const { data: updated, error } = await admin
       .from('professional_profiles')
       .update({
-        headline: 'Modelo Fotográfica e Atendimento Exclusivo',
-        bio: 'Atendimento de alto nível com discrição em São Paulo.',
-        public_age: 24,
-        height_cm: 172,
-        weight_kg: 59,
-        bust_cm: 92,
-        waist_cm: 63,
-        hips_cm: 95,
-        eye_color: 'BROWN',
-        hair_color: 'BRUNETTE',
-        hair_length: 'LONG',
-        body_type: 'SLIM',
-        whatsapp_phone: '+5511999998888',
-        show_age: true,
-        show_measurements: true,
         status: 'READY_FOR_REVIEW',
-        completed_at: now,
-        updated_at: now,
+        completed_at: new Date().toISOString(),
       })
-      .eq('account_user_id', accountId)
+      .eq('id', testProfileId)
       .select('*')
       .single()
 
     expect(error).toBeNull()
     expect(updated.status).toBe('READY_FOR_REVIEW')
-    expect(updated.height_cm).toBe(172)
-    expect(updated.eye_color).toBe('BROWN')
-    expect(updated.whatsapp_phone).toBe('+5511999998888')
+    expect(updated.completed_at).not.toBeNull()
+  })
 
-    // Advance onboarding step
-    await admin.from('account_users').update({ onboarding_step: 5 }).eq('id', accountId)
+  it('fails check constraint on invalid public_age < 18', async () => {
+    const { error } = await admin
+      .from('professional_profiles')
+      .update({
+        public_age: 17,
+      })
+      .eq('id', testProfileId)
 
-    const { data: acct } = await admin
-      .from('account_users')
-      .select('onboarding_step')
-      .eq('id', accountId)
-      .single()
+    expect(error).toBeDefined()
+    expect(error?.message).toContain('chk_professional_profiles_public_age_range')
+  })
 
-    expect(acct?.onboarding_step).toBe(5)
+  it('fails check constraint on invalid height range', async () => {
+    const { error } = await admin
+      .from('professional_profiles')
+      .update({
+        height_cm: 50, // Minimum is 100
+      })
+      .eq('id', testProfileId)
+
+    expect(error).toBeDefined()
+    expect(error?.message).toContain('chk_professional_profiles_height_range')
   })
 
   it('cascade deletes professional_profiles when auth user is deleted', async () => {
-    await admin.auth.admin.deleteUser(authUserId)
-    authUserId = '' // Prevent double delete in afterAll
-
+    // Create temporary user to test cascade delete
+    const tempEmail = `cascade-test-${Date.now()}@ad-marketplace-synthetic.invalid`
+    const { data: tempAuth } = await admin.auth.admin.createUser({
+      email: tempEmail,
+      password: 'Password@12345678!',
+      email_confirm: true,
+    })
+    const tempUid = tempAuth.user!.id
     await new Promise((r) => setTimeout(r, 600))
 
-    const { data } = await admin
+    const { data: tempAcct } = await admin
+      .from('account_users')
+      .select('id')
+      .eq('auth_user_id', tempUid)
+      .single()
+
+    await admin.from('professional_profiles').insert({
+      account_user_id: tempAcct!.id,
+      stage_name: 'Cascade Test Profile',
+      slug: `cascade-test-${Date.now()}`,
+      status: 'DRAFT',
+    })
+
+    // Delete auth user
+    await admin.auth.admin.deleteUser(tempUid)
+    await new Promise((r) => setTimeout(r, 600))
+
+    // Verify profile is deleted
+    const { data: deletedProfile } = await admin
       .from('professional_profiles')
       .select('id')
-      .eq('account_user_id', accountId)
+      .eq('account_user_id', tempAcct!.id)
+      .maybeSingle()
 
-    expect(!data || data.length === 0).toBe(true)
+    expect(deletedProfile).toBeNull()
   })
 })

@@ -1,8 +1,8 @@
 /**
- * Professional Profile domain types — FASE 03
+ * Professional Profile domain types — FASE 03 / FASE 06
  *
  * Defines the canonical TypeScript types for professional profiles,
- * physical attributes, contact channels, and visibility settings.
+ * physical attributes, contact channels, visibility settings and moderation status.
  */
 
 export type ProfileStatus =
@@ -11,6 +11,12 @@ export type ProfileStatus =
   | 'ACTIVE'
   | 'PAUSED'
   | 'SUSPENDED'
+
+export type ContentModerationStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'FLAGGED'
 
 export type EyeColor =
   | 'BLACK'
@@ -48,16 +54,16 @@ export type BodyType =
 export interface ProfessionalProfile {
   id: string
   account_user_id: string
-  
+
   // Public Identity
   stage_name: string
   slug: string
   headline: string | null
   bio: string | null
-  
+
   // Public Age
   public_age: number | null
-  
+
   // Physical Attributes / Measurements
   height_cm: number | null
   weight_kg: number | null
@@ -70,15 +76,15 @@ export interface ProfessionalProfile {
   body_type: BodyType | null
   has_tattoos: boolean
   has_piercings: boolean
-  
+
   // Languages
   languages: string[]
-  
+
   // Contact Channels
   whatsapp_phone: string | null
   direct_phone: string | null
   telegram_username: string | null
-  
+
   // Visibility Toggles
   show_age: boolean
   show_height: boolean
@@ -87,10 +93,11 @@ export interface ProfessionalProfile {
   show_whatsapp: boolean
   show_phone: boolean
   show_telegram: boolean
-  
-  // Profile State
+
+  // Profile State & Moderation
   status: ProfileStatus
-  
+  content_moderation_status: ContentModerationStatus
+
   // Timestamps
   completed_at: string | null
   created_at: string
@@ -123,6 +130,7 @@ export interface PublicProfileDTO {
   directPhone: string | null
   telegramUsername: string | null
   status: ProfileStatus
+  contentModerationStatus: ContentModerationStatus
 }
 
 /** Result type for profile Server Actions */

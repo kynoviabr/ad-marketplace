@@ -78,5 +78,6 @@ export async function getPublicProfileDTO(slug: string): Promise<PublicProfileDT
     directPhone: profile.show_phone ? profile.direct_phone : null,
     telegramUsername: profile.show_telegram ? profile.telegram_username : null,
     status: profile.status,
+    contentModerationStatus: profile.content_moderation_status || 'PENDING',
   }
 }

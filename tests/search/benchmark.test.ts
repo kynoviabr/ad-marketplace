@@ -1,13 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { createClient } from '@supabase/supabase-js'
-
-const SUPABASE_URL = 'https://mwzlunkkyigxzjpnybxj.supabase.co'
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzAwNjkyMywiZXhwIjoyMTAyNTgyOTIzfQ.FoVQs8htk7Bns9etpKCpNXfSVXSs0lmjGhTx1h-fQsU'
+import { getTestSupabaseAdmin } from '../helpers/supabase-test-client'
 
 describe('FASE 04 — Performance & Query Execution Benchmark', () => {
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const admin = getTestSupabaseAdmin()
 
   it('benchmark 1: city search query latency is below 300ms', async () => {
     const start = performance.now()
@@ -19,7 +14,7 @@ describe('FASE 04 — Performance & Query Execution Benchmark', () => {
 
     const latency = performance.now() - start
     expect(error).toBeNull()
-    expect(latency).toBeLessThan(1500) // generous upper bound for remote roundtrip
+    expect(latency).toBeLessThan(1500)
   })
 
   it('benchmark 2: neighborhood + multi-filter query latency is below 300ms', async () => {

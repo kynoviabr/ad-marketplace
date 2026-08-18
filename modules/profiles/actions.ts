@@ -56,6 +56,7 @@ export async function createProfileDraftAction(
         stage_name: validated.data.stage_name,
         slug,
         status: 'DRAFT',
+        content_moderation_status: 'PENDING',
       })
       .select('*')
       .single()
@@ -92,6 +93,7 @@ export async function createProfileDraftAction(
  * 2. Mass-assignment protection via explicit Zod parsing.
  * 3. Automatic transition to READY_FOR_REVIEW upon minimum completeness.
  * 4. Monotonic onboarding_step update to 5 upon completion.
+ * 5. Automatic reset of content_moderation_status to PENDING upon material text edits.
  */
 export async function updateProfileDraftAction(
   input: UpdateProfileInput
@@ -124,6 +126,19 @@ export async function updateProfileDraftAction(
     const now = new Date().toISOString()
     const completedAt = isComplete ? current.completed_at || now : null
 
+    // Check if material text content changed
+    const hasMaterialTextChange =
+      current.stage_name !== payload.stage_name ||
+      current.headline !== payload.headline ||
+      current.bio !== payload.bio ||
+      current.whatsapp_phone !== payload.whatsapp_phone ||
+      current.direct_phone !== payload.direct_phone ||
+      current.telegram_username !== payload.telegram_username
+
+    const contentModerationStatus = hasMaterialTextChange
+      ? 'PENDING'
+      : current.content_moderation_status
+
     // Whitelist mutation (mass assignment defense)
     const { data: updated, error: updateError } = await admin
       .from('professional_profiles')
@@ -155,6 +170,7 @@ export async function updateProfileDraftAction(
         show_phone: payload.show_phone,
         show_telegram: payload.show_telegram,
         status: newStatus,
+        content_moderation_status: contentModerationStatus,
         completed_at: completedAt,
         updated_at: now,
       })

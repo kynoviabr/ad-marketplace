@@ -35,6 +35,7 @@ describe('Profile Security & Privacy Invariants', () => {
       show_phone: false,
       show_telegram: false,
       status: 'DRAFT',
+      content_moderation_status: 'PENDING',
       completed_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -62,6 +63,7 @@ describe('Profile Security & Privacy Invariants', () => {
       directPhone: rawProfile.show_phone ? rawProfile.direct_phone : null,
       telegramUsername: rawProfile.show_telegram ? rawProfile.telegram_username : null,
       status: rawProfile.status,
+      contentModerationStatus: rawProfile.content_moderation_status,
     }
 
     // Verify KYC fields are NEVER present

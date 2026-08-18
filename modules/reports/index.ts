@@ -1,5 +1,5 @@
 export * from './types'
 export * from './schemas'
-export * from './guards'
+export * from './abuse'
 export * from './dal'
 export * from './actions'

@@ -1,22 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createClient } from '@supabase/supabase-js'
+import { getTestSupabaseAdmin, getTestSupabaseAnon } from '../helpers/supabase-test-client'
 import { getProfileMedia, getPrimaryMedia, getActivePhotoCount } from '@/modules/media/dal'
 
-const SUPABASE_URL = 'https://mwzlunkkyigxzjpnybxj.supabase.co'
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzAwNjkyMywiZXhwIjoyMTAyNTgyOTIzfQ.FoVQs8htk7Bns9etpKCpNXfSVXSs0lmjGhTx1h-fQsU'
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwMDY5MjMsImV4cCI6MjEwMjU4MjkyM30.QxpEG72vU2lTVyDW4SYfzLFYOs_VKB7eiaj-XqzL_Gg'
-
-process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_URL
-process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_ROLE_KEY
-
 describe('FASE 05 — Live Supabase DEV Media Management Integration Tests', () => {
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  const anon = createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const admin = getTestSupabaseAdmin()
+  const anon = getTestSupabaseAnon()
 
   let userAId: string
   let profileAId: string

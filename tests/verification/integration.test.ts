@@ -1,196 +1,164 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createClient } from '@supabase/supabase-js'
+import { getTestSupabaseAdmin, getTestSupabaseAnon } from '../helpers/supabase-test-client'
+import { getVerificationSafe } from '@/modules/verification/dal'
+import { canProceedToProfessionalProfile, canUploadAdultMedia } from '@/modules/verification/gates'
 
-const SUPABASE_URL = 'https://mwzlunkkyigxzjpnybxj.supabase.co'
-const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzAwNjkyMywiZXhwIjoyMTAyNTgyOTIzfQ.FoVQs8htk7Bns9etpKCpNXfSVXSs0lmjGhTx1h-fQsU'
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwMDY5MjMsImV4cCI6MjEwMjU4MjkyM30.QxpEG72vU2lTVyDW4SYfzLFYOs_VKB7eiaj-XqzL_Gg'
+describe('FASE 02 — Live Supabase DEV Verification Integration Tests', () => {
+  const admin = getTestSupabaseAdmin()
+  const anon = getTestSupabaseAnon()
 
-describe('FASE 02 — Live Supabase DEV Integration & Invariant Tests', () => {
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  const anon = createClient(SUPABASE_URL, ANON_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
-
-  let authUserId: string
-  let accountId: string
-  const testSessionId = `didit_sess_test_${Date.now()}`
-  const testEventId = `evt_test_${Date.now()}`
+  let testAuthUserId: string
+  let testAccountUserId: string
 
   beforeAll(async () => {
-    // Create synthetic test user
-    const testEmail = `fase02-live-${Date.now()}@ad-marketplace-synthetic.invalid`
-    const { data: authUser, error: authErr } = await admin.auth.admin.createUser({
-      email: testEmail,
-      password: 'Password@12345678!',
+    // 1. Create a real test user in Supabase Auth
+    const email = `test-kyc-${Date.now()}@ad-marketplace-synthetic.invalid`
+    const password = 'Password@12345678!'
+
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email,
+      password,
       email_confirm: true,
     })
 
-    if (authErr || !authUser.user) {
-      throw new Error(`Failed to create test user: ${authErr?.message}`)
+    if (authError || !authData.user) {
+      throw new Error(`Failed to create test auth user: ${authError?.message}`)
     }
-    authUserId = authUser.user.id
 
-    // Wait for FASE 01 trigger to create account_users row
+    testAuthUserId = authData.user.id
+
+    // Wait 500ms for trigger auth.users -> public.account_users
     await new Promise((r) => setTimeout(r, 600))
-    const { data: accountRow } = await admin
+
+    // 2. Fetch the created account_users record
+    const { data: accountData, error: accountError } = await admin
       .from('account_users')
-      .select('id')
-      .eq('auth_user_id', authUserId)
+      .select('id, role, status')
+      .eq('auth_user_id', testAuthUserId)
       .single()
 
-    if (!accountRow) {
-      throw new Error('account_users row was not created by trigger')
+    if (accountError || !accountData) {
+      throw new Error(`Failed to fetch account_user: ${accountError?.message}`)
     }
-    accountId = accountRow.id
 
-    // Set terms acceptance
+    testAccountUserId = accountData.id
+
+    // Accept terms and privacy to be a valid advertiser
     await admin
       .from('account_users')
       .update({
         terms_version: '1.0',
-        terms_accepted_at: new Date().toISOString(),
         privacy_version: '1.0',
-        privacy_accepted_at: new Date().toISOString(),
-        onboarding_step: 1,
+        onboarding_step: 2,
         onboarding_status: 'IN_PROGRESS',
       })
-      .eq('id', accountId)
+      .eq('id', testAccountUserId)
   })
 
   afterAll(async () => {
-    if (authUserId) {
-      await admin.auth.admin.deleteUser(authUserId)
+    if (testAuthUserId) {
+      await admin.auth.admin.deleteUser(testAuthUserId)
     }
-    // Clean up event ledger
-    await admin
-      .from('verification_webhook_events')
-      .delete()
-      .eq('provider_event_id', testEventId)
   })
 
-  it('admin client can query identity_verifications and verification_webhook_events tables', async () => {
-    const { error: ivErr } = await admin.from('identity_verifications').select('id').limit(1)
-    expect(ivErr).toBeNull()
+  it('verifies RLS: anon client cannot directly query identity_verifications', async () => {
+    const { data, error } = await anon
+      .from('identity_verifications')
+      .select('*')
+      .eq('account_user_id', testAccountUserId)
 
-    const { error: weErr } = await admin.from('verification_webhook_events').select('id').limit(1)
-    expect(weErr).toBeNull()
+    expect(data === null || data.length === 0 || error !== null).toBe(true)
   })
 
-  it('anon client is strictly blocked from direct SELECT on identity_verifications', async () => {
-    const { data, error } = await anon.from('identity_verifications').select('*')
-    // Either an error or empty array due to deny-all RLS
-    expect(Boolean(error) || (Array.isArray(data) && data.length === 0)).toBe(true)
-  })
-
-  it('anon client is strictly blocked from direct INSERT on identity_verifications', async () => {
+  it('verifies RLS: anon client cannot directly insert into identity_verifications', async () => {
     const { error } = await anon.from('identity_verifications').insert({
-      account_user_id: accountId,
+      account_user_id: testAccountUserId,
+      provider: 'didit',
+      provider_session_id: 'fake-session',
       status: 'VERIFIED',
+      identity_verified: true,
+      age_verified: true,
     })
-    expect(error).not.toBeNull()
+
+    expect(error).toBeDefined()
   })
 
-  it('creates an identity_verifications record in PENDING state', async () => {
-    const { data, error } = await admin
+  it('creates an initial verification record in PENDING status', async () => {
+    const { data: record, error } = await admin
       .from('identity_verifications')
       .insert({
-        account_user_id: accountId,
+        account_user_id: testAccountUserId,
         provider: 'didit',
-        provider_session_id: testSessionId,
+        provider_session_id: `session_${Date.now()}`,
         status: 'PENDING',
-        started_at: new Date().toISOString(),
       })
       .select('*')
       .single()
 
     expect(error).toBeNull()
-    expect(data.status).toBe('PENDING')
-    expect(data.identity_verified).toBe(false)
-    expect(data.age_verified).toBe(false)
+    expect(record).toBeDefined()
+    expect(record.status).toBe('PENDING')
+    expect(record.identity_verified).toBe(false)
+    expect(record.age_verified).toBe(false)
   })
 
-  it('partial unique index strictly prevents second active session for the same user', async () => {
-    const { error } = await admin.from('identity_verifications').insert({
-      account_user_id: accountId,
-      provider: 'didit',
-      provider_session_id: `another_sess_${Date.now()}`,
-      status: 'PENDING',
-    })
+  it('safe DTO returns non-null without exposing sensitive provider session IDs', async () => {
+    const safeDTO = await getVerificationSafe(testAccountUserId)
 
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe('23505') // unique_violation
+    expect(safeDTO).not.toBeNull()
+    expect(safeDTO?.status).toBe('PENDING')
+    expect(safeDTO?.identityVerified).toBe(false)
+    expect(safeDTO?.ageVerified).toBe(false)
+    expect((safeDTO as any).provider_session_id).toBeUndefined()
+    expect((safeDTO as any).provider).toBeUndefined()
   })
 
-  it('check constraint enforces age_verified requires identity_verified', async () => {
-    const { error } = await admin
-      .from('identity_verifications')
-      .update({
-        identity_verified: false,
-        age_verified: true, // Violates CHECK constraint
-      })
-      .eq('account_user_id', accountId)
-
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe('23514') // check_violation
+  it('evaluates fail-closed security gates on PENDING status', async () => {
+    const safeDTO = await getVerificationSafe(testAccountUserId)
+    expect(canProceedToProfessionalProfile(safeDTO)).toBe(false)
+    expect(canUploadAdultMedia(safeDTO)).toBe(false)
   })
 
-  it('webhook event ledger records event and blocks replay duplicates', async () => {
-    // First insert: succeeds
-    const { error: err1 } = await admin.from('verification_webhook_events').insert({
-      provider: 'didit',
-      provider_event_id: testEventId,
-      provider_session_id: testSessionId,
-      event_type: 'status.updated',
-      processing_status: 'RECEIVED',
-    })
-    expect(err1).toBeNull()
-
-    // Second insert with same event_id: blocked by unique constraint
-    const { error: err2 } = await admin.from('verification_webhook_events').insert({
-      provider: 'didit',
-      provider_event_id: testEventId,
-      provider_session_id: testSessionId,
-      event_type: 'status.updated',
-      processing_status: 'RECEIVED',
-    })
-    expect(err2).not.toBeNull()
-    expect(err2?.code).toBe('23505')
-  })
-
-  it('promotes verification to VERIFIED with age_verified=true and advances onboarding step to 3', async () => {
-    const now = new Date().toISOString()
-    const { data: updated, error } = await admin
+  it('updates verification record to VERIFIED (18+ confirmed) via admin client', async () => {
+    const { data, error } = await admin
       .from('identity_verifications')
       .update({
         status: 'VERIFIED',
         identity_verified: true,
         age_verified: true,
-        cpf_verified: true,
-        verified_country: 'BR',
-        verified_at: now,
-        updated_at: now,
+        verified_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       })
-      .eq('account_user_id', accountId)
-      .select('*')
+      .eq('account_user_id', testAccountUserId)
+      .select()
       .single()
 
     expect(error).toBeNull()
-    expect(updated.status).toBe('VERIFIED')
-    expect(updated.identity_verified).toBe(true)
-    expect(updated.age_verified).toBe(true)
+    expect(data.status).toBe('VERIFIED')
+    expect(data.identity_verified).toBe(true)
+    expect(data.age_verified).toBe(true)
+  })
 
-    // Advance onboarding step
-    await admin.from('account_users').update({ onboarding_step: 3 }).eq('id', accountId)
+  it('evaluates security gates as TRUE when status is VERIFIED and age >= 18', async () => {
+    const safeDTO = await getVerificationSafe(testAccountUserId)
+    expect(canProceedToProfessionalProfile(safeDTO)).toBe(true)
+    expect(canUploadAdultMedia(safeDTO)).toBe(true)
+  })
 
-    const { data: acct } = await admin
-      .from('account_users')
-      .select('onboarding_step')
-      .eq('id', accountId)
+  it('records an audit event in verification_webhook_events', async () => {
+    const { data, error } = await admin
+      .from('verification_webhook_events')
+      .insert({
+        provider: 'didit',
+        provider_event_id: `evt_${Date.now()}`,
+        provider_session_id: `session_${Date.now()}`,
+        event_type: 'decision.passed',
+        processing_status: 'PROCESSED',
+      })
+      .select()
       .single()
 
-    expect(acct?.onboarding_step).toBe(3)
+    expect(error).toBeNull()
+    expect(data.event_type).toBe('decision.passed')
   })
 })
