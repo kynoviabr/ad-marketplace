@@ -11,6 +11,9 @@
 import { getAccount, getSession } from '@/modules/auth/dal'
 import { logoutAction, startOnboardingFormAction } from '@/modules/auth/actions'
 
+import Link from 'next/link'
+import { getVerificationSafe } from '@/modules/verification/dal'
+
 export const metadata = {
   title: 'Dashboard — AD-Marketplace',
   robots: 'noindex, nofollow',
@@ -28,8 +31,19 @@ const ONBOARDING_LABELS: Record<string, string> = {
   COMPLETED: 'Concluído',
 }
 
+const VERIFICATION_LABELS: Record<string, string> = {
+  NOT_STARTED: 'Não iniciada',
+  PENDING: 'Iniciada (aguardando)',
+  IN_PROGRESS: 'Em andamento',
+  IN_REVIEW: 'Em análise manual',
+  VERIFIED: 'Aprovada (Identidade & 18+ confirmados)',
+  REJECTED: 'Não aprovada',
+  EXPIRED: 'Expirada',
+}
+
 export default async function DashboardPage() {
   const [user, account] = await Promise.all([getSession(), getAccount()])
+  const verification = account ? await getVerificationSafe(account.id) : null
 
   return (
     <div className="dashboard-card">
@@ -55,6 +69,15 @@ export default async function DashboardPage() {
         </span>
       </div>
 
+      <div className="dashboard-section">
+        <span className="dashboard-label">Verificação (KYC):</span>
+        <span className="dashboard-value">
+          {verification
+            ? (VERIFICATION_LABELS[verification.status] ?? verification.status)
+            : 'Não iniciada'}
+        </span>
+      </div>
+
       {account?.onboarding_status === 'NOT_STARTED' && (
         <form action={startOnboardingFormAction}>
           <button type="submit" className="btn btn--primary">
@@ -64,10 +87,25 @@ export default async function DashboardPage() {
       )}
 
       {account?.onboarding_status === 'IN_PROGRESS' && (
-        <p className="dashboard-note">
-          Onboarding em andamento (etapa {account.onboarding_step}).
-          As próximas fases completarão o perfil.
-        </p>
+        <div className="space-y-3 my-4">
+          <p className="dashboard-note">
+            Onboarding em andamento (etapa {account.onboarding_step}).
+          </p>
+          {verification?.status !== 'VERIFIED' ? (
+            <Link
+              href="/onboarding/verification"
+              className="btn btn--primary block text-center"
+            >
+              {verification?.status === 'REJECTED'
+                ? 'Tentar Verificação Novamente'
+                : 'Verificar Identidade & Maioridade'}
+            </Link>
+          ) : (
+            <p className="text-sm text-emerald-600 font-medium">
+              ✓ Identidade e maioridade aprovadas. Aguardando fase de Perfil (FASE 03).
+            </p>
+          )}
+        </div>
       )}
 
       <form action={logoutAction} className="dashboard-logout">

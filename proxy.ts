@@ -21,7 +21,7 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 /** Routes that require authentication */
-const PROTECTED_ROUTES = ['/dashboard', '/suspended']
+const PROTECTED_ROUTES = ['/dashboard', '/suspended', '/onboarding']
 
 /** Routes only accessible to unauthenticated users */
 const AUTH_ONLY_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
