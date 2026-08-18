@@ -1,13 +1,44 @@
 /**
- * Module: billing
+ * Module: billing — FASE 07
  *
- * Responsible for: Subscription plans (Founder, Essential, Premium, Top, Super Top),
- * payment processing via provider abstraction layer, webhooks (idempotent),
- * entitlements management.
+ * Monetization, Subscriptions & Payment Gateway Foundation.
  *
- * Status: BOUNDARY ONLY — implementation begins in FASE 07.
- * Requires: Written underwriting approval from payment processor before activation.
+ * Two distinct entitlement concepts:
+ * - hasPublicationEntitlement(): Security-critical. FAIL-CLOSED. No fallback.
+ * - getPlanEntitlement(): Operational quotas. MVP fallback for backward compat.
+ *
+ * Provider: UNDECIDED. MockPaymentProvider only.
+ * Real integration requires written underwriting approval (EXTERNAL BLOCKER).
  *
  * @see docs/09_BILLING.md
  */
-export {}
+
+export {
+  hasPublicationEntitlement,
+  isSubscriptionPublicationEligible,
+  getPlanEntitlement,
+} from './entitlements'
+
+export type {
+  SubscriptionStatus,
+  BillingInterval,
+  SubscriptionPlan,
+  PlanPrice,
+  PlanEntitlement,
+  Subscription,
+  BillingOverride,
+  BillingWebhookEvent,
+  BillingDTO,
+  PlanDTO,
+  PlanPriceDTO,
+  BillingActionResult,
+} from './types'
+
+export {
+  DEFAULT_CURRENCY,
+  GRACE_PERIOD_DAYS,
+  MVP_QUOTA_DEFAULTS,
+  BILLING_INTERVALS,
+  PUBLICATION_ELIGIBLE_STATUSES,
+  SUBSCRIPTION_STATUSES,
+} from './constants'

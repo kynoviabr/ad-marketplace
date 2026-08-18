@@ -10,6 +10,7 @@ export function AdminNavbar() {
     { href: '/admin/moderation', label: 'Moderação de Fotos' },
     { href: '/admin/profiles', label: 'Moderação de Perfis' },
     { href: '/admin/reports', label: 'Denúncias' },
+    { href: '/admin/billing', label: 'Assinaturas' },
   ]
 
   return (

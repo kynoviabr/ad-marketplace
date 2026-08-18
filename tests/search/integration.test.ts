@@ -235,7 +235,10 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Re
     // Structurally ready (internal/dev)
     expect(isProfileStructurallySearchReady(mockProfile, mockAccount, mockVerification, 2)).toBe(true)
 
-    // Not publicly eligible yet (fails because media/moderation are not approved and status is not ACTIVE)
-    expect(isPublicSearchEligible(mockProfile, mockAccount, mockVerification, false, false)).toBe(false)
+    // Not publicly eligible yet (fails because media/moderation/billing are not satisfied)
+    expect(isPublicSearchEligible(
+      { status: 'READY_FOR_REVIEW' as const, content_moderation_status: 'PENDING' as const },
+      mockAccount, mockVerification, 0, 0, false
+    )).toBe(false)
   })
 })

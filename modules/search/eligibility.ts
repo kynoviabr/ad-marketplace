@@ -61,29 +61,49 @@ export function isPublicationReady(
 }
 
 /**
- * Public Search Eligibility (Production Mode — Fail Closed).
- * Requires the full multi-gate publication pipeline:
- * 1. Account is ACTIVE
- * 2. KYC is VERIFIED
- * 3. Profile status is ACTIVE (emitted only post-moderation in FASE 06)
- * 4. Media is approved (FASE 05)
- * 5. Content moderation is approved (FASE 06)
- * 6. Subscription / billing is eligible (FASE 07).
+ * Public Search Eligibility (Production Mode — Fail Closed) — FASE 07.
+ *
+ * ALL 8 gates must be satisfied. No single gate can override another.
+ * Payment alone NEVER bypasses KYC, moderation, profile, media, or location gates.
+ *
+ * Gate 1: Account ACTIVE
+ * Gate 2: KYC VERIFIED + identity_verified + age_verified (18+)
+ * Gate 3: Profile data complete (READY_FOR_REVIEW or ACTIVE, never DRAFT)
+ * Gate 4: Content moderation APPROVED
+ * Gate 5: At least 1 service location configured
+ * Gate 6: At least 1 approved photo
+ * Gate 7: Profile not PAUSED/SUSPENDED (covered by status check)
+ * Gate 8: Publication entitlement ACTIVE (from hasPublicationEntitlement())
+ *
+ * publicationEntitlement MUST be resolved server-side via hasPublicationEntitlement().
+ * The client NEVER sends this value.
  */
 export function isPublicSearchEligible(
-  profile: Pick<ProfessionalProfile, 'status'> | null,
+  profile: Pick<ProfessionalProfile, 'status' | 'content_moderation_status'> | null,
   account: Pick<AccountUser, 'status'> | null,
-  verification: Pick<IdentityVerification, 'status'> | null,
-  mediaApproved: boolean = false,
-  moderationApproved: boolean = false
+  verification: Pick<IdentityVerification, 'status' | 'identity_verified' | 'age_verified'> | null,
+  locationsCount: number,
+  approvedPhotosCount: number,
+  publicationEntitlement: boolean
 ): boolean {
   if (!profile || !account || !verification) return false
 
   return (
+    // Gate 1: Account
     account.status === 'ACTIVE' &&
+    // Gate 2: KYC
     verification.status === 'VERIFIED' &&
-    profile.status === 'ACTIVE' &&
-    mediaApproved &&
-    moderationApproved
+    verification.identity_verified === true &&
+    verification.age_verified === true &&
+    // Gate 3: Profile data complete
+    (profile.status === 'READY_FOR_REVIEW' || profile.status === 'ACTIVE') &&
+    // Gate 4: Content moderation
+    profile.content_moderation_status === 'APPROVED' &&
+    // Gate 5: Locations
+    locationsCount >= 1 &&
+    // Gate 6: Approved media
+    approvedPhotosCount >= 1 &&
+    // Gate 8: Publication entitlement (FASE 07)
+    publicationEntitlement === true
   )
 }
