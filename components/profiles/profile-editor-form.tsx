@@ -7,15 +7,23 @@ import type { UpdateProfileInput } from '@/modules/profiles/schemas'
 import { createProfileDraftAction, updateProfileDraftAction } from '@/modules/profiles/actions'
 import { evaluateProfileCompleteness } from '@/modules/profiles/completeness'
 import { ProfilePreviewCard } from './profile-preview-card'
+import type { Location, ProfileLocation } from '@/modules/locations/types'
+import { LocationSelector } from '@/components/locations/location-selector'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 interface ProfileEditorFormProps {
   initialProfile: ProfessionalProfile | null
+  availableLocations?: Location[]
+  initialSelectedLocations?: ProfileLocation[]
 }
 
-export function ProfileEditorForm({ initialProfile }: ProfileEditorFormProps) {
+export function ProfileEditorForm({
+  initialProfile,
+  availableLocations = [],
+  initialSelectedLocations = [],
+}: ProfileEditorFormProps) {
   const router = useRouter()
   const [profile, setProfile] = useState<ProfessionalProfile | null>(initialProfile)
   const [stageNameInput, setStageNameInput] = useState(initialProfile?.stage_name || '')
@@ -552,6 +560,18 @@ export function ProfileEditorForm({ initialProfile }: ProfileEditorFormProps) {
             </div>
           </div>
         </div>
+
+        {/* Section 4: Localização de Atendimento */}
+        {availableLocations.length > 0 && (
+          <div className="space-y-4 pt-4 border-t">
+            <h3 className="text-lg font-semibold text-gray-800 pb-2">4. Regiões de Atendimento</h3>
+            <LocationSelector
+              availableLocations={availableLocations}
+              initialSelectedLocations={initialSelectedLocations}
+              onSaved={() => router.refresh()}
+            />
+          </div>
+        )}
 
         <div className="pt-4 border-t flex items-center justify-between">
           <div className="text-xs text-gray-500">

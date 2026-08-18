@@ -1,11 +1,20 @@
 /**
  * Module: locations
  *
- * Responsible for: City/region data, profile-to-location associations,
- * geographic filtering support.
- *
- * Status: BOUNDARY ONLY — implementation begins in FASE 04.
+ * Responsible for: Geographic hierarchy (states, cities, locations/neighborhoods),
+ * advertiser service area selection, primary location management, and location DAL.
  *
  * @see docs/06_SEARCH_FILTERS.md
  */
-export {}
+
+// Types
+export * from './types'
+
+// Schemas
+export * from './schemas'
+
+// DAL
+export * from './dal'
+
+// Server Actions
+export * from './actions'
