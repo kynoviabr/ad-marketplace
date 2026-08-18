@@ -22,6 +22,7 @@ describe('FASE 07 — Live Supabase DEV Billing Integration Tests', () => {
   let launchFreePriceId: string
   let foundingPriceId: string
   let testAccountId: string
+  let testAuthUserId: string
   let testSubscriptionId: string
 
   beforeAll(async () => {
@@ -57,36 +58,74 @@ describe('FASE 07 — Live Supabase DEV Billing Integration Tests', () => {
     expect(foundingPrice!.amount_minor).toBe(9999)
     foundingPriceId = foundingPrice!.id
 
-    // Create synthetic test account
-    const { data: acct } = await admin
+    // Create auth user first (required FK for account_users)
+    const testEmail = `billing-test-${Date.now()}@test.local`
+    const { data: authUser, error: authError } = await admin.auth.admin.createUser({
+      email: testEmail,
+      password: 'test-password-billing-integration',
+      email_confirm: true,
+    })
+    expect(authError).toBeNull()
+    expect(authUser?.user).toBeTruthy()
+    testAuthUserId = authUser!.user!.id
+
+    // Query auto-created account_users row (trigger on auth.users creates it)
+    // and update to ADVERTISER/ACTIVE with required fields
+    const { data: existingAcct } = await admin
       .from('account_users')
-      .insert({
-        auth_user_id: `billing-test-${Date.now()}`,
-        role: 'ADVERTISER',
-        status: 'ACTIVE',
-        onboarding_status: 'COMPLETED',
-        onboarding_step: 5,
-        terms_version: '1.0',
-        terms_accepted_at: new Date().toISOString(),
-        privacy_version: '1.0',
-        privacy_accepted_at: new Date().toISOString(),
-      })
       .select('id')
-      .single()
-    expect(acct).toBeTruthy()
-    testAccountId = acct!.id
+      .eq('auth_user_id', testAuthUserId)
+      .maybeSingle()
+
+    if (existingAcct) {
+      // Update the trigger-created row with required test fields
+      await admin
+        .from('account_users')
+        .update({
+          role: 'ADVERTISER',
+          status: 'ACTIVE',
+          onboarding_status: 'COMPLETED',
+          onboarding_step: 5,
+          terms_version: '1.0',
+          terms_accepted_at: new Date().toISOString(),
+          privacy_version: '1.0',
+          privacy_accepted_at: new Date().toISOString(),
+        })
+        .eq('id', existingAcct.id)
+      testAccountId = existingAcct.id
+    } else {
+      // No trigger — create manually
+      const { data: acct, error: acctError } = await admin
+        .from('account_users')
+        .insert({
+          auth_user_id: testAuthUserId,
+          role: 'ADVERTISER',
+          status: 'ACTIVE',
+          onboarding_status: 'COMPLETED',
+          onboarding_step: 5,
+          terms_version: '1.0',
+          terms_accepted_at: new Date().toISOString(),
+          privacy_version: '1.0',
+          privacy_accepted_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single()
+      expect(acctError).toBeNull()
+      expect(acct).toBeTruthy()
+      testAccountId = acct!.id
+    }
+    expect(testAccountId).toBeTruthy()
   })
 
   afterAll(async () => {
-    // Cleanup: delete test subscription and account
-    if (testSubscriptionId) {
-      await admin.from('subscriptions').delete().eq('id', testSubscriptionId)
-    }
+    // Cleanup: delete test data in correct order (respect FKs)
     if (testAccountId) {
-      // Override cleanup first
       await admin.from('billing_overrides').delete().eq('account_user_id', testAccountId)
       await admin.from('subscriptions').delete().eq('account_user_id', testAccountId)
       await admin.from('account_users').delete().eq('id', testAccountId)
+    }
+    if (testAuthUserId) {
+      await admin.auth.admin.deleteUser(testAuthUserId)
     }
   })
 
