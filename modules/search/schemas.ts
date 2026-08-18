@@ -7,6 +7,30 @@ import {
 } from '@/modules/profiles/schemas'
 
 /**
+ * Reserved slugs that must not be treated as city or location slugs.
+ */
+export const RESERVED_CITY_SLUGS = new Set([
+  'login',
+  'signup',
+  'api',
+  'admin',
+  'dashboard',
+  'onboarding',
+  'terms',
+  'privacy',
+  'auth',
+  'complete-signup',
+  'forgot-password',
+  'reset-password',
+  'suspended',
+  'verify-email',
+])
+
+export function isReservedSlug(slug: string): boolean {
+  return RESERVED_CITY_SLUGS.has(slug.toLowerCase().trim())
+}
+
+/**
  * Parses and validates incoming search URL query parameters.
  */
 export const SearchQuerySchema = z.object({

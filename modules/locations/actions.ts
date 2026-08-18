@@ -10,11 +10,9 @@ import type { LocationActionResult, ProfileLocation } from './types'
 /**
  * Server Action: Save Service Locations for Advertiser Profile.
  *
- * Enforces:
- * 1. requireVerifiedAdvertiser() barrier (Active Account + Verified Adult KYC).
- * 2. Ownership: Resolves profile strictly via authenticated account.id.
- * 3. Validation: 1 to 5 locations, exactly 1 primary location.
- * 4. Atomic replacement of profile locations.
+ * Uses the atomic PostgreSQL RPC function `save_profile_service_areas` to
+ * ensure that deletion of old locations and insertion of new locations with
+ * the single primary location flag happen inside a single transaction.
  */
 export async function saveProfileLocationsAction(
   input: SaveProfileLocationsInput
@@ -41,7 +39,7 @@ export async function saveProfileLocationsAction(
 
     // 1. Verify that all location_ids exist and are active
     const { data: validLocations, error: locError } = await admin
-      .from('locations')
+      .from('marketplace_locations')
       .select('id')
       .in('id', location_ids)
       .eq('active', true)
@@ -50,38 +48,17 @@ export async function saveProfileLocationsAction(
       return { success: false, error: 'Uma ou mais localizações selecionadas são inválidas.' }
     }
 
-    // 2. Remove previous location relations for this profile
-    const { error: deleteError } = await admin
-      .from('professional_profile_locations')
-      .delete()
-      .eq('profile_id', profile.id)
+    // 2. Call the atomic PostgreSQL RPC function
+    const { error: rpcError } = await admin.rpc('save_profile_service_areas', {
+      p_profile_id: profile.id,
+      p_location_ids: location_ids,
+      p_primary_location_id: primary_location_id,
+    })
 
-    if (deleteError) {
-      console.error('[locations:save] Delete error:', deleteError.message)
-      return { success: false, error: 'Não foi possível atualizar as localizações.' }
-    }
-
-    // 3. Prepare batch insert rows
-    const rowsToInsert = location_ids.map((locId) => ({
-      profile_id: profile.id,
-      location_id: locId,
-      is_primary: locId === primary_location_id,
-    }))
-
-    const { error: insertError } = await admin
-      .from('professional_profile_locations')
-      .insert(rowsToInsert)
-
-    if (insertError) {
-      console.error('[locations:save] Insert error:', insertError.message)
+    if (rpcError) {
+      console.error('[locations:save] RPC error:', rpcError.message)
       return { success: false, error: 'Erro ao gravar as novas localizações.' }
     }
-
-    // 4. Update profile updated_at
-    await admin
-      .from('professional_profiles')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', profile.id)
 
     const updatedLocations = await getProfileLocations(profile.id)
     return { success: true, data: updatedLocations }

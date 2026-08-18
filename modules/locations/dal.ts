@@ -1,6 +1,21 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
-import type { City, Location, ProfileLocation } from './types'
+import type { Country, City, MarketplaceLocation, ProfileLocation } from './types'
+
+/**
+ * Retrieves all active countries.
+ */
+export async function getCountries(): Promise<Country[]> {
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('countries')
+    .select('*')
+    .eq('active', true)
+    .order('name', { ascending: true })
+
+  if (error || !data) return []
+  return data as Country[]
+}
 
 /**
  * Retrieves all active cities.
@@ -34,37 +49,37 @@ export async function getCityBySlug(slug: string): Promise<City | null> {
 }
 
 /**
- * Retrieves all active neighborhoods/locations for a given city ID.
+ * Retrieves all active neighborhoods/service areas for a given city ID.
  */
-export async function getLocationsByCityId(cityId: string): Promise<Location[]> {
+export async function getLocationsByCityId(cityId: string): Promise<MarketplaceLocation[]> {
   const admin = createAdminClient()
   const { data, error } = await admin
-    .from('locations')
+    .from('marketplace_locations')
     .select('*')
     .eq('city_id', cityId)
     .eq('active', true)
     .order('display_order', { ascending: true })
 
   if (error || !data) return []
-  return data as Location[]
+  return data as MarketplaceLocation[]
 }
 
 /**
- * Retrieves all active neighborhoods/locations for a given city slug.
+ * Retrieves all active neighborhoods/service areas for a given city slug.
  */
-export async function getLocationsByCitySlug(citySlug: string): Promise<Location[]> {
+export async function getLocationsByCitySlug(citySlug: string): Promise<MarketplaceLocation[]> {
   const city = await getCityBySlug(citySlug)
   if (!city) return []
   return getLocationsByCityId(city.id)
 }
 
 /**
- * Retrieves a single location by city ID and location slug.
+ * Retrieves a single marketplace location by city ID and location slug.
  */
-export async function getLocationBySlug(cityId: string, slug: string): Promise<Location | null> {
+export async function getLocationBySlug(cityId: string, slug: string): Promise<MarketplaceLocation | null> {
   const admin = createAdminClient()
   const { data, error } = await admin
-    .from('locations')
+    .from('marketplace_locations')
     .select('*')
     .eq('city_id', cityId)
     .eq('slug', slug)
@@ -72,7 +87,7 @@ export async function getLocationBySlug(cityId: string, slug: string): Promise<L
     .maybeSingle()
 
   if (error || !data) return null
-  return data as Location
+  return data as MarketplaceLocation
 }
 
 /**
@@ -82,7 +97,7 @@ export async function getProfileLocations(profileId: string): Promise<ProfileLoc
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('professional_profile_locations')
-    .select('*, location:locations(*)')
+    .select('*, location:marketplace_locations(*)')
     .eq('profile_id', profileId)
     .order('is_primary', { ascending: false })
 

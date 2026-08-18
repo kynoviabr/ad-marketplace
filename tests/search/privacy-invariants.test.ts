@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { SearchResultDTO } from '@/modules/search/types'
 
-describe('Search Privacy Invariants & DTO Security', () => {
+describe('Search Privacy Invariants & DTO Security (Revised)', () => {
   const sampleSearchResult: SearchResultDTO = {
     id: 'juliana-sao-paulo-4f9a',
     slug: 'juliana-sao-paulo-4f9a',
@@ -34,7 +34,6 @@ describe('Search Privacy Invariants & DTO Security', () => {
       phone: null, // show_phone = false
       telegram: null,
     },
-    photoPlaceholder: '/images/placeholder-avatar.svg',
   }
 
   it('SearchResultDTO strictly excludes all private, KYC, and internal account fields', () => {
@@ -50,6 +49,7 @@ describe('Search Privacy Invariants & DTO Security', () => {
       'legal_name',
       'verified_at',
       'verification_session',
+      'photoPlaceholder',
     ]
 
     for (const forbidden of forbiddenKeys) {

@@ -1,5 +1,5 @@
 /**
- * Search domain types — FASE 04
+ * Search domain types — FASE 04 (Revised)
  */
 
 import type { EyeColor, HairColor, HairLength, BodyType } from '@/modules/profiles/types'
@@ -23,7 +23,7 @@ export interface SearchParams {
   sort?: 'recommended' | 'newest'
   page?: number
   limit?: number
-  includePreview?: boolean // For development/test environments
+  includePreview?: boolean // Used in test/preview mode
 }
 
 export interface SearchResultDTO {
@@ -53,13 +53,12 @@ export interface SearchResultDTO {
     hasPiercings: boolean
     languages: string[]
   }
-  isVerified: boolean // True for all eligible profiles
+  isVerified: boolean // Boolean derived indicator
   contact: {
     whatsapp: string | null
     phone: string | null
     telegram: string | null
   }
-  photoPlaceholder: string
 }
 
 export interface SearchResponse {

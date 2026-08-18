@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { executeSearch, getFilterOptions } from '@/modules/search/dal'
+import { isReservedSlug } from '@/modules/search/schemas'
 import { SearchFilterSidebar } from '@/components/search/search-filter-sidebar'
 import { SearchResultCard } from '@/components/search/search-result-card'
 
@@ -17,6 +18,10 @@ export default async function NeighborhoodSearchPage({
   searchParams,
 }: NeighborhoodSearchPageProps) {
   const { city: citySlug, neighborhood: neighborhoodSlug } = await params
+  if (isReservedSlug(citySlug) || isReservedSlug(neighborhoodSlug)) {
+    notFound()
+  }
+
   const resolvedSearchParams = await searchParams
 
   const filterOptions = await getFilterOptions(citySlug)

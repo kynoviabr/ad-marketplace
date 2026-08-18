@@ -1,9 +1,14 @@
 import { z } from 'zod'
 
 /**
+ * Configurable limit of service areas per profile (Human Decision D2).
+ */
+export const MAX_SERVICE_AREAS = 5
+
+/**
  * Schema for saving advertiser service locations.
  * Enforces:
- * - At least 1 location and at most 5 locations per profile
+ * - At least 1 location and at most MAX_SERVICE_AREAS (5) locations per profile
  * - primary_location_id must be in location_ids
  */
 export const SaveProfileLocationsSchema = z
@@ -11,7 +16,7 @@ export const SaveProfileLocationsSchema = z
     location_ids: z
       .array(z.string().uuid({ message: 'ID de localização inválido' }))
       .min(1, 'Selecione pelo menos um bairro de atendimento')
-      .max(5, 'Você pode selecionar no máximo 5 bairros de atendimento'),
+      .max(MAX_SERVICE_AREAS, `Você pode selecionar no máximo ${MAX_SERVICE_AREAS} bairros de atendimento`),
     primary_location_id: z.string().uuid({ message: 'ID da localização principal inválido' }),
   })
   .refine((data) => data.location_ids.includes(data.primary_location_id), {

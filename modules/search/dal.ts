@@ -2,7 +2,6 @@ import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getCityBySlug, getLocationBySlug, getLocationsByCityId } from '@/modules/locations/dal'
 import type { SearchParams, SearchResponse, SearchResultDTO, FilterOptions } from './types'
-import type { EyeColor, HairColor, HairLength, BodyType } from '@/modules/profiles/types'
 
 /**
  * Executes a structured, visibility-aware search query in PostgreSQL.
@@ -16,7 +15,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
     throw new Error(`Cidade '${params.citySlug}' não encontrada.`)
   }
 
-  // 2. Resolve optional Location (Neighborhood)
+  // 2. Resolve optional Location (Neighborhood/Service Area)
   let selectedLocation: SearchResponse['selectedLocation'] = null
   if (params.locationSlug) {
     const loc = await getLocationBySlug(city.id, params.locationSlug)
@@ -34,8 +33,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
   const limit = Math.min(50, Math.max(1, params.limit || 20))
   const offset = (page - 1) * limit
 
-  // 3. Build query using Supabase client
-  // Allowed statuses: in production, 'ACTIVE'; in preview/test mode, also 'READY_FOR_REVIEW'
+  // 3. Allowed statuses: in production, 'ACTIVE'; in preview/test mode, also 'READY_FOR_REVIEW'
   const allowedStatuses = params.includePreview ? ['ACTIVE', 'READY_FOR_REVIEW'] : ['ACTIVE', 'READY_FOR_REVIEW']
 
   let query = admin
@@ -76,7 +74,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
       updated_at,
       locations:professional_profile_locations!inner (
         is_primary,
-        location:locations!inner (
+        location:marketplace_locations!inner (
           id,
           name,
           slug,
@@ -225,7 +223,6 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
         phone: row.show_phone ? row.direct_phone : null,
         telegram: row.show_telegram ? row.telegram_username : null,
       },
-      photoPlaceholder: '/images/placeholder-avatar.svg',
     }
   })
 
@@ -244,7 +241,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
 }
 
 /**
- * Retrieves filter options for a given city (e.g. all neighborhoods grouped by zone).
+ * Retrieves filter options for a given city.
  */
 export async function getFilterOptions(citySlug: string): Promise<FilterOptions | null> {
   const city = await getCityBySlug(citySlug)

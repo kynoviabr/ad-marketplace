@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import { SearchQuerySchema } from '@/modules/search/schemas'
+import { SearchQuerySchema, isReservedSlug } from '@/modules/search/schemas'
 
-describe('Search Query Parameter Validation', () => {
+describe('Search Query Parameter Validation (Revised)', () => {
+  it('identifies reserved route slugs correctly', () => {
+    expect(isReservedSlug('login')).toBe(true)
+    expect(isReservedSlug('signup')).toBe(true)
+    expect(isReservedSlug('api')).toBe(true)
+    expect(isReservedSlug('admin')).toBe(true)
+    expect(isReservedSlug('sao-paulo')).toBe(false)
+    expect(isReservedSlug('moema')).toBe(false)
+  })
+
   it('parses valid search query parameters correctly', () => {
     const rawParams = {
       bairro: 'moema',

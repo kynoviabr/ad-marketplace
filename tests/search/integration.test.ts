@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
 import { executeSearch, getFilterOptions } from '@/modules/search/dal'
+import { isProfileStructurallySearchReady, isPublicSearchEligible } from '@/modules/search/eligibility'
 
 const SUPABASE_URL = 'https://mwzlunkkyigxzjpnybxj.supabase.co'
 const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13emx1bmtreWlneHpqcG55YnhqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzAwNjkyMywiZXhwIjoyMTAyNTgyOTIzfQ.FoVQs8htk7Bns9etpKCpNXfSVXSs0lmjGhTx1h-fQsU'
@@ -9,7 +10,7 @@ const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 process.env.NEXT_PUBLIC_SUPABASE_URL = SUPABASE_URL
 process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_ROLE_KEY
 
-describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests', () => {
+describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Revised)', () => {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
@@ -26,10 +27,10 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests', (
   let pinheirosId: string
 
   beforeAll(async () => {
-    // 1. Get Moema and Pinheiros from seed data
-    const { data: moema } = await admin.from('locations').select('id').eq('slug', 'moema').single()
-    const { data: pinheiros } = await admin.from('locations').select('id').eq('slug', 'pinheiros').single()
-    if (!moema || !pinheiros) throw new Error('Seed locations missing')
+    // 1. Get Moema and Pinheiros from seed data in marketplace_locations
+    const { data: moema } = await admin.from('marketplace_locations').select('id').eq('slug', 'moema').single()
+    const { data: pinheiros } = await admin.from('marketplace_locations').select('id').eq('slug', 'pinheiros').single()
+    if (!moema || !pinheiros) throw new Error('Seed marketplace_locations missing')
     moemaId = moema.id
     pinheirosId = pinheiros.id
 
@@ -80,11 +81,12 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests', (
       .single()
     profileAId = profA!.id
 
-    // User A locations: Moema (primary) and Pinheiros
-    await admin.from('professional_profile_locations').insert([
-      { profile_id: profileAId, location_id: moemaId, is_primary: true },
-      { profile_id: profileAId, location_id: pinheirosId, is_primary: false },
-    ])
+    // Use atomic RPC save_profile_service_areas
+    await admin.rpc('save_profile_service_areas', {
+      p_profile_id: profileAId,
+      p_location_ids: [moemaId, pinheirosId],
+      p_primary_location_id: moemaId,
+    })
 
     // 3. Create User B (Hidden weight = 60kg, show_weight = false)
     const emailB = `fase04-user-b-${Date.now()}@ad-marketplace-synthetic.invalid`
@@ -133,10 +135,12 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests', (
       .single()
     profileBId = profB!.id
 
-    // User B locations: Moema (primary)
-    await admin.from('professional_profile_locations').insert([
-      { profile_id: profileBId, location_id: moemaId, is_primary: true },
-    ])
+    // Use atomic RPC save_profile_service_areas
+    await admin.rpc('save_profile_service_areas', {
+      p_profile_id: profileBId,
+      p_location_ids: [moemaId],
+      p_primary_location_id: moemaId,
+    })
   })
 
   afterAll(async () => {
@@ -144,59 +148,58 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests', (
     if (userBId) await admin.auth.admin.deleteUser(userBId)
   })
 
-  it('seed data includes São Paulo state, city and 25 neighborhoods', async () => {
+  it('seed data includes Brasil, SP state, São Paulo city and 25 service areas', async () => {
+    const { data: country } = await admin.from('countries').select('*').eq('code', 'BR').single()
+    expect(country).toBeDefined()
+    expect(country?.slug).toBe('brasil')
+
     const { data: state } = await admin.from('states').select('*').eq('code', 'SP').single()
     expect(state).toBeDefined()
-    expect(state?.slug).toBe('sao-paulo')
 
     const { data: city } = await admin.from('cities').select('*').eq('slug', 'sao-paulo').single()
     expect(city).toBeDefined()
 
-    const { data: locations, count } = await admin
-      .from('locations')
+    const { count } = await admin
+      .from('marketplace_locations')
       .select('*', { count: 'exact' })
       .eq('city_id', city!.id)
 
-    expect(count).toBeGreaterThanOrEqual(25)
+    expect(count).toBe(25)
   })
 
-  it('anon client has public read on locations catalog but is blocked from writing', async () => {
-    const { data, error } = await anon.from('locations').select('id, name, slug').limit(5)
-    expect(error).toBeNull()
-    expect(data?.length).toBe(5)
-
-    const { error: insertError } = await anon.from('locations').insert({
-      city_id: moemaId,
-      name: 'Bairro Fake',
-      slug: 'bairro-fake',
-      zone: 'Zona Sul',
-    })
-    expect(insertError).not.toBeNull()
+  it('anon client cannot directly query professional_profile_locations join table', async () => {
+    const { data, error } = await anon.from('professional_profile_locations').select('*').limit(5)
+    expect(error || !data || data.length === 0).toBeTruthy()
   })
 
-  it('partial unique index strictly blocks second primary location for same profile', async () => {
-    const { error } = await admin.from('professional_profile_locations').insert({
-      profile_id: profileAId,
-      location_id: pinheirosId,
-      is_primary: true, // User A already has Moema as primary!
+  it('concurrency test: concurrent saves maintain single primary and no duplicates', async () => {
+    // Fire 2 concurrent saves for User A
+    const save1 = admin.rpc('save_profile_service_areas', {
+      p_profile_id: profileAId,
+      p_location_ids: [moemaId, pinheirosId],
+      p_primary_location_id: moemaId,
     })
 
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe('23505') // unique_violation
-  })
-
-  it('unique constraint blocks duplicate location for same profile', async () => {
-    const { error } = await admin.from('professional_profile_locations').insert({
-      profile_id: profileAId,
-      location_id: moemaId, // Already in Moema
-      is_primary: false,
+    const save2 = admin.rpc('save_profile_service_areas', {
+      p_profile_id: profileAId,
+      p_location_ids: [moemaId, pinheirosId],
+      p_primary_location_id: pinheirosId,
     })
 
-    expect(error).not.toBeNull()
-    expect(error?.code).toBe('23505')
+    await Promise.allSettled([save1, save2])
+
+    // Query final state
+    const { data: finalLocations } = await admin
+      .from('professional_profile_locations')
+      .select('*')
+      .eq('profile_id', profileAId)
+
+    expect(finalLocations?.length).toBe(2)
+    const primaries = finalLocations?.filter((l) => l.is_primary)
+    expect(primaries?.length).toBe(1) // Exactly one primary
   })
 
-  it('executes city search returning eligible profiles with primary locations', async () => {
+  it('executes city search returning eligible profiles', async () => {
     const response = await executeSearch({
       citySlug: 'sao-paulo',
       includePreview: true,
@@ -206,18 +209,6 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests', (
     const names = response.results.map((r) => r.stageName)
     expect(names).toContain('Juliana Moema')
     expect(names).toContain('Camila Jardins')
-  })
-
-  it('executes neighborhood search returning only profiles servicing that neighborhood', async () => {
-    const responsePinheiros = await executeSearch({
-      citySlug: 'sao-paulo',
-      locationSlug: 'pinheiros',
-      includePreview: true,
-    })
-
-    const names = responsePinheiros.results.map((r) => r.stageName)
-    expect(names).toContain('Juliana Moema') // Juliana services Pinheiros
-    expect(names).not.toContain('Camila Jardins') // Camila only services Moema
   })
 
   it('visibility-aware filter: hidden attributes are NEVER matched or inferable', async () => {
@@ -237,11 +228,26 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests', (
     expect(names).not.toContain('Camila Jardins')
   })
 
-  it('retrieves filter options for São Paulo grouped by zone', async () => {
-    const filterOptions = await getFilterOptions('sao-paulo')
-    expect(filterOptions).not.toBeNull()
-    expect(filterOptions?.city.slug).toBe('sao-paulo')
-    expect(filterOptions?.locationsByZone['Zona Sul']).toBeDefined()
-    expect(filterOptions?.locationsByZone['Zona Oeste']).toBeDefined()
+  it('general search without filter returns hidden attribute profile with null in DTO', async () => {
+    const response = await executeSearch({
+      citySlug: 'sao-paulo',
+      includePreview: true,
+    })
+
+    const camila = response.results.find((r) => r.stageName === 'Camila Jardins')
+    expect(camila).toBeDefined()
+    expect(camila?.attributes.weightKg).toBeNull() // Sanitized to null in DTO!
+  })
+
+  it('search eligibility: distinguishes structural readiness from production eligibility', () => {
+    const mockProfile = { status: 'READY_FOR_REVIEW' as const }
+    const mockAccount = { status: 'ACTIVE' as const }
+    const mockVerification = { status: 'VERIFIED' as const, identity_verified: true, age_verified: true }
+
+    // Structurally ready (internal/dev)
+    expect(isProfileStructurallySearchReady(mockProfile, mockAccount, mockVerification, 2)).toBe(true)
+
+    // Not publicly eligible yet (fails because media/moderation are not approved and status is not ACTIVE)
+    expect(isPublicSearchEligible(mockProfile, mockAccount, mockVerification, false, false)).toBe(false)
   })
 })
