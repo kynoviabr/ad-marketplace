@@ -47,3 +47,6 @@ coverage/
 
 # Misc
 .cache/
+
+# Supabase CLI state (local link, not project config)
+supabase/.temp/
