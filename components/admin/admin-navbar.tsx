@@ -11,6 +11,7 @@ export function AdminNavbar() {
     { href: '/admin/profiles', label: 'Moderação de Perfis' },
     { href: '/admin/reports', label: 'Denúncias' },
     { href: '/admin/billing', label: 'Assinaturas' },
+    { href: '/admin/boosts', label: 'Destaques' },
   ]
 
   return (

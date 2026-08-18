@@ -34,6 +34,8 @@ describe('Search Privacy Invariants & DTO Security (Revised)', () => {
       phone: null, // show_phone = false
       telegram: null,
     },
+    placementType: 'ORGANIC',
+    isSponsored: false,
   }
 
   it('SearchResultDTO strictly excludes all private, KYC, and internal account fields', () => {

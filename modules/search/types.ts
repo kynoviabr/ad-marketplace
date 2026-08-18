@@ -1,8 +1,10 @@
 /**
- * Search domain types — FASE 04 (Revised)
+ * Search domain types — FASE 04 & FASE 08 (Sponsored Placement)
  */
 
 import type { EyeColor, HairColor, HairLength, BodyType } from '@/modules/profiles/types'
+
+export type PlacementType = 'ORGANIC' | 'SPONSORED'
 
 export interface SearchParams {
   citySlug: string
@@ -59,6 +61,9 @@ export interface SearchResultDTO {
     phone: string | null
     telegram: string | null
   }
+  // FASE 08 Sponsored Placement Identifiers
+  placementType: PlacementType
+  isSponsored: boolean
 }
 
 export interface SearchResponse {
@@ -78,6 +83,7 @@ export interface SearchResponse {
     slug: string
     zone: string
   } | null
+  sponsoredCount?: number
 }
 
 export interface FilterOptions {

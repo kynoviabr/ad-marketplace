@@ -1,9 +1,9 @@
 # Database Schema Reference
 STATUS: ACTIVE & VALIDATED
-VERSION: 0.5
+VERSION: 0.6
 LAST UPDATED: 2026-08-18
 
-## Applied Tables (FASE 01 - 07)
+## Applied Tables (FASE 01 - 08)
 
 ### FASE 01: Authentication & Accounts
 - `public.account_users`: Core user accounts (role, status, onboarding state, terms/privacy versioning).
@@ -18,7 +18,7 @@ LAST UPDATED: 2026-08-18
 ### FASE 04: Locations & Search
 - `public.states`: Geographic state entities (e.g. SP).
 - `public.cities`: Geographic cities (e.g. São Paulo).
-- `public.locations`: Neighborhoods and service areas (e.g. Moema, Pinheiros, Jardins).
+- `public.marketplace_locations`: Neighborhoods and service areas (e.g. Moema, Pinheiros, Jardins).
 - `public.professional_profile_locations`: Many-to-many link between profiles and service locations, with partial unique index ensuring at most one primary location (`is_primary = true`) per profile.
 
 ### FASE 05: Media / Photos
@@ -37,6 +37,10 @@ LAST UPDATED: 2026-08-18
 - `public.billing_webhook_events`: Idempotent webhook event ledger with UNIQUE (provider, provider_event_id). No raw payload storage (LGPD/PCI minimization).
 - `public.billing_overrides`: Admin-granted publication entitlements with audit trail (granted_by, revoked_by, reason, expiry).
 
+### FASE 08: Boosts & Additional Monetization Foundation
+- `public.boost_products`: Visibility products catalog (BOOST_CITY_24H, BOOST_CITY_7D, BOOST_LOCATION_24H, BOOST_LOCATION_7D). Scope types (`CITY`, `MARKETPLACE_LOCATION`).
+- `public.boost_prices`: Price tiers per boost product. Integer minor units (centavos), temporal integrity check constraint (`valid_until > valid_from`), non-negative check. Seeded as commercial placeholders for DEV.
+- `public.profile_boosts`: Campaign orders and active placements with lifecycle states (PENDING_PAYMENT, SCHEDULED, ACTIVE, COMPLETED, CANCELED, FAILED). Concurrency-safe temporal exclusion constraint (`ex_profile_boosts_no_temporal_overlap` via `btree_gist` and `tstzrange`) preventing overlapping active/scheduled campaigns for the exact same profile, scope, and location while allowing adjacent and future campaigns. Composite performance indexes for fast search resolution.
+
 ## Candidate Tables (Future Phases)
-- FASE 08: `public.promotion_products`, `public.promotion_campaigns`
-- FASE 09: Analytics tables
+- FASE 09: `public.search_impressions`, `public.profile_views`, `public.contact_clicks`
