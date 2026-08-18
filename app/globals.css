@@ -1,6 +1,6 @@
 /*
  * AD-Marketplace — Global Styles
- * Foundation / Bootstrap Phase
+ * Foundation / Bootstrap Phase — updated FASE 01
  *
  * This is a minimal, functional stylesheet for the development environment.
  * The Design & Conversion System will be defined separately in a later phase.
@@ -24,16 +24,12 @@ html {
 
 body {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 1rem;
 }
 
-main {
-  width: 100%;
-  max-width: 480px;
-}
+/* ============================================================
+   FOUNDATION PAGE (home)
+   ============================================================ */
 
 .status-card {
   background: #ffffff;
@@ -41,6 +37,8 @@ main {
   border-radius: 8px;
   padding: 2rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 h1 {
@@ -80,4 +78,299 @@ h1 {
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #f3f4f6;
+}
+
+/* ============================================================
+   AUTH LAYOUT & FORMS
+   ============================================================ */
+
+.auth-layout {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  width: 100%;
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-form {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.auth-subtitle {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: -0.5rem 0 0;
+  line-height: 1.5;
+}
+
+.auth-footer {
+  font-size: 0.875rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+.auth-footer a,
+.auth-note a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.auth-footer a:hover,
+.auth-note a:hover {
+  text-decoration: underline;
+}
+
+.auth-note {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.form-footer-link {
+  text-align: right;
+  margin-top: -0.5rem;
+}
+
+.form-footer-link a {
+  font-size: 0.875rem;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group--checkbox {
+  gap: 0.25rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.label-required {
+  color: #ef4444;
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  color: #111827;
+  background: #ffffff;
+  transition: border-color 0.15s;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.input--error {
+  border-color: #ef4444;
+}
+
+.input-error {
+  font-size: 0.8125rem;
+  color: #dc2626;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.checkbox-label a {
+  color: #2563eb;
+}
+
+.checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: #2563eb;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.15s, opacity 0.15s;
+  text-decoration: none;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background-color: #2563eb;
+  color: #ffffff;
+  width: 100%;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn--ghost {
+  background-color: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+/* ============================================================
+   FORM MESSAGES
+   ============================================================ */
+
+.form-message {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.form-message--error {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.form-message--success {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.form-message--info {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+
+.dashboard-layout {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.dashboard-container {
+  width: 100%;
+  max-width: 540px;
+}
+
+.dashboard-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.dashboard-greeting {
+  font-size: 1rem;
+  color: #374151;
+}
+
+.dashboard-section {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.9375rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.dashboard-label {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.dashboard-value {
+  color: #111827;
+}
+
+.dashboard-note {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.dashboard-logout {
+  margin-top: 0.5rem;
 }

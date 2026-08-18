@@ -1,14 +1,17 @@
 /**
- * Module: auth
- *
- * Responsible for: Authentication flows, session management,
- * Supabase Auth integration.
- *
- * Status: BOUNDARY ONLY — implementation begins in FASE 01.
+ * Auth module — public API surface
  *
  * @see docs/03_AUTHENTICATION.md
  */
 
-// This file is intentionally empty.
-// Exports will be added in FASE 01 — Authentication & Account.
-export {}
+export type { UserRole, UserStatus, OnboardingStatus, AccountUser, ActionResult } from './types'
+export { getSession, requireAuth, getAccount, requireAccount } from './dal'
+export {
+  signupAction,
+  loginAction,
+  logoutAction,
+  forgotPasswordAction,
+  resetPasswordAction,
+  startOnboardingAction,
+  startOnboardingFormAction,
+} from './actions'

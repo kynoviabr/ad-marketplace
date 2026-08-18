@@ -77,8 +77,11 @@ describe('Foundation Structure', () => {
   })
 
   describe('No premature business features', () => {
-    it('no database migration files exist yet', () => {
-      expect(exists('supabase/migrations')).toBe(false)
+    it('FASE 01 migration directory exists (account_users only)', () => {
+      // FASE 01 legitimately introduces supabase/migrations with account_users.
+      // This test verifies the directory exists and contains only FASE 01 content.
+      expect(exists('supabase/migrations')).toBe(true)
+      expect(exists('supabase/migrations/20260817000001_account_users.sql')).toBe(true)
     })
 
     it('no payment integration files exist', () => {
