@@ -1,12 +1,23 @@
 /**
  * Module: media
  *
- * Responsible for: Photo upload, storage (external object storage),
- * moderation queue integration. Media binaries are NEVER stored in PostgreSQL.
- *
- * Status: BOUNDARY ONLY — implementation begins in FASE 05.
- * Requires: Verified identity AND age before any adult media upload.
+ * Responsible for: Adult photo uploads, photo state machine, signed storage URLs,
+ * EXIF sanitization, reordering, primary photo selection, and media quotas.
  *
  * @see docs/07_MEDIA.md
  */
-export {}
+
+// Types
+export * from './types'
+
+// Schemas
+export * from './schemas'
+
+// Gates
+export * from './gates'
+
+// DAL
+export * from './dal'
+
+// Server Actions
+export * from './actions'

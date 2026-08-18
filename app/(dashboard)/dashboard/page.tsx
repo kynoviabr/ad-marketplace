@@ -146,6 +146,12 @@ export default async function DashboardPage() {
                 ✓ Dados do perfil profissional concluídos ({profile.stage_name}).
               </p>
               <Link
+                href="/dashboard/photos"
+                className="btn btn--primary block text-center"
+              >
+                Gerenciar Fotos do Anúncio (FASE 05)
+              </Link>
+              <Link
                 href="/onboarding/profile"
                 className="btn btn--ghost block text-center text-xs"
               >
