@@ -361,3 +361,95 @@ COMMENT ON TABLE public.profile_moderation_reviews IS
   'FASE 06: Profile text review audit trail. FASE 11: Explicit deny-all RLS for anon+authenticated added for defense-in-depth.';
 COMMENT ON TABLE public.content_reports IS
   'FASE 06: Public content reports. FASE 11: Explicit deny-all SELECT RLS for anon+authenticated added for defense-in-depth.';
+
+-- =============================================================================
+-- SECTION 5: STORAGE BUCKET SECURITY (F11-SEC-012 — new finding)
+-- =============================================================================
+--
+-- The profile-media storage bucket stores uploaded advertiser photos.
+-- It must be PRIVATE (no public URLs). Delivery is via signed URLs only.
+-- Access is controlled through application actions (service_role only).
+--
+-- Bucket creation: idempotent — only inserts if bucket does not exist.
+-- Storage RLS policies restrict who can access storage.objects rows.
+--
+-- UPLOAD policy:
+--   Only authenticated users who own the profile at the storage path may
+--   upload, via the signed URL mechanism (service_role generates the URL).
+--   Direct client uploads without a signed URL are blocked.
+--
+-- SELECT / DELETE / UPDATE:
+--   Only service_role (which bypasses RLS) may read, delete, or update
+--   storage objects. Client roles have no direct access.
+--
+-- =============================================================================
+
+-- 5.1: Ensure the bucket exists (private, no public access)
+INSERT INTO storage.buckets (id, name, public, allowed_mime_types, file_size_limit)
+VALUES (
+  'profile-media',
+  'profile-media',
+  FALSE,
+  ARRAY['image/jpeg', 'image/png', 'image/webp'],
+  15728640  -- 15MB
+)
+ON CONFLICT (id) DO UPDATE
+  SET public = FALSE,  -- enforce private even if accidentally made public
+      allowed_mime_types = EXCLUDED.allowed_mime_types,
+      file_size_limit = EXCLUDED.file_size_limit;
+
+-- 5.2: Storage RLS policies on storage.objects
+-- These policies control which rows in storage.objects client roles can access.
+-- service_role bypasses RLS entirely and is not affected.
+
+-- Drop any existing policies first (idempotent)
+DROP POLICY IF EXISTS "profile-media: authenticated owner upload" ON storage.objects;
+DROP POLICY IF EXISTS "profile-media: deny anon all" ON storage.objects;
+DROP POLICY IF EXISTS "profile-media: deny authenticated cross-profile" ON storage.objects;
+DROP POLICY IF EXISTS "profile-media: service_role full access" ON storage.objects;
+
+-- 5.2a: Deny all anon access to profile-media objects
+CREATE POLICY "profile-media: deny anon all"
+  ON storage.objects FOR ALL
+  TO anon
+  USING (bucket_id = 'profile-media' AND false);
+
+-- 5.2b: Authenticated users may only SELECT objects in their own profile path.
+--       The path format is profiles/{profile_id}/{filename}.
+--       We verify the profile_id segment belongs to the authenticated user.
+--       Direct INSERT/UPDATE/DELETE is denied — only service_role creates/manages objects.
+CREATE POLICY "profile-media: authenticated owner select"
+  ON storage.objects FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'profile-media'
+    AND (
+      -- Extract profile_id from path prefix: profiles/{profile_id}/...
+      EXISTS (
+        SELECT 1
+        FROM public.professional_profiles pp
+        JOIN public.account_users au ON au.id = pp.account_user_id
+        WHERE au.auth_user_id = auth.uid()
+          AND (storage.objects.name LIKE 'profiles/' || pp.id::text || '/%'
+               OR storage.objects.name = 'profiles/' || pp.id::text)
+      )
+    )
+  );
+
+-- 5.2c: Deny authenticated direct INSERT (must go through signed URL flow)
+CREATE POLICY "profile-media: deny authenticated direct insert"
+  ON storage.objects FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'profile-media' AND false);
+
+-- 5.2d: Deny authenticated direct UPDATE and DELETE (service_role only)
+CREATE POLICY "profile-media: deny authenticated update"
+  ON storage.objects FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'profile-media' AND false);
+
+CREATE POLICY "profile-media: deny authenticated delete"
+  ON storage.objects FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'profile-media' AND false);
+
