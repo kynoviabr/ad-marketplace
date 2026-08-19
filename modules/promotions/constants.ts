@@ -18,8 +18,14 @@ export const DEFAULT_CURRENCY = 'BRL'
 /**
  * Duration of a single rotation time bucket in minutes.
  * Advertisers within the same scope receive deterministic rotation that updates each hour.
+ * @alias ROTATION_BUCKET_MINUTES
  */
-export const ROTATION_BUCKET_MINUTES = 60
+export const BOOST_ROTATION_WINDOW_MINUTES = 60
+
+/**
+ * @deprecated Use BOOST_ROTATION_WINDOW_MINUTES
+ */
+export const ROTATION_BUCKET_MINUTES = BOOST_ROTATION_WINDOW_MINUTES
 
 /**
  * Canonical campaign statuses.

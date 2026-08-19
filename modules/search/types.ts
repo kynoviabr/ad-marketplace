@@ -68,7 +68,8 @@ export interface SearchResultDTO {
 
 export interface SearchResponse {
   results: SearchResultDTO[]
-  total: number
+  /** Total unique eligible profiles matching the query. Sponsored profiles are part of this count. Never inflated by +sponsoredCount. */
+  totalProfiles: number
   page: number
   pageSize: number
   totalPages: number
@@ -83,7 +84,8 @@ export interface SearchResponse {
     slug: string
     zone: string
   } | null
-  sponsoredCount?: number
+  /** Number of sponsored cards included in results (0–MAX_SPONSORED_SLOTS_PER_PAGE). Informational for UI only. Never trusted by server. */
+  sponsoredCount: number
 }
 
 export interface FilterOptions {

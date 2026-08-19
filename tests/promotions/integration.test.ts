@@ -183,11 +183,12 @@ describe('FASE 08 — Live Supabase DEV Promotions Integration Tests', () => {
     expect(codes).toContain('BOOST_LOCATION_7D')
   })
 
-  it('creates an active city boost campaign', async () => {
+  it('creates a city boost campaign via PENDING_PAYMENT → ACTIVE lifecycle', async () => {
     const now = new Date()
     const endsAt = new Date(now.getTime() + 24 * 3600 * 1000)
 
-    const { data: campaign, error } = await admin
+    // Step 1 of lifecycle: Insert as PENDING_PAYMENT (never as ACTIVE directly)
+    const { data: campaign, error: insertError } = await admin
       .from('profile_boosts')
       .insert({
         profile_id: testProfileId,
@@ -197,15 +198,30 @@ describe('FASE 08 — Live Supabase DEV Promotions Integration Tests', () => {
         city_id: spCityId,
         starts_at: now.toISOString(),
         ends_at: endsAt.toISOString(),
-        status: 'ACTIVE',
+        status: 'PENDING_PAYMENT',
         provider: 'MOCK',
       })
       .select()
       .single()
 
-    expect(error).toBeNull()
+    expect(insertError).toBeNull()
     expect(campaign).toBeTruthy()
-    expect(campaign!.status).toBe('ACTIVE')
+    expect(campaign!.status).toBe('PENDING_PAYMENT')
+
+    // Step 2 of lifecycle: Provider confirms payment → transition to ACTIVE
+    const { data: updated, error: updateError } = await admin
+      .from('profile_boosts')
+      .update({
+        status: 'ACTIVE',
+        provider_payment_id: `mock_pay_${Date.now()}`,
+      })
+      .eq('id', campaign!.id)
+      .select()
+      .single()
+
+    expect(updateError).toBeNull()
+    expect(updated!.status).toBe('ACTIVE')
+    expect(updated!.provider_payment_id).toMatch(/^mock_pay_/)
     createdCampaignIds.push(campaign!.id)
   })
 
@@ -268,7 +284,8 @@ describe('FASE 08 — Live Supabase DEV Promotions Integration Tests', () => {
     const now = new Date()
     const endsAt = new Date(now.getTime() + 24 * 3600 * 1000)
 
-    const { data: campaign, error } = await admin
+    // Step 1: Insert as PENDING_PAYMENT
+    const { data: campaign, error: insertError } = await admin
       .from('profile_boosts')
       .insert({
         profile_id: testProfileId,
@@ -279,16 +296,85 @@ describe('FASE 08 — Live Supabase DEV Promotions Integration Tests', () => {
         location_id: moemaLocationId,
         starts_at: now.toISOString(),
         ends_at: endsAt.toISOString(),
-        status: 'ACTIVE',
+        status: 'PENDING_PAYMENT',
         provider: 'MOCK',
       })
       .select()
       .single()
 
-    expect(error).toBeNull()
-    expect(campaign).toBeTruthy()
-    expect(campaign!.status).toBe('ACTIVE')
+    expect(insertError).toBeNull()
+    expect(campaign!.status).toBe('PENDING_PAYMENT')
+
+    // Step 2: Confirm → ACTIVE
+    const { data: updated, error: updateError } = await admin
+      .from('profile_boosts')
+      .update({ status: 'ACTIVE', provider_payment_id: `mock_loc_${Date.now()}` })
+      .eq('id', campaign!.id)
+      .select()
+      .single()
+
+    expect(updateError).toBeNull()
+    expect(updated!.status).toBe('ACTIVE')
     createdCampaignIds.push(campaign!.id)
+  })
+
+  it('PENDING_PAYMENT → FAILED when provider declines: does not block future campaigns', async () => {
+    const futureStart = new Date(Date.now() + 10 * 24 * 3600 * 1000) // +10 days
+    const futureEnd = new Date(futureStart.getTime() + 24 * 3600 * 1000)
+
+    // Insert as PENDING_PAYMENT
+    const { data: campaign, error: insertError } = await admin
+      .from('profile_boosts')
+      .insert({
+        profile_id: testProfileId,
+        boost_product_id: city24hProduct.id,
+        boost_price_id: city24hPrice.id,
+        scope_type: 'CITY',
+        city_id: spCityId,
+        starts_at: futureStart.toISOString(),
+        ends_at: futureEnd.toISOString(),
+        status: 'PENDING_PAYMENT',
+        provider: 'MOCK',
+      })
+      .select()
+      .single()
+
+    expect(insertError).toBeNull()
+    expect(campaign!.status).toBe('PENDING_PAYMENT')
+
+    // Provider declines → FAILED
+    const { data: failed, error: failErr } = await admin
+      .from('profile_boosts')
+      .update({ status: 'FAILED' })
+      .eq('id', campaign!.id)
+      .select()
+      .single()
+
+    expect(failErr).toBeNull()
+    expect(failed!.status).toBe('FAILED')
+
+    // FAILED record does not block a NEW non-overlapping campaign for the same period
+    // (FAILED is excluded from the exclusion constraint)
+    const { data: newCampaign, error: newErr } = await admin
+      .from('profile_boosts')
+      .insert({
+        profile_id: testProfileId,
+        boost_product_id: city24hProduct.id,
+        boost_price_id: city24hPrice.id,
+        scope_type: 'CITY',
+        city_id: spCityId,
+        starts_at: futureStart.toISOString(),
+        ends_at: futureEnd.toISOString(),
+        status: 'PENDING_PAYMENT',
+        provider: 'MOCK',
+      })
+      .select()
+      .single()
+
+    expect(newErr).toBeNull()
+    expect(newCampaign!.status).toBe('PENDING_PAYMENT')
+    createdCampaignIds.push(campaign!.id)
+    createdCampaignIds.push(newCampaign!.id)
   })
 
   it('validates admin cancellation lifecycle', async () => {
@@ -321,3 +407,4 @@ describe('FASE 08 — Live Supabase DEV Promotions Integration Tests', () => {
     expect(data === null || data.length === 0).toBe(true)
   })
 })
+

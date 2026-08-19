@@ -193,7 +193,7 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Re
       includePreview: true,
     })
 
-    expect(response.total).toBeGreaterThanOrEqual(2)
+    expect(response.totalProfiles).toBeGreaterThanOrEqual(2)
     const names = response.results.map((r) => r.stageName)
     expect(names).toContain('Juliana Moema')
     expect(names).toContain('Camila Jardins')

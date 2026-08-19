@@ -81,8 +81,8 @@ export default async function NeighborhoodSearchPage({
         <div className="lg:col-span-3 space-y-6">
           <div className="flex items-center justify-between text-xs text-gray-500">
             <span>
-              {searchResponse.total}{' '}
-              {searchResponse.total === 1 ? 'perfil encontrado' : 'perfis encontrados'}
+              {searchResponse.totalProfiles}{' '}
+              {searchResponse.totalProfiles === 1 ? 'perfil encontrado' : 'perfis encontrados'}
             </span>
             <span>Bairro: {locationName}</span>
           </div>

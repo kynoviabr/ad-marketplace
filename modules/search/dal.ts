@@ -171,6 +171,29 @@ const SELECT_PROFILE_SEARCH_FIELDS = `
 
 /**
  * Executes a structured, visibility-aware search query with sponsored inventory integration.
+ *
+ * FASE 08 v1.1 — Corrected Pagination Model:
+ *
+ * Organic Offset Formula:
+ *   Page 1:  organicOffset = 0
+ *            organicLimit  = PAGE_SIZE - sponsoredCount
+ *   Page N≥2: organicOffset = (PAGE_SIZE - sponsoredCountPage1) + ((N - 2) * PAGE_SIZE)
+ *            organicLimit  = PAGE_SIZE
+ *
+ * Total Count:
+ *   totalProfiles = COUNT(*) of unique eligible profiles (organic population)
+ *                 — sponsored profiles are already members of this population.
+ *   Never: organic_count + sponsored_count.
+ *
+ * sponsoredCountPage1 Recomputation:
+ *   The sponsored candidate query runs on ALL pages to authoritatively recompute
+ *   sponsoredCountPage1 for the offset formula. On pages 2+, sponsored DTOs are
+ *   not emitted in results. Client-supplied sponsoredCount is never trusted.
+ *
+ * Duplicate Suppression:
+ *   Page 1: sponsored profile IDs are excluded from the organic WHERE clause.
+ *   Page 2+: no exclusion — boosted profiles re-enter organic ranking normally.
+ *   The organic COUNT(*) for totalProfiles is taken WITHOUT the NOT IN exclusion.
  */
 export async function executeSearch(params: SearchParams): Promise<SearchResponse> {
   const admin = createAdminClient()
@@ -199,89 +222,88 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
   const limit = Math.min(50, Math.max(1, params.limit || 20))
   const allowedStatuses = ['ACTIVE', 'READY_FOR_REVIEW']
 
-  // 3. Sponsored Inventory Resolution (Page 1 only for stable pagination)
+  // 3. Sponsored Inventory Resolution — runs on ALL pages to authoritatively
+  //    recompute sponsoredCountPage1 for the organic offset formula.
+  //    On pages 2+, the DTOs are resolved but NOT emitted in results.
   let sponsoredResults: SearchResultDTO[] = []
   const sponsoredProfileDbIds: string[] = []
 
-  if (page === 1) {
-    try {
-      const { locationCandidates, cityCandidates } = await resolveActiveSponsoredCandidates({
-        cityId: city.id,
-        locationId: selectedLocation?.id || null,
-      })
+  try {
+    const { locationCandidates, cityCandidates } = await resolveActiveSponsoredCandidates({
+      cityId: city.id,
+      locationId: selectedLocation?.id || null,
+    })
 
-      // Sort candidate pools by deterministic fair rotation
-      let orderedBoostCandidates: Array<{ profileId: string }> = []
+    // Sort candidate pools by deterministic fair rotation
+    let orderedBoostCandidates: Array<{ profileId: string }> = []
 
-      if (selectedLocation) {
-        // Neighborhood search: Location boosts have precedence, City boosts fill remainder
-        const sortedLoc = sortCandidatesByFairRotation(
-          locationCandidates,
-          'MARKETPLACE_LOCATION',
-          selectedLocation.id
-        )
-        const sortedCity = sortCandidatesByFairRotation(cityCandidates, 'CITY', city.id)
-        orderedBoostCandidates = [...sortedLoc, ...sortedCity]
-      } else {
-        // City search: City boosts
-        orderedBoostCandidates = sortCandidatesByFairRotation(cityCandidates, 'CITY', city.id)
-      }
-
-      if (orderedBoostCandidates.length > 0) {
-        // Deduplicate profile IDs among candidates while preserving rotation order
-        const uniqueCandidateProfileIds: string[] = []
-        for (const c of orderedBoostCandidates) {
-          if (!uniqueCandidateProfileIds.includes(c.profileId)) {
-            uniqueCandidateProfileIds.push(c.profileId)
-          }
-        }
-
-        // Query candidate profiles enforcing all user filters & public readiness gates
-        let sponsoredQuery = admin
-          .from('professional_profiles')
-          .select(SELECT_PROFILE_SEARCH_FIELDS)
-          .in('id', uniqueCandidateProfileIds)
-          .in('status', allowedStatuses)
-          .eq('account.status', 'ACTIVE')
-          .eq('account.verifications.status', 'VERIFIED')
-          .eq('account.verifications.identity_verified', true)
-          .eq('account.verifications.age_verified', true)
-          .eq('locations.location.city.slug', params.citySlug)
-
-        sponsoredQuery = applySearchFilters(sponsoredQuery, params, selectedLocation)
-
-        const { data: sponsoredData } = await sponsoredQuery
-
-        if (sponsoredData && sponsoredData.length > 0) {
-          // Reorder filtered results back to fair-rotation order
-          const dataMap = new Map(sponsoredData.map((row: any) => [row.id, row]))
-          const sortedData: any[] = []
-
-          for (const pid of uniqueCandidateProfileIds) {
-            const row = dataMap.get(pid)
-            if (row && sortedData.length < MAX_SPONSORED_SLOTS_PER_PAGE) {
-              sortedData.push(row)
-              sponsoredProfileDbIds.push(row.id)
-            }
-          }
-
-          sponsoredResults = sortedData.map((row) => mapRowToSearchResultDTO(row, 'SPONSORED'))
-        }
-      }
-    } catch (e: any) {
-      console.error('[search:executeSearch] Error resolving sponsored candidates:', e?.message)
+    if (selectedLocation) {
+      // Neighborhood search: Location boosts have precedence, City boosts fill remainder
+      const sortedLoc = sortCandidatesByFairRotation(
+        locationCandidates,
+        'MARKETPLACE_LOCATION',
+        selectedLocation.id
+      )
+      const sortedCity = sortCandidatesByFairRotation(cityCandidates, 'CITY', city.id)
+      orderedBoostCandidates = [...sortedLoc, ...sortedCity]
+    } else {
+      // City search: City boosts only. LOCATION boosts do not become city-wide placements.
+      orderedBoostCandidates = sortCandidatesByFairRotation(cityCandidates, 'CITY', city.id)
     }
+
+    if (orderedBoostCandidates.length > 0) {
+      // Deduplicate profile IDs among candidates while preserving rotation order
+      const uniqueCandidateProfileIds: string[] = []
+      for (const c of orderedBoostCandidates) {
+        if (!uniqueCandidateProfileIds.includes(c.profileId)) {
+          uniqueCandidateProfileIds.push(c.profileId)
+        }
+      }
+
+      // Query candidate profiles enforcing all visitor filters & publication gates
+      let sponsoredQuery = admin
+        .from('professional_profiles')
+        .select(SELECT_PROFILE_SEARCH_FIELDS)
+        .in('id', uniqueCandidateProfileIds)
+        .in('status', allowedStatuses)
+        .eq('account.status', 'ACTIVE')
+        .eq('account.verifications.status', 'VERIFIED')
+        .eq('account.verifications.identity_verified', true)
+        .eq('account.verifications.age_verified', true)
+        .eq('locations.location.city.slug', params.citySlug)
+
+      sponsoredQuery = applySearchFilters(sponsoredQuery, params, selectedLocation)
+
+      const { data: sponsoredData } = await sponsoredQuery
+
+      if (sponsoredData && sponsoredData.length > 0) {
+        // Reorder filtered results back to fair-rotation order
+        const dataMap = new Map(sponsoredData.map((row: any) => [row.id, row]))
+        const sortedData: any[] = []
+
+        for (const pid of uniqueCandidateProfileIds) {
+          const row = dataMap.get(pid)
+          if (row && sortedData.length < MAX_SPONSORED_SLOTS_PER_PAGE) {
+            sortedData.push(row)
+            sponsoredProfileDbIds.push(row.id)
+          }
+        }
+
+        sponsoredResults = sortedData.map((row) => mapRowToSearchResultDTO(row, 'SPONSORED'))
+      }
+    }
+  } catch (e: any) {
+    console.error('[search:executeSearch] Error resolving sponsored candidates:', e?.message)
   }
 
-  // 4. Organic Query Resolution
-  // On Page 1, organic limit is reduced by sponsoredCount so total cards on Page 1 == limit
   const sponsoredCount = sponsoredResults.length
-  const organicLimit = page === 1 ? Math.max(1, limit - sponsoredCount) : limit
-  const organicOffset = page === 1 ? 0 : (page - 1) * limit - (sponsoredCount > 0 ? sponsoredCount : 0)
 
-  let organicQuery = admin
+  // 4. Organic Total Count Query
+  //    Does NOT exclude sponsored IDs — sponsored profiles are part of the eligible population.
+  //    This is the authoritative totalProfiles count.
+  let countQuery = admin
     .from('professional_profiles')
-    .select(SELECT_PROFILE_SEARCH_FIELDS, { count: 'exact' })
+    .select('id', { count: 'exact', head: true })
     .in('status', allowedStatuses)
     .eq('account.status', 'ACTIVE')
     .eq('account.verifications.status', 'VERIFIED')
@@ -289,8 +311,39 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
     .eq('account.verifications.age_verified', true)
     .eq('locations.location.city.slug', params.citySlug)
 
-  // Duplicate suppression: exclude profiles already shown as sponsored on this page
-  if (sponsoredProfileDbIds.length > 0) {
+  countQuery = applySearchFilters(countQuery, params, selectedLocation)
+  const { count: totalProfilesCount } = await countQuery
+  const totalProfiles = totalProfilesCount || 0
+  const totalPages = Math.ceil(totalProfiles / limit)
+
+  // 5. Organic Records Query
+  //    On Page 1: exclude sponsored IDs to prevent duplicate cards.
+  //    On Page 2+: no exclusion — boosted profiles re-enter organic ranking normally.
+  //
+  //    Corrected Organic Offset Formula (v1.1):
+  //      Page 1:  organicOffset = 0
+  //               organicLimit  = limit - sponsoredCount
+  //      Page N≥2: organicOffset = (limit - sponsoredCount) + ((N - 2) * limit)
+  //               organicLimit  = limit
+  const organicOffset =
+    page === 1
+      ? 0
+      : (limit - sponsoredCount) + (page - 2) * limit
+
+  const organicLimit = page === 1 ? Math.max(1, limit - sponsoredCount) : limit
+
+  let organicQuery = admin
+    .from('professional_profiles')
+    .select(SELECT_PROFILE_SEARCH_FIELDS)
+    .in('status', allowedStatuses)
+    .eq('account.status', 'ACTIVE')
+    .eq('account.verifications.status', 'VERIFIED')
+    .eq('account.verifications.identity_verified', true)
+    .eq('account.verifications.age_verified', true)
+    .eq('locations.location.city.slug', params.citySlug)
+
+  // Duplicate suppression on Page 1 only
+  if (page === 1 && sponsoredProfileDbIds.length > 0) {
     organicQuery = organicQuery.not('id', 'in', `(${sponsoredProfileDbIds.join(',')})`)
   }
 
@@ -306,13 +359,13 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
   // Pagination
   organicQuery = organicQuery.range(organicOffset, organicOffset + organicLimit - 1)
 
-  const { data: organicData, error, count } = await organicQuery
+  const { data: organicData, error } = await organicQuery
 
   if (error) {
     console.error('[search:execute] Error executing organic search query:', error.message)
     return {
-      results: sponsoredResults,
-      total: sponsoredResults.length,
+      results: page === 1 ? sponsoredResults : [],
+      totalProfiles: 0,
       page,
       pageSize: limit,
       totalPages: 1,
@@ -326,21 +379,23 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
     mapRowToSearchResultDTO(row, 'ORGANIC')
   )
 
-  const combinedResults = [...sponsoredResults, ...organicResults]
-  const total = (count || 0) + sponsoredCount
-  const totalPages = Math.ceil(total / limit)
+  // Compose results: sponsored first (Page 1 only), then organic
+  const combinedResults = page === 1
+    ? [...sponsoredResults, ...organicResults]
+    : [...organicResults]
 
   return {
     results: combinedResults,
-    total,
+    totalProfiles,                               // unique eligible profiles — never inflated
     page,
     pageSize: limit,
-    totalPages,
+    totalPages,                                  // ceil(totalProfiles / limit)
     city: { id: city.id, name: city.name, slug: city.slug },
     selectedLocation,
-    sponsoredCount,
+    sponsoredCount,                              // informational for UI only
   }
 }
+
 
 /**
  * Retrieves filter options for a given city.
