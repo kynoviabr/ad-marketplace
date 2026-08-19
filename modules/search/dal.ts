@@ -299,11 +299,13 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
   const sponsoredCount = sponsoredResults.length
 
   // 4. Organic Total Count Query
+  //    Uses SELECT_PROFILE_SEARCH_FIELDS to declare the !inner joins so that
+  //    nested filter conditions (.eq('account.status', ...) etc.) work correctly
+  //    in Supabase PostgREST. The HEAD+count:exact combination returns only the count.
   //    Does NOT exclude sponsored IDs — sponsored profiles are part of the eligible population.
-  //    This is the authoritative totalProfiles count.
   let countQuery = admin
     .from('professional_profiles')
-    .select('id', { count: 'exact', head: true })
+    .select(SELECT_PROFILE_SEARCH_FIELDS, { count: 'exact', head: true })
     .in('status', allowedStatuses)
     .eq('account.status', 'ACTIVE')
     .eq('account.verifications.status', 'VERIFIED')
