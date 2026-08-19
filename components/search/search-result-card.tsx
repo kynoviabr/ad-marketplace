@@ -1,17 +1,31 @@
-import Link from 'next/link'
+import React from 'react'
 import type { SearchResultDTO } from '@/modules/search/types'
+import { ImpressionTracker } from '@/components/analytics/impression-tracker'
+import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 
 interface SearchResultCardProps {
   profile: SearchResultDTO
+  citySlug?: string
+  locationSlug?: string | null
+  resultPage?: number
+  resultPosition?: number
 }
 
-export function SearchResultCard({ profile }: SearchResultCardProps) {
+export function SearchResultCard({
+  profile,
+  citySlug,
+  locationSlug,
+  resultPage = 1,
+  resultPosition = 0,
+}: SearchResultCardProps) {
   const whatsappUrl = profile.contact.whatsapp
     ? `https://wa.me/${profile.contact.whatsapp.replace(/\D/g, '')}?text=Ol%C3%A1%2C%20vi%20seu%20perfil%20no%20AD-Marketplace.`
     : null
 
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col justify-between">
+  const resolvedCitySlug = citySlug || profile.primaryLocation?.slug || 'sao-paulo'
+
+  const cardContent = (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow flex flex-col justify-between h-full">
       {/* Media Placeholder Area */}
       <div className="relative aspect-[3/4] bg-slate-100 flex flex-col items-center justify-center p-4 text-center border-b border-gray-100">
         <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-2xl font-bold mb-2">
@@ -19,6 +33,13 @@ export function SearchResultCard({ profile }: SearchResultCardProps) {
         </div>
         <span className="text-xs text-slate-500 font-medium">Fotos Verificadas</span>
         <span className="text-[10px] text-slate-400 mt-0.5">Em breve (FASE 05)</span>
+
+        {/* Sponsored Indicator Badge */}
+        {profile.isSponsored && (
+          <div className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
+            <span>★</span> Patrocinado
+          </div>
+        )}
 
         {/* Verified Badge */}
         {profile.isVerified && (
@@ -78,14 +99,17 @@ export function SearchResultCard({ profile }: SearchResultCardProps) {
         {/* Action Button */}
         <div className="pt-2 border-t flex items-center gap-2">
           {whatsappUrl ? (
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full text-center py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5"
-            >
-              <span>WhatsApp</span>
-            </a>
+            <WhatsAppCTA
+              whatsappUrl={whatsappUrl}
+              analyticsPayload={{
+                profileSlug: profile.slug,
+                citySlug: resolvedCitySlug,
+                locationSlug: locationSlug || profile.primaryLocation?.slug || null,
+                placementType: profile.placementType,
+                resultPage,
+                resultPosition,
+              }}
+            />
           ) : (
             <span className="w-full text-center py-2 px-3 bg-gray-100 text-gray-400 text-xs font-medium rounded-lg">
               Contato indisponível
@@ -95,4 +119,21 @@ export function SearchResultCard({ profile }: SearchResultCardProps) {
       </div>
     </div>
   )
+
+  if (citySlug) {
+    return (
+      <ImpressionTracker
+        profileSlug={profile.slug}
+        citySlug={citySlug}
+        locationSlug={locationSlug}
+        placementType={profile.placementType}
+        resultPage={resultPage}
+        resultPosition={resultPosition}
+      >
+        {cardContent}
+      </ImpressionTracker>
+    )
+  }
+
+  return cardContent
 }

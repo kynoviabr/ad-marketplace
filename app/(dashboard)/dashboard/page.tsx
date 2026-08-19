@@ -151,6 +151,20 @@ export default async function DashboardPage() {
               >
                 Gerenciar Fotos do Anúncio (FASE 05)
               </Link>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/dashboard/analytics"
+                  className="btn btn--secondary block text-center text-xs py-2"
+                >
+                  📊 Ver Métricas
+                </Link>
+                <Link
+                  href="/dashboard/boosts"
+                  className="btn btn--secondary block text-center text-xs py-2"
+                >
+                  🚀 Destaques
+                </Link>
+              </div>
               <Link
                 href="/onboarding/profile"
                 className="btn btn--ghost block text-center text-xs"

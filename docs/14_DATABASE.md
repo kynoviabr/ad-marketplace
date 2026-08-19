@@ -45,5 +45,11 @@ LAST UPDATED: 2026-08-18
 **v1.1 Search Architecture Note:** `SearchResponse.totalProfiles` represents unique eligible profiles only. Sponsored profiles are already members of the organic population — totalProfiles is never inflated by `+sponsoredCount`. The sponsored candidate layer runs on all pages to authoritatively recompute `sponsoredCountPage1` for the corrected organic offset formula.
 
 
+### FASE 09: Analytics, Event Tracking & Conversion Measurement Foundation
+- `public.analytics_events`: Canonical raw event store for `SEARCH_PERFORMED`, `PROFILE_IMPRESSION`, `CONTACT_WHATSAPP_CLICKED`, `BOOST_ACTIVATED` (and reserved `PROFILE_VIEWED`, phone/telegram CTAs). Partial unique index on `event_key` for idempotent lifecycle events. RLS completely denies public client access; server-only ingestion via admin client.
+- `public.profile_daily_metrics`: Daily impression, view, and contact click rollups per profile. Unique constraint on `(profile_id, metric_date)`. RLS restricts advertisers to their own profile rows only.
+- `public.platform_daily_metrics`: Platform-wide daily search, impression, click, and active advertiser rollups. Unique constraint on `metric_date`. RLS restricted to admins.
+
 ## Candidate Tables (Future Phases)
-- FASE 09: `public.search_impressions`, `public.profile_views`, `public.contact_clicks`
+- FASE 10: `public.seo_slug_redirects`, `public.acquisition_campaign_sources`
+

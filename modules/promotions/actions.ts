@@ -20,6 +20,7 @@ import {
   getProfileBoostsByProfileId,
   getActiveBoostProducts,
 } from './dal'
+import { recordBoostActivatedEvent } from '@/modules/analytics/write'
 import type { PromotionActionResult, BoostProductDTO, ProfileBoostDTO } from './types'
 
 /**
@@ -182,6 +183,20 @@ export async function initiateBoostCheckoutAction(
       finalStatus,
       checkout.providerSubscriptionId || `mock_pay_${Date.now()}`
     )
+
+    if (finalStatus === 'ACTIVE') {
+      try {
+        await recordBoostActivatedEvent({
+          id: campaign.id,
+          profile_id: profile.id,
+          city_id: targetCityId,
+          location_id: targetLocationId,
+          starts_at: startsAtDate.toISOString(),
+        })
+      } catch (err: any) {
+        console.error('[promotions:actions] Failed to record BOOST_ACTIVATED analytics event:', err?.message)
+      }
+    }
 
     return {
       success: true,

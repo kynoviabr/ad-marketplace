@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
+import { after } from 'next/server'
 import { executeSearch, getFilterOptions } from '@/modules/search/dal'
 import { isReservedSlug } from '@/modules/search/schemas'
+import { recordSearchPerformedEvent } from '@/modules/analytics/write'
 import { SearchFilterSidebar } from '@/components/search/search-filter-sidebar'
 import { SearchResultCard } from '@/components/search/search-result-card'
 
@@ -36,6 +38,14 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
   const eyeColor = resolvedSearchParams.olhos as any
   const bodyType = resolvedSearchParams.corpo as any
 
+  const hasFilters = Boolean(
+    minAge !== undefined ||
+    maxAge !== undefined ||
+    hairColor ||
+    eyeColor ||
+    bodyType
+  )
+
   const searchResponse = await executeSearch({
     citySlug,
     minAge,
@@ -44,6 +54,22 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
     eyeColor: eyeColor ? [eyeColor] : undefined,
     bodyType: bodyType ? [bodyType] : undefined,
     includePreview: true, // Allows preview during development
+  })
+
+  // FASE 09: Schedule non-blocking SEARCH_PERFORMED analytics event
+  after(async () => {
+    try {
+      await recordSearchPerformedEvent({
+        cityId: searchResponse.city.id,
+        locationId: searchResponse.selectedLocation?.id ?? null,
+        resultPage: searchResponse.page,
+        totalProfiles: searchResponse.totalProfiles,
+        sponsoredCount: searchResponse.sponsoredCount,
+        hasFilters,
+      })
+    } catch (err: any) {
+      console.error('[analytics:search] Error recording search event:', err?.message)
+    }
   })
 
   return (
@@ -90,8 +116,14 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {searchResponse.results.map((profile) => (
-                <SearchResultCard key={profile.id} profile={profile} />
+              {searchResponse.results.map((profile, index) => (
+                <SearchResultCard
+                  key={profile.id}
+                  profile={profile}
+                  citySlug={citySlug}
+                  resultPage={searchResponse.page}
+                  resultPosition={index}
+                />
               ))}
             </div>
           )}

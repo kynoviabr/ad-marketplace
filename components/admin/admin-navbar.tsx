@@ -12,6 +12,7 @@ export function AdminNavbar() {
     { href: '/admin/reports', label: 'Denúncias' },
     { href: '/admin/billing', label: 'Assinaturas' },
     { href: '/admin/boosts', label: 'Destaques' },
+    { href: '/admin/analytics', label: 'Analytics' },
   ]
 
   return (
