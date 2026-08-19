@@ -12,7 +12,7 @@ FASE 4 — Locations, Search, Filters & Ranking — SPEC COMPLETE
 FASE 5 — Media / Photos — SPEC COMPLETE
 FASE 6 — Moderation, Reports & Admin — SPEC COMPLETE
 FASE 7 — Billing / Founders — SPEC COMPLETE; gateway underwriting pending
-FASE 8 — Boosts & Additional Monetization — IMPLEMENTATION COMPLETE (v1.1 architecture; pending real Supabase DEV validation)
+FASE 8 — Boosts & Additional Monetization — CLOSED & VALIDATED AGAINST REAL SUPABASE DEV (v1.1)
 FASE 9 — Analytics & Business Intelligence — SPEC COMPLETE
 FASE 10 — SEO, Growth & São Paulo GTM — SPEC COMPLETE
 FASE 11 — Security, Privacy, LGPD & Production Hardening — SPEC COMPLETE
