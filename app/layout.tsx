@@ -1,13 +1,10 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { constructRootMetadata, generateWebsiteJsonLd } from '@/modules/seo'
+import { JsonLd } from '@/components/seo/json-ld'
 
-export const metadata: Metadata = {
-  title: 'AD-Marketplace',
-  description: 'Classified advertising portal — development environment',
-  robots: {
-    index: false,
-    follow: false,
-  },
+export async function generateMetadata(): Promise<Metadata> {
+  return constructRootMetadata()
 }
 
 export default function RootLayout({
@@ -15,8 +12,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const websiteJsonLd = generateWebsiteJsonLd()
+
   return (
     <html lang="pt-BR">
+      <head>
+        <JsonLd data={websiteJsonLd} />
+      </head>
       <body>{children}</body>
     </html>
   )

@@ -1,18 +1,54 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { after } from 'next/server'
+import { headers } from 'next/headers'
 import { executeSearch, getFilterOptions } from '@/modules/search/dal'
 import { isReservedSlug } from '@/modules/search/schemas'
 import { recordSearchPerformedEvent } from '@/modules/analytics/write'
 import { SearchFilterSidebar } from '@/components/search/search-filter-sidebar'
 import { SearchResultCard } from '@/components/search/search-result-card'
+import {
+  getLocationSeoData,
+  constructLocationMetadata,
+  hasSearchFilters,
+  parsePageNumber,
+  generateBreadcrumbJsonLd,
+  getSeoConfig,
+  isSearchCrawler,
+} from '@/modules/seo'
+import { JsonLd } from '@/components/seo/json-ld'
 
 interface NeighborhoodSearchPageProps {
   params: Promise<{ city: string; neighborhood: string }>
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export const metadata = {
-  robots: 'noindex, follow', // Foundation search page
+export async function generateMetadata({
+  params,
+  searchParams,
+}: NeighborhoodSearchPageProps): Promise<Metadata> {
+  const { city: citySlug, neighborhood: neighborhoodSlug } = await params
+  if (isReservedSlug(citySlug) || isReservedSlug(neighborhoodSlug)) {
+    return { robots: { index: false, follow: false } }
+  }
+
+  const seoData = await getLocationSeoData(citySlug, neighborhoodSlug)
+  if (!seoData) {
+    return { robots: { index: false, follow: false } }
+  }
+
+  const resolvedSearchParams = await searchParams
+  const hasFilters = hasSearchFilters(resolvedSearchParams)
+  const pageNum = parsePageNumber(resolvedSearchParams.page)
+
+  return constructLocationMetadata({
+    city: seoData.city,
+    location: seoData.location,
+    eligibleProfileCount: seoData.eligibleProfileCount,
+    hasFilters,
+    page: pageNum,
+    lastModified: seoData.lastModified,
+  })
 }
 
 export default async function NeighborhoodSearchPage({
@@ -49,9 +85,12 @@ export default async function NeighborhoodSearchPage({
     bodyType
   )
 
+  const page = parsePageNumber(resolvedSearchParams.page)
+
   const searchResponse = await executeSearch({
     citySlug,
     locationSlug: neighborhoodSlug,
+    page,
     minAge,
     maxAge,
     hairColor: hairColor ? [hairColor] : undefined,
@@ -60,8 +99,15 @@ export default async function NeighborhoodSearchPage({
     includePreview: true,
   })
 
-  // FASE 09: Schedule non-blocking SEARCH_PERFORMED analytics event
+  // Check User-Agent to suppress analytics for search engine crawlers (Zero Cloaking Invariant)
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+  const isCrawler = isSearchCrawler(userAgent)
+
+  // FASE 09/10: Schedule non-blocking SEARCH_PERFORMED analytics event for human visitors
   after(async () => {
+    if (isCrawler) return
+
     try {
       await recordSearchPerformedEvent({
         cityId: searchResponse.city.id,
@@ -77,9 +123,17 @@ export default async function NeighborhoodSearchPage({
   })
 
   const locationName = searchResponse.selectedLocation?.name || neighborhoodSlug
+  const seoConfig = getSeoConfig()
+  const breadcrumbJsonLd = generateBreadcrumbJsonLd([
+    { name: 'Home', url: `${seoConfig.siteUrl}/` },
+    { name: filterOptions.city.name, url: `${seoConfig.siteUrl}/${citySlug}` },
+    { name: locationName, url: `${seoConfig.siteUrl}/${citySlug}/${neighborhoodSlug}` },
+  ])
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <JsonLd data={breadcrumbJsonLd} />
+
       {/* Header */}
       <div className="border-b pb-6 mb-8">
         <div className="text-xs text-gray-500 mb-1">
@@ -110,34 +164,53 @@ export default async function NeighborhoodSearchPage({
               {searchResponse.totalProfiles}{' '}
               {searchResponse.totalProfiles === 1 ? 'perfil encontrado' : 'perfis encontrados'}
             </span>
-            <span>Bairro: {locationName}</span>
+            <span>
+              Página {searchResponse.page} de {Math.max(1, searchResponse.totalPages)}
+            </span>
           </div>
 
           {searchResponse.results.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-xl">
-                📍
-              </div>
-              <h3 className="font-bold text-gray-800 text-base">
-                Nenhum perfil ativo em {locationName}
-              </h3>
-              <p className="text-xs text-gray-500 max-w-md mx-auto">
-                Tente buscar em outros bairros próximos de {filterOptions.city.name} ou remova alguns
-                filtros de características.
+            <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+              <p className="text-gray-500 text-sm">
+                Nenhum perfil encontrado nesta região com os filtros selecionados.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {searchResponse.results.map((profile, index) => (
                 <SearchResultCard
                   key={profile.id}
                   profile={profile}
                   citySlug={citySlug}
-                  locationSlug={neighborhoodSlug}
                   resultPage={searchResponse.page}
-                  resultPosition={index}
+                  resultPosition={index + 1}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Simple Pagination Nav */}
+          {searchResponse.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-6 border-t">
+              {searchResponse.page > 1 && (
+                <a
+                  href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page - 1}`}
+                  className="px-3 py-1.5 text-xs font-medium border rounded hover:bg-gray-50"
+                >
+                  Anterior
+                </a>
+              )}
+              <span className="text-xs text-gray-600">
+                Página {searchResponse.page} de {searchResponse.totalPages}
+              </span>
+              {searchResponse.page < searchResponse.totalPages && (
+                <a
+                  href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page + 1}`}
+                  className="px-3 py-1.5 text-xs font-medium border rounded hover:bg-gray-50"
+                >
+                  Próxima
+                </a>
+              )}
             </div>
           )}
         </div>

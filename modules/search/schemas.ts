@@ -6,29 +6,11 @@ import {
   BodyTypeEnum,
 } from '@/modules/profiles/schemas'
 
-/**
- * Reserved slugs that must not be treated as city or location slugs.
- */
-export const RESERVED_CITY_SLUGS = new Set([
-  'login',
-  'signup',
-  'api',
-  'admin',
-  'dashboard',
-  'onboarding',
-  'terms',
-  'privacy',
-  'auth',
-  'complete-signup',
-  'forgot-password',
-  'reset-password',
-  'suspended',
-  'verify-email',
-])
+import { RESERVED_TOP_LEVEL_SLUGS, isReservedSlug } from '@/modules/seo/constants'
 
-export function isReservedSlug(slug: string): boolean {
-  return RESERVED_CITY_SLUGS.has(slug.toLowerCase().trim())
-}
+// Alias for backwards compatibility
+export const RESERVED_CITY_SLUGS = RESERVED_TOP_LEVEL_SLUGS
+export { isReservedSlug }
 
 /**
  * Parses and validates incoming search URL query parameters.
