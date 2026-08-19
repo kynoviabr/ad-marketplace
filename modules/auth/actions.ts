@@ -38,11 +38,39 @@
  */
 
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SignupSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema } from './schemas'
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '@/lib/config/legal-versions'
+import { deriveAuthRateLimitKey, isAuthRateLimited } from './rate-limiter'
 import type { ActionResult } from './types'
+
+// ---------------------------------------------------------------------------
+// RATE LIMITING HELPER
+// ---------------------------------------------------------------------------
+
+/**
+ * Derives a rate-limit key for the current request.
+ * Reuses ANALYTICS_RATE_LIMIT_SECRET — avoids proliferating secrets.
+ *
+ * Fail-open: returns null if the secret is not configured, so rate limiting
+ * is simply skipped rather than blocking legitimate traffic.
+ *
+ * IP resolution order:
+ *   1. x-forwarded-for (first IP in the chain — client IP behind proxies)
+ *   2. x-real-ip (set by some reverse proxies / Vercel)
+ */
+async function getAuthRateLimitKey(): Promise<string | null> {
+  const secret = process.env.ANALYTICS_RATE_LIMIT_SECRET
+  if (!secret) return null
+
+  const headersList = await headers()
+  const forwarded = headersList.get('x-forwarded-for')
+  const rawIp = forwarded ? forwarded.split(',')[0].trim() : headersList.get('x-real-ip')
+
+  return deriveAuthRateLimitKey(rawIp, secret)
+}
 
 // ---------------------------------------------------------------------------
 // SIGNUP
@@ -52,6 +80,13 @@ export async function signupAction(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  // Rate limit check — fail-open (skipped if secret not set).
+  // Returns generic 'Dados inválidos.' to avoid revealing rate limit exists.
+  const rlKey = await getAuthRateLimitKey()
+  if (rlKey && isAuthRateLimited(rlKey, 'SIGNUP')) {
+    return { success: false, error: 'Dados inválidos.' }
+  }
+
   const raw = {
     email: formData.get('email'),
     password: formData.get('password'),
@@ -140,6 +175,13 @@ export async function loginAction(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  // Rate limit check — fail-open (skipped if secret not set).
+  // Returns same generic message as wrong-password to avoid revealing rate limit exists.
+  const rlKey = await getAuthRateLimitKey()
+  if (rlKey && isAuthRateLimited(rlKey, 'LOGIN')) {
+    return { success: false, error: 'Credenciais inválidas.' }
+  }
+
   const raw = {
     email: formData.get('email'),
     password: formData.get('password'),
@@ -183,6 +225,12 @@ export async function forgotPasswordAction(
   _prevState: ActionResult,
   formData: FormData
 ): Promise<ActionResult> {
+  // Rate limit check — SILENT ONLY. Never blocks password reset.
+  // Preserves no-enumeration guarantee: always returns success regardless.
+  // The key is derived here so the counter increments, but the result is intentionally ignored.
+  const rlKey = await getAuthRateLimitKey()
+  if (rlKey) isAuthRateLimited(rlKey, 'PASSWORD_RESET') // count increment only — result discarded
+
   const raw = { email: formData.get('email') }
   const parsed = ForgotPasswordSchema.safeParse(raw)
 

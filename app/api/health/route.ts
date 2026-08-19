@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server'
  * - Only returns safe operational status information.
  *
  * Response shape:
- *   { status: 'ok' | 'degraded', timestamp: string, version: string }
+ *   { status: 'ok' | 'degraded', timestamp: string, configuration: { supabase: string } }
  */
 export async function GET(): Promise<NextResponse> {
   // Check if essential public configuration exists (without revealing values)
@@ -25,8 +25,6 @@ export async function GET(): Promise<NextResponse> {
     {
       status,
       timestamp: new Date().toISOString(),
-      version: '0.1.0',
-      phase: 'FASE-00-foundation',
       configuration: {
         supabase: configurationReady ? 'configured' : 'missing-env-vars',
       },

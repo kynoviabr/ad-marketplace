@@ -42,3 +42,27 @@ export class InMemoryRateLimiter implements RateLimiter {
 export const RATE_LIMITING_MODE = 'LOCAL_BEST_EFFORT' as const
 
 export const defaultRateLimiter: RateLimiter = new InMemoryRateLimiter()
+
+/**
+ * Pre-production blocker marker — F11-SEC-007
+ *
+ * Set to `true` only after replacing InMemoryRateLimiter with a distributed
+ * backend (e.g. Redis / Upstash). Until then this flag signals that IP-based
+ * rate limiting is LOCAL_BEST_EFFORT and NOT globally enforced across multiple
+ * server instances.
+ */
+export const DISTRIBUTED_RATE_LIMITING_READY = false as const
+
+/**
+ * IP-source rate limiter — F11-SEC-007
+ *
+ * A dedicated limiter instance for per-IP analytics rate limiting.
+ * Intentionally separate from the session-based `defaultRateLimiter` so that
+ * IP and session limits can be tuned and reset independently.
+ *
+ * LOCAL_BEST_EFFORT mode — not globally distributed across multiple instances.
+ * Each server process maintains its own in-memory window; a load-balanced
+ * deployment will apply the limit per-process, not globally. Replace with a
+ * distributed adapter before scaling beyond a single instance.
+ */
+export const ipSourceRateLimiter: RateLimiter = new InMemoryRateLimiter()

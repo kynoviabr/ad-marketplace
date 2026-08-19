@@ -117,7 +117,15 @@ describe('Environment Security', () => {
       expect(envExample).toContain('NEXT_PUBLIC_SUPABASE_ANON_KEY')
       expect(envExample).toContain('SUPABASE_SERVICE_ROLE_KEY')
       expect(envExample).toContain('NEXT_PUBLIC_APP_URL')
+
+      // F11-SEC-006: ABUSE_PEPPER must be documented
+      expect(envExample).toContain('ABUSE_PEPPER')
+      // F11-SEC-007: ANALYTICS_RATE_LIMIT_SECRET must be documented
+      expect(envExample).toContain('ANALYTICS_RATE_LIMIT_SECRET')
+      // F11-SEC-008: BILLING_WEBHOOK_SECRET must be documented
+      expect(envExample).toContain('BILLING_WEBHOOK_SECRET')
     })
+
 
     it('does not contain real secret values', () => {
       const envExample = readFileSync(

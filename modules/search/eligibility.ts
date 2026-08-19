@@ -3,7 +3,36 @@ import type { AccountUser } from '@/modules/auth/types'
 import type { IdentityVerification } from '@/modules/verification/types'
 
 /**
+ * ============================================================
+ * PUBLICATION ELIGIBILITY — AUTHORITY HIERARCHY (F11-SEC-011)
+ * ============================================================
+ *
+ * CANONICAL AUTHORITY — DATABASE VIEW (query-level gating):
+ *   The PostgreSQL VIEW `v_publication_eligible_profiles` (migration 20260819000010)
+ *   is the single source of truth for determining which profiles may appear publicly.
+ *   It encodes all 8 publication gates including billing entitlement time-awareness
+ *   and is accessible only via the service_role client (admin). All search and SEO
+ *   DAL functions MUST pre-filter using this view before querying profile data.
+ *
+ * APPLICATION LAYER — FUNCTIONS BELOW (non-query logic only):
+ *   The functions in this file perform application-layer eligibility checks. They are
+ *   NOT used to gate database queries in production search/SEO paths — the view handles
+ *   that. These functions exist for:
+ *     - Unit testing eligibility logic in isolation
+ *     - Profile dashboard readiness indicators (non-public, server-side UI)
+ *     - Adminstrative tools that operate on in-memory profile objects
+ *
+ *   DO NOT use these functions as the primary query filter for public search results.
+ *   The view is always more authoritative — it reflects live billing state that
+ *   in-memory objects cannot capture without an explicit billing lookup.
+ * ============================================================
+ */
+
+/**
  * Structural Search Readiness (Internal Development & Test Preview Mode).
+ *
+ * APPLICATION-LAYER ONLY. For query-level gating use v_publication_eligible_profiles.
+ *
  * Checks whether the profile satisfies the basic data requirements:
  * 1. Account is ACTIVE
  * 2. KYC verification is VERIFIED (with identity and age 18+ confirmed)
@@ -30,6 +59,8 @@ export function isProfileStructurallySearchReady(
 
 /**
  * Publication Readiness Evaluator (FASE 06 Domain Invariant).
+ *
+ * APPLICATION-LAYER ONLY. For query-level gating use v_publication_eligible_profiles.
  *
  * A profile is publication-ready when:
  * 1. Account is ACTIVE
@@ -62,6 +93,11 @@ export function isPublicationReady(
 
 /**
  * Public Search Eligibility (Production Mode — Fail Closed) — FASE 07.
+ *
+ * APPLICATION-LAYER ONLY. For query-level gating use v_publication_eligible_profiles.
+ * Note: the VIEW also incorporates billing entitlement time-awareness (Gate 8), which
+ * this function evaluates via the caller-supplied `publicationEntitlement` boolean.
+ * In production DAL paths the view pre-empts this function entirely.
  *
  * ALL 8 gates must be satisfied. No single gate can override another.
  * Payment alone NEVER bypasses KYC, moderation, profile, media, or location gates.

@@ -38,16 +38,41 @@ describe('FASE 06 — Reports Schema & Anti-Abuse Logic', () => {
   })
 
   it('generates consistent HMAC-SHA256 reporter hash without exposing raw IP', () => {
-    const ip = '192.168.1.100'
-    const hash1 = generateReporterHash(ip)
-    const hash2 = generateReporterHash(ip)
-    const hash3 = generateReporterHash('192.168.1.101')
+    // F11-SEC-006: ABUSE_PEPPER is now required. Set it for this test.
+    const originalPepper = process.env.ABUSE_PEPPER
+    process.env.ABUSE_PEPPER = 'test-pepper-for-unit-tests-only-64chars-abcdefghijklmnopqrstuv'
+    try {
+      const ip = '192.168.1.100'
+      const hash1 = generateReporterHash(ip)
+      const hash2 = generateReporterHash(ip)
+      const hash3 = generateReporterHash('192.168.1.101')
 
-    expect(hash1).toBe(hash2)
-    expect(hash1).not.toBe(hash3)
-    expect(hash1).toMatch(/^[a-f0-9]{64}$/)
-    expect(hash1).not.toContain(ip)
+      expect(hash1).toBe(hash2)
+      expect(hash1).not.toBe(hash3)
+      expect(hash1).toMatch(/^[a-f0-9]{64}$/)
+      expect(hash1).not.toContain(ip)
+    } finally {
+      if (originalPepper !== undefined) {
+        process.env.ABUSE_PEPPER = originalPepper
+      } else {
+        delete process.env.ABUSE_PEPPER
+      }
+    }
   })
+
+  it('throws when ABUSE_PEPPER is not configured (F11-SEC-006)', () => {
+    const originalPepper = process.env.ABUSE_PEPPER
+    delete process.env.ABUSE_PEPPER
+    try {
+      expect(() => generateReporterHash('192.168.1.100')).toThrow(/ABUSE_PEPPER/)
+    } finally {
+      if (originalPepper !== undefined) {
+        process.env.ABUSE_PEPPER = originalPepper
+      }
+    }
+  })
+
+
 
   it('validates report resolution schema', () => {
     const res = ResolveReportSchema.safeParse({

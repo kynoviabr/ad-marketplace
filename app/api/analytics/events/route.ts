@@ -7,13 +7,60 @@
  * normalizes server attribution, and records events asynchronously.
  */
 
+import { createHmac } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   IngestionEventPayloadSchema,
   isOccurredAtWithinTolerance,
 } from '@/modules/analytics/schemas'
-import { defaultRateLimiter } from '@/modules/analytics/rate-limiter'
+import { defaultRateLimiter, ipSourceRateLimiter } from '@/modules/analytics/rate-limiter'
 import { ingestClientEvent } from '@/modules/analytics/write'
+
+/**
+ * Derives a rate-limiting key from the request IP address — F11-SEC-007
+ *
+ * The raw IP is NEVER stored or returned; it is transformed into an
+ * HMAC-SHA256 digest keyed by ANALYTICS_RATE_LIMIT_SECRET so that:
+ *   - The key is deterministic per IP (enables rate limiting)
+ *   - The key is non-reversible (cannot be used to recover the real IP)
+ *
+ * Fail-open semantics:
+ *   - Production: logs a warning and returns null if the secret is absent
+ *     (analytics is observational; a missing secret should not break ingestion)
+ *   - Development: silently returns null if no secret is configured
+ *     (IP rate limiting is skipped during local development)
+ */
+function deriveIpKey(req: NextRequest): string | null {
+  try {
+    const secret = process.env.ANALYTICS_RATE_LIMIT_SECRET
+
+    if (!secret) {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn(
+          '[api:analytics:events] ANALYTICS_RATE_LIMIT_SECRET is not set. ' +
+            'IP-based rate limiting is disabled. Set this variable to enable it.'
+        )
+      }
+      // Fail open — skip IP rate limiting when secret is absent
+      return null
+    }
+
+    const rawIp =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      null
+
+    if (!rawIp) {
+      return null
+    }
+
+    // Hash the IP — never use or store the raw value
+    return createHmac('sha256', secret).update(rawIp).digest('hex')
+  } catch {
+    // Never let IP key derivation break the request
+    return null
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,13 +101,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
     }
 
-    // 4. Timestamp Sanity Check (±5 minutes tolerance)
+    // 4. IP-Derived Rate Limiting (300 events/IP/hour) — F11-SEC-007
+    // Analytics failures must NEVER bubble up to break search — wrapped in try/catch.
+    try {
+      const ipKey = deriveIpKey(req)
+      if (ipKey !== null) {
+        const isIpLimited = await ipSourceRateLimiter.isRateLimited(ipKey, 300, 3600)
+        if (isIpLimited) {
+          return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+        }
+      }
+    } catch (ipErr: any) {
+      // Fail open — log and continue; never break analytics ingestion
+      console.warn('[api:analytics:events] IP rate limit check failed:', ipErr?.message)
+    }
+
+    // 5. Timestamp Sanity Check (±5 minutes tolerance)
     if (!isOccurredAtWithinTolerance(payload.occurred_at)) {
       // Clamp to current server time if clock skew detected
       payload.occurred_at = new Date().toISOString()
     }
 
-    // 5. Server Ingestion & Attribution
+    // 6. Server Ingestion & Attribution
     const result = await ingestClientEvent(payload)
 
     return NextResponse.json({ success: true, ignored: Boolean(result.ignored) }, { status: 200 })

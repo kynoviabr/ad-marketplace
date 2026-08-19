@@ -5,37 +5,11 @@ import { INDEXABLE_LOCATION_TYPES, MIN_CITY_PROFILES_FOR_INDEXING, MIN_LOCATION_
 import { getSeoConfig } from './config'
 import type { CitySeoData, LocationSeoData, SitemapEntryDTO } from './types'
 
-const SELECT_SEO_ELIGIBILITY_FIELDS = `
-  id,
-  updated_at,
-  status,
-  locations:professional_profile_locations!inner (
-    is_primary,
-    location:marketplace_locations!inner (
-      id,
-      name,
-      slug,
-      location_type,
-      active,
-      city:cities!inner (
-        id,
-        slug,
-        active
-      )
-    )
-  ),
-  account:account_users!inner (
-    status,
-    verifications:identity_verifications!inner (
-      status,
-      identity_verified,
-      age_verified
-    )
-  )
-`
-
 /**
  * Retrieves SEO data and publicly eligible inventory count for a city landing page.
+ *
+ * FASE 11-SEC-011: Uses v_publication_eligible_profiles to count eligible profiles and
+ * obtain the latest updated_at timestamp. The view encodes all 8 publication gates.
  */
 export async function getCitySeoData(citySlug: string): Promise<CitySeoData | null> {
   const city = await getCityBySlug(citySlug)
@@ -44,18 +18,12 @@ export async function getCitySeoData(citySlug: string): Promise<CitySeoData | nu
   }
 
   const admin = createAdminClient()
-  const allowedStatuses = ['ACTIVE', 'READY_FOR_REVIEW']
 
-  // Query eligible profile count and most recent updated_at timestamp
-  const { data, count, error } = await admin
-    .from('professional_profiles')
-    .select(SELECT_SEO_ELIGIBILITY_FIELDS, { count: 'exact' })
-    .in('status', allowedStatuses)
-    .eq('account.status', 'ACTIVE')
-    .eq('account.verifications.status', 'VERIFIED')
-    .eq('account.verifications.identity_verified', true)
-    .eq('account.verifications.age_verified', true)
-    .eq('locations.location.city.slug', city.slug)
+  // Count eligible profiles and get latest update timestamp via the view.
+  const { data: eligible, count: eligibleCount, error } = await admin
+    .from('v_publication_eligible_profiles')
+    .select('profile_id, updated_at', { count: 'exact' })
+    .eq('city_id', city.id)
     .order('updated_at', { ascending: false })
     .limit(1)
 
@@ -68,19 +36,22 @@ export async function getCitySeoData(citySlug: string): Promise<CitySeoData | nu
     }
   }
 
-  const eligibleCount = count || 0
-  const latestProfile = data && data.length > 0 ? (data[0] as any) : null
-  const lastModified = latestProfile?.updated_at || null
+  const profileCount = eligibleCount || 0
+  const latestRow = eligible && eligible.length > 0 ? (eligible[0] as any) : null
+  const lastModified = latestRow?.updated_at || null
 
   return {
     city,
-    eligibleProfileCount: eligibleCount,
+    eligibleProfileCount: profileCount,
     lastModified,
   }
 }
 
 /**
  * Retrieves SEO data and publicly eligible inventory count for a neighborhood/location landing page.
+ *
+ * FASE 11-SEC-011: Uses v_publication_eligible_profiles to get eligible profile IDs for
+ * the city, then counts how many of those are associated with the specific location.
  */
 export async function getLocationSeoData(
   citySlug: string,
@@ -97,22 +68,15 @@ export async function getLocationSeoData(
   }
 
   const admin = createAdminClient()
-  const allowedStatuses = ['ACTIVE', 'READY_FOR_REVIEW']
 
-  const { data, count, error } = await admin
-    .from('professional_profiles')
-    .select(SELECT_SEO_ELIGIBILITY_FIELDS, { count: 'exact' })
-    .in('status', allowedStatuses)
-    .eq('account.status', 'ACTIVE')
-    .eq('account.verifications.status', 'VERIFIED')
-    .eq('account.verifications.identity_verified', true)
-    .eq('account.verifications.age_verified', true)
-    .eq('locations.location.slug', location.slug)
-    .order('updated_at', { ascending: false })
-    .limit(1)
+  // 1. Get all eligible profile IDs for this city from the view.
+  const { data: eligible, error: eligibleError } = await admin
+    .from('v_publication_eligible_profiles')
+    .select('profile_id, updated_at')
+    .eq('city_id', city.id)
 
-  if (error) {
-    console.error('[seo:dal] Error querying location SEO data:', error.message)
+  if (eligibleError) {
+    console.error('[seo:dal] Error querying eligible profiles for location SEO data:', eligibleError.message)
     return {
       city,
       location,
@@ -121,14 +85,39 @@ export async function getLocationSeoData(
     }
   }
 
-  const eligibleCount = count || 0
-  const latestProfile = data && data.length > 0 ? (data[0] as any) : null
-  const lastModified = latestProfile?.updated_at || null
+  const eligibleIds = (eligible || []).map((r: any) => r.profile_id)
+
+  if (eligibleIds.length === 0) {
+    return {
+      city,
+      location,
+      eligibleProfileCount: 0,
+      lastModified: null,
+    }
+  }
+
+  // 2. Count eligible profiles that are also associated with this specific location.
+  const { count: eligibleLocCount, error: locCountError } = await admin
+    .from('professional_profile_locations')
+    .select('profile_id', { count: 'exact', head: true })
+    .in('profile_id', eligibleIds)
+    .eq('location_id', location.id)
+
+  if (locCountError) {
+    console.error('[seo:dal] Error counting location-scoped eligible profiles:', locCountError.message)
+  }
+
+  // 3. Use the latest updated_at among all city-eligible profiles as an approximation
+  //    for lastModified. Acceptable for SEO metadata purposes.
+  const sortedEligible = [...(eligible || [])].sort(
+    (a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  )
+  const lastModified = sortedEligible.length > 0 ? (sortedEligible[0] as any).updated_at : null
 
   return {
     city,
     location,
-    eligibleProfileCount: eligibleCount,
+    eligibleProfileCount: eligibleLocCount || 0,
     lastModified,
   }
 }
@@ -142,11 +131,12 @@ export async function getLocationSeoData(
  * - Includes: Active locations (`NEIGHBORHOOD` or `COMMERCIAL_DISTRICT`) meeting threshold (`count >= 3`)
  * - STRICTLY EXCLUDES: `/perfil/[slug]` (profile routes are built in FASE 12)
  * - STRICTLY EXCLUDES: Filtered URLs, paginated URLs, private routes, zero-result/thin locations.
+ *
+ * FASE 11-SEC-011: Uses v_publication_eligible_profiles for all eligibility counts.
  */
 export async function getSitemapData(): Promise<SitemapEntryDTO[]> {
   const config = getSeoConfig()
   const admin = createAdminClient()
-  const allowedStatuses = ['ACTIVE', 'READY_FOR_REVIEW']
 
   const sitemapEntries: SitemapEntryDTO[] = []
 
@@ -162,21 +152,21 @@ export async function getSitemapData(): Promise<SitemapEntryDTO[]> {
 
   // 2. Process each active city
   for (const city of activeCities) {
-    const { data: cityProfiles, count: cityCount } = await admin
-      .from('professional_profiles')
-      .select(SELECT_SEO_ELIGIBILITY_FIELDS, { count: 'exact' })
-      .in('status', allowedStatuses)
-      .eq('account.status', 'ACTIVE')
-      .eq('account.verifications.status', 'VERIFIED')
-      .eq('account.verifications.identity_verified', true)
-      .eq('account.verifications.age_verified', true)
-      .eq('locations.location.city.slug', city.slug)
+    // Get eligible profiles for this city from the view (count + latest updated_at)
+    const { data: cityEligible, count: cityCount, error: cityEligibleError } = await admin
+      .from('v_publication_eligible_profiles')
+      .select('profile_id, updated_at', { count: 'exact' })
+      .eq('city_id', city.id)
       .order('updated_at', { ascending: false })
       .limit(1)
 
+    if (cityEligibleError) {
+      console.error('[seo:dal:sitemap] Error querying city eligible profiles:', cityEligibleError.message)
+    }
+
     const eligibleCityCount = cityCount || 0
-    const cityLatestProfile = cityProfiles && cityProfiles.length > 0 ? (cityProfiles[0] as any) : null
-    const cityLastMod = cityLatestProfile?.updated_at || undefined
+    const cityLatestRow = cityEligible && cityEligible.length > 0 ? (cityEligible[0] as any) : null
+    const cityLastMod = cityLatestRow?.updated_at || undefined
 
     if (cityLastMod && (!globalLatestModified || new Date(cityLastMod) > new Date(globalLatestModified))) {
       globalLatestModified = cityLastMod
@@ -192,34 +182,44 @@ export async function getSitemapData(): Promise<SitemapEntryDTO[]> {
       })
     }
 
-    // 3. Process active locations within this city
+    // 3. For location counts, get all eligible IDs for this city first.
+    //    Re-use cityEligible data if count fits in one page; otherwise fetch full ID list.
+    const { data: allCityEligible } = await admin
+      .from('v_publication_eligible_profiles')
+      .select('profile_id')
+      .eq('city_id', city.id)
+
+    const eligibleCityIds = (allCityEligible || []).map((r: any) => r.profile_id)
+
+    // 4. Process active locations within this city
     const locations = await getLocationsByCityId(city.id)
     for (const loc of locations) {
       if (!loc.active || !INDEXABLE_LOCATION_TYPES.includes(loc.location_type)) {
         continue
       }
 
-      const { data: locProfiles, count: locCount } = await admin
-        .from('professional_profiles')
-        .select(SELECT_SEO_ELIGIBILITY_FIELDS, { count: 'exact' })
-        .in('status', allowedStatuses)
-        .eq('account.status', 'ACTIVE')
-        .eq('account.verifications.status', 'VERIFIED')
-        .eq('account.verifications.identity_verified', true)
-        .eq('account.verifications.age_verified', true)
-        .eq('locations.location.slug', loc.slug)
-        .order('updated_at', { ascending: false })
-        .limit(1)
+      if (eligibleCityIds.length === 0) {
+        continue
+      }
+
+      // Count eligible profiles that have this specific location
+      const { count: locCount, error: locCountError } = await admin
+        .from('professional_profile_locations')
+        .select('profile_id', { count: 'exact', head: true })
+        .in('profile_id', eligibleCityIds)
+        .eq('location_id', loc.id)
+
+      if (locCountError) {
+        console.error('[seo:dal:sitemap] Error counting location eligible profiles:', locCountError.message)
+      }
 
       const eligibleLocCount = locCount || 0
-      const locLatestProfile = locProfiles && locProfiles.length > 0 ? (locProfiles[0] as any) : null
-      const locLastMod = locLatestProfile?.updated_at || undefined
 
       // Include Location if threshold met (>= 3)
       if (eligibleLocCount >= MIN_LOCATION_PROFILES_FOR_INDEXING) {
         sitemapEntries.push({
           url: `${config.siteUrl}/${city.slug}/${loc.slug}`,
-          lastModified: locLastMod,
+          lastModified: cityLastMod,
           changeFrequency: 'daily',
           priority: 0.8,
         })
@@ -227,7 +227,7 @@ export async function getSitemapData(): Promise<SitemapEntryDTO[]> {
     }
   }
 
-  // 4. Prepend Home page at top of sitemap
+  // 5. Prepend Home page at top of sitemap
   sitemapEntries.unshift({
     url: `${config.siteUrl}/`,
     lastModified: globalLatestModified || undefined,

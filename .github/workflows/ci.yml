@@ -2,13 +2,19 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  ci:
-    name: Lint, Typecheck, Test & Build
+  # ---------------------------------------------------------------------------
+  # Job 1: TypeScript typecheck + ESLint — always runs
+  # ---------------------------------------------------------------------------
+  lint-type:
+    name: Lint & Typecheck
     runs-on: ubuntu-latest
 
     steps:
@@ -24,14 +30,66 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Test
+      - name: Lint
+        run: npm run lint
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Unit / static tests — always runs (no Supabase needed)
+  # Excludes integration test files that import supabase-test-client.
+  # ---------------------------------------------------------------------------
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npx vitest run --reporter=verbose --exclude='**/integration.test.ts' --exclude='tests/auth/authorization.test.ts' --exclude='tests/env-security.test.ts' --exclude='tests/search/benchmark.test.ts' --exclude='tests/health.test.ts' --exclude='tests/analytics/aggregation-idempotency.test.ts'
+
+  # ---------------------------------------------------------------------------
+  # Job 3: Full integration suite + production build — push to main only.
+  # Runs against real Supabase dev environment using repository secrets.
+  # Skipped on pull_request to protect secrets from untrusted forks.
+  # ---------------------------------------------------------------------------
+  test-integration:
+    name: Integration Tests & Build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run full test suite
         run: npm run test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANALYTICS_RATE_LIMIT_SECRET: ${{ secrets.ANALYTICS_RATE_LIMIT_SECRET }}
 
       - name: Production build
         run: npm run build
@@ -43,3 +101,4 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key-for-ci-build
           SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-for-ci-build
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+

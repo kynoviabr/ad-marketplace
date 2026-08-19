@@ -102,6 +102,8 @@ function mapRowToSearchResultDTO(row: any, placementType: 'ORGANIC' | 'SPONSORED
       hasPiercings: row.has_piercings,
       languages: row.languages || ['Português'],
     },
+    // The view v_publication_eligible_profiles already guarantees KYC verification for
+    // all IDs in eligibleProfileIds. This constant remains correct.
     isVerified: true,
     contact: {
       whatsapp: row.show_whatsapp ? row.whatsapp_phone : null,
@@ -113,6 +115,10 @@ function mapRowToSearchResultDTO(row: any, placementType: 'ORGANIC' | 'SPONSORED
   }
 }
 
+// NOTE (FASE 11-SEC-011): account:account_users and account.verifications joins have been
+// removed. Publication eligibility is now enforced exclusively at the query level via the
+// v_publication_eligible_profiles VIEW (migration 20260819000010). The !inner location join
+// is retained for location-based filtering and DTO mapping.
 const SELECT_PROFILE_SEARCH_FIELDS = `
   id,
   stage_name,
@@ -158,14 +164,6 @@ const SELECT_PROFILE_SEARCH_FIELDS = `
         slug
       )
     )
-  ),
-  account:account_users!inner (
-    status,
-    verifications:identity_verifications!inner (
-      status,
-      identity_verified,
-      age_verified
-    )
   )
 `
 
@@ -194,6 +192,12 @@ const SELECT_PROFILE_SEARCH_FIELDS = `
  *   Page 1: sponsored profile IDs are excluded from the organic WHERE clause.
  *   Page 2+: no exclusion — boosted profiles re-enter organic ranking normally.
  *   The organic COUNT(*) for totalProfiles is taken WITHOUT the NOT IN exclusion.
+ *
+ * FASE 11-SEC-011 — View-based Publication Gating:
+ *   All publication eligibility checks (account status, KYC, billing entitlement, content
+ *   moderation) are enforced by pre-fetching eligible profile IDs from the service_role-only
+ *   VIEW v_publication_eligible_profiles. The subsequent queries on professional_profiles
+ *   use .in('id', eligibleProfileIds) to restrict results to that pre-vetted set.
  */
 export async function executeSearch(params: SearchParams): Promise<SearchResponse> {
   const admin = createAdminClient()
@@ -220,7 +224,38 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
 
   const page = Math.max(1, params.page || 1)
   const limit = Math.min(50, Math.max(1, params.limit || 20))
+
+  // allowedStatuses is kept as documentation — the view already filters by status.
+  // The primary eligibility gate is .in('id', eligibleProfileIds) derived from the view.
   const allowedStatuses = ['ACTIVE', 'READY_FOR_REVIEW']
+  void allowedStatuses // intentionally unused in queries; eligibility enforced by view
+
+  // FASE 11-SEC-011: Pre-fetch eligible profile IDs for this city from the view.
+  // v_publication_eligible_profiles encodes all 8 publication gates including
+  // billing entitlement time-awareness. Access is service_role only (admin client).
+  const { data: eligibleData, error: eligibleError } = await admin
+    .from('v_publication_eligible_profiles')
+    .select('profile_id')
+    .eq('city_id', city.id)
+
+  if (eligibleError) {
+    console.error('[search:executeSearch] Error fetching eligible profile IDs from view:', eligibleError.message)
+  }
+
+  const eligibleProfileIds: string[] = (eligibleData || []).map((r: any) => r.profile_id)
+
+  if (eligibleProfileIds.length === 0) {
+    return {
+      results: [],
+      totalProfiles: 0,
+      page,
+      pageSize: limit,
+      totalPages: 0,
+      city: { id: city.id, name: city.name, slug: city.slug },
+      selectedLocation,
+      sponsoredCount: 0,
+    }
+  }
 
   // 3. Sponsored Inventory Resolution — runs on ALL pages to authoritatively
   //    recompute sponsoredCountPage1 for the organic offset formula.
@@ -260,16 +295,13 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
         }
       }
 
-      // Query candidate profiles enforcing all visitor filters & publication gates
+      // Query candidate profiles. Publication eligibility enforced via .in('id', eligibleProfileIds).
+      // City scoping enforced via the locations join.
       let sponsoredQuery = admin
         .from('professional_profiles')
         .select(SELECT_PROFILE_SEARCH_FIELDS)
+        .in('id', eligibleProfileIds)
         .in('id', uniqueCandidateProfileIds)
-        .in('status', allowedStatuses)
-        .eq('account.status', 'ACTIVE')
-        .eq('account.verifications.status', 'VERIFIED')
-        .eq('account.verifications.identity_verified', true)
-        .eq('account.verifications.age_verified', true)
         .eq('locations.location.city.slug', params.citySlug)
 
       sponsoredQuery = applySearchFilters(sponsoredQuery, params, selectedLocation)
@@ -299,18 +331,15 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
   const sponsoredCount = sponsoredResults.length
 
   // 4. Organic Total Count Query
-  //    Uses SELECT_PROFILE_SEARCH_FIELDS to declare the !inner joins so that
-  //    nested filter conditions (.eq('account.status', ...) etc.) work correctly
-  //    in Supabase PostgREST. The HEAD+count:exact combination returns only the count.
-  //    Does NOT exclude sponsored IDs — sponsored profiles are part of the eligible population.
+  //    Uses SELECT_PROFILE_SEARCH_FIELDS to declare the !inner location join so that
+  //    nested filter conditions (.eq('locations.location.city.slug', ...) etc.) work
+  //    correctly in Supabase PostgREST. The HEAD+count:exact combination returns only
+  //    the count. Does NOT exclude sponsored IDs — sponsored profiles are part of the
+  //    eligible population.
   let countQuery = admin
     .from('professional_profiles')
     .select(SELECT_PROFILE_SEARCH_FIELDS, { count: 'exact', head: true })
-    .in('status', allowedStatuses)
-    .eq('account.status', 'ACTIVE')
-    .eq('account.verifications.status', 'VERIFIED')
-    .eq('account.verifications.identity_verified', true)
-    .eq('account.verifications.age_verified', true)
+    .in('id', eligibleProfileIds)
     .eq('locations.location.city.slug', params.citySlug)
 
   countQuery = applySearchFilters(countQuery, params, selectedLocation)
@@ -337,11 +366,7 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
   let organicQuery = admin
     .from('professional_profiles')
     .select(SELECT_PROFILE_SEARCH_FIELDS)
-    .in('status', allowedStatuses)
-    .eq('account.status', 'ACTIVE')
-    .eq('account.verifications.status', 'VERIFIED')
-    .eq('account.verifications.identity_verified', true)
-    .eq('account.verifications.age_verified', true)
+    .in('id', eligibleProfileIds)
     .eq('locations.location.city.slug', params.citySlug)
 
   // Duplicate suppression on Page 1 only

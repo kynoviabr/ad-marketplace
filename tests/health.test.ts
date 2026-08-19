@@ -19,7 +19,7 @@ describe('GET /api/health', () => {
     vi.resetModules()
   })
 
-  it('returns status, timestamp, and version fields', async () => {
+  it('returns status and timestamp fields (no internal metadata)', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
 
@@ -29,11 +29,15 @@ describe('GET /api/health', () => {
 
     expect(body).toHaveProperty('status')
     expect(body).toHaveProperty('timestamp')
-    expect(body).toHaveProperty('version')
     expect(typeof body.timestamp).toBe('string')
     // Validate ISO 8601 format
     expect(() => new Date(body.timestamp as string).toISOString()).not.toThrow()
+
+    // F11-INFO-004: Internal metadata must NOT be exposed
+    expect(body).not.toHaveProperty('version')
+    expect(body).not.toHaveProperty('phase')
   })
+
 
   it('returns status "ok" when env vars are present', async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'

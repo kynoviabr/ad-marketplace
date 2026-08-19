@@ -8,7 +8,14 @@ import { createAdminClient } from '@/lib/supabase/admin'
  * Never persists raw IP addresses.
  */
 export function generateReporterHash(ip: string): string {
-  const pepper = process.env.ABUSE_PEPPER || 'ad-marketplace-abuse-pepper-default'
+  const pepper = process.env.ABUSE_PEPPER
+  if (!pepper) {
+    throw new Error(
+      '[abuse] ABUSE_PEPPER environment variable is not set. ' +
+        'This variable is required for reporter hash generation. ' +
+        'Generate a value with: openssl rand -hex 32'
+    )
+  }
   const normalizedIp = (ip || '127.0.0.1').trim().toLowerCase()
 
   return createHmac('sha256', pepper).update(normalizedIp).digest('hex')
