@@ -192,16 +192,22 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
   // =========================================================================
   // GATE 1: Account ACTIVE
   // =========================================================================
-  it('Gate 1: account INACTIVE → NOT in view', async () => {
+  it('Gate 1: account SUSPENDED → NOT in view', async () => {
     const { accountId } = await createBaseAccount('gate1')
 
-    // Make account inactive
-    await admin.from('account_users').update({ status: 'INACTIVE' }).eq('id', accountId)
+    // Make account suspended (INACTIVE is not a valid user_status enum value;
+    // valid values are: ACTIVE, SUSPENDED, DELETED)
+    const { error } = await admin
+      .from('account_users')
+      .update({ status: 'SUSPENDED' })
+      .eq('id', accountId)
+    if (error) throw new Error('Failed to set SUSPENDED: ' + error.message)
 
     const profId = await setupFullyEligibleProfile(accountId, moemaId, planId, priceId, 'gate1')
     const inView = await isInView(profId)
     expect(inView).toBe(false)
   })
+
 
   // =========================================================================
   // GATE 2: KYC VERIFIED
@@ -505,14 +511,16 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
     const profId = await setupFullyEligibleProfile(accountId, moemaId, planId, priceId, 'gate8f')
 
     // Remove subscription, add override
+    // billing_overrides schema: reason TEXT NOT NULL, granted_by UUID NOT NULL (FK account_users)
     await admin.from('subscriptions').delete().eq('account_user_id', accountId)
-    await admin.from('billing_overrides').insert({
+    const { error: ovErr } = await admin.from('billing_overrides').insert({
       account_user_id: accountId,
-      override_type: 'FREE_LAUNCH',
-      notes: 'FASE 11 test override',
+      reason: 'FASE 11 test — free launch override',
+      granted_by: accountId, // self-grant acceptable for test
       revoked_at: null,
       expires_at: null,
     })
+    if (ovErr) throw new Error('billing_override insert failed: ' + ovErr.message)
 
     const inView = await isInView(profId)
     expect(inView).toBe(true)
@@ -524,13 +532,14 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
 
     // Remove subscription, add revoked override
     await admin.from('subscriptions').delete().eq('account_user_id', accountId)
-    await admin.from('billing_overrides').insert({
+    const { error: ovErr } = await admin.from('billing_overrides').insert({
       account_user_id: accountId,
-      override_type: 'FREE_LAUNCH',
-      notes: 'FASE 11 test revoked override',
+      reason: 'FASE 11 test — revoked override',
+      granted_by: accountId,
       revoked_at: new Date().toISOString(),
       expires_at: null,
     })
+    if (ovErr) throw new Error('billing_override insert failed: ' + ovErr.message)
 
     const inView = await isInView(profId)
     expect(inView).toBe(false)
@@ -543,17 +552,20 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
     // Remove subscription, add expired override
     await admin.from('subscriptions').delete().eq('account_user_id', accountId)
     const pastDate = new Date(Date.now() - 1000).toISOString()
-    await admin.from('billing_overrides').insert({
+    const { error: ovErr } = await admin.from('billing_overrides').insert({
       account_user_id: accountId,
-      override_type: 'FREE_LAUNCH',
-      notes: 'FASE 11 test expired override',
+      reason: 'FASE 11 test — expired override',
+      granted_by: accountId,
       revoked_at: null,
       expires_at: pastDate,
     })
+    if (ovErr) throw new Error('billing_override insert failed: ' + ovErr.message)
 
     const inView = await isInView(profId)
     expect(inView).toBe(false)
   })
+
+
 
   // =========================================================================
   // ALL GATES SATISFIED — Must appear in view
