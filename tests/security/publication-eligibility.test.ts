@@ -141,10 +141,11 @@ async function setupFullyEligibleProfile(
   await admin.from('profile_media').insert({
     profile_id: prof.id,
     storage_path: `test/fase11-elig-${suffix}-${Date.now()}.jpg`,
-    media_type: 'IMAGE',
+    mime_type: 'image/jpeg',
+    file_size_bytes: 1024 * 512,
+    position: 1,
     status: 'APPROVED',
     is_primary: true,
-    sort_order: 0,
   })
 
   // Active subscription (free, no period end = indefinite)
@@ -232,10 +233,11 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
     await admin.from('profile_media').insert({
       profile_id: prof.id,
       storage_path: `test/gate2a-${Date.now()}.jpg`,
-      media_type: 'IMAGE',
+      mime_type: 'image/jpeg',
+      file_size_bytes: 1024 * 512,
+      position: 1,
       status: 'APPROVED',
       is_primary: true,
-      sort_order: 0,
     })
     await admin.from('subscriptions').insert({
       account_user_id: accountId,
@@ -283,10 +285,11 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
     await admin.from('profile_media').insert({
       profile_id: prof.id,
       storage_path: `test/gate2b-${Date.now()}.jpg`,
-      media_type: 'IMAGE',
+      mime_type: 'image/jpeg',
+      file_size_bytes: 1024 * 512,
+      position: 1,
       status: 'APPROVED',
       is_primary: true,
-      sort_order: 0,
     })
     await admin.from('subscriptions').insert({
       account_user_id: accountId,

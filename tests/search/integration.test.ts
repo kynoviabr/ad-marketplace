@@ -44,6 +44,9 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Re
       verified_at: new Date().toISOString(),
     })
 
+    // FASE 11: Profiles need all 8 publication gates satisfied to appear in v_publication_eligible_profiles.
+    // Gates added vs FASE 04 original: content_moderation_status=APPROVED (Gate 4),
+    // approved photo (Gate 6), and active subscription (Gate 8).
     const { data: profA } = await admin
       .from('professional_profiles')
       .insert({
@@ -64,16 +67,40 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Re
         show_whatsapp: true,
         whatsapp_phone: '+5511999998888',
         status: 'READY_FOR_REVIEW',
+        content_moderation_status: 'APPROVED', // Gate 4 (FASE 11)
       })
       .select('id')
       .single()
     profileAId = profA!.id
 
-    // Use atomic RPC save_profile_service_areas
+    // Use atomic RPC save_profile_service_areas (Gate 5)
     await admin.rpc('save_profile_service_areas', {
       p_profile_id: profileAId,
       p_location_ids: [moemaId, pinheirosId],
       p_primary_location_id: moemaId,
+    })
+
+    // Gate 6: Approved photo (FASE 11)
+    await admin.from('profile_media').insert({
+      profile_id: profileAId,
+      storage_path: `test/fase04-juliana-${Date.now()}.jpg`,
+      mime_type: 'image/jpeg',
+      file_size_bytes: 1024 * 512,
+      position: 1,
+      status: 'APPROVED',
+      is_primary: true,
+    })
+
+    // Gate 8: Active subscription (FASE 11)
+    const { data: founderPlan } = await admin.from('subscription_plans').select('id').eq('code', 'FOUNDER').single()
+    const { data: freePlan } = await admin.from('plan_prices').select('id').eq('plan_id', founderPlan!.id).eq('price_code', 'LAUNCH_FREE').single()
+    await admin.from('subscriptions').insert({
+      account_user_id: acctA!.id,
+      plan_id: founderPlan!.id,
+      price_id: freePlan!.id,
+      status: 'ACTIVE',
+      current_period_start: new Date().toISOString(),
+      current_period_end: null, // indefinite
     })
 
     // 3. Create User B (Hidden weight = 60kg, show_weight = false)
@@ -118,16 +145,38 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Re
         show_whatsapp: true,
         whatsapp_phone: '+5511988887777',
         status: 'READY_FOR_REVIEW',
+        content_moderation_status: 'APPROVED', // Gate 4 (FASE 11)
       })
       .select('id')
       .single()
     profileBId = profB!.id
 
-    // Use atomic RPC save_profile_service_areas
+    // Use atomic RPC save_profile_service_areas (Gate 5)
     await admin.rpc('save_profile_service_areas', {
       p_profile_id: profileBId,
       p_location_ids: [moemaId],
       p_primary_location_id: moemaId,
+    })
+
+    // Gate 6: Approved photo (FASE 11)
+    await admin.from('profile_media').insert({
+      profile_id: profileBId,
+      storage_path: `test/fase04-camila-${Date.now()}.jpg`,
+      mime_type: 'image/jpeg',
+      file_size_bytes: 1024 * 512,
+      position: 1,
+      status: 'APPROVED',
+      is_primary: true,
+    })
+
+    // Gate 8: Active subscription (FASE 11)
+    await admin.from('subscriptions').insert({
+      account_user_id: acctB!.id,
+      plan_id: founderPlan!.id,
+      price_id: freePlan!.id,
+      status: 'ACTIVE',
+      current_period_start: new Date().toISOString(),
+      current_period_end: null, // indefinite
     })
   })
 
