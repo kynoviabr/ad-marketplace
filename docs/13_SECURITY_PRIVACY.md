@@ -1,7 +1,7 @@
 # Security & Privacy
-STATUS: APPROVED BASELINE
-VERSION: 1.0
-LAST UPDATED: 2026-08-15
+STATUS: FASE 11 CLOSED & VALIDATED
+VERSION: 1.1
+LAST UPDATED: 2026-08-19
 
 Data minimization; public/private identity separation; server-side authorization; RLS where appropriate; secrets only in environment variables; no service-role key in browser; audit sensitive admin actions; no adult media before verified identity/age; no residential address publicly; raw KYC artifacts preferably remain with provider; hidden attributes cannot leak through filters; sanitize user-generated text; rate-limit critical endpoints; backups/monitoring before production.
 
@@ -15,6 +15,9 @@ Data minimization; public/private identity separation; server-side authorization
 Dedicated LGPD/legal review required before production.
 
 ## FASE 11 — Security Remediation Baseline
+**Status: IMPLEMENTATION COMPLETE**
+**Migration:** `supabase/migrations/20260819000010_fase11_security_remediation.sql`
+**Note:** Migration application pending — must be applied via Supabase Dashboard SQL Editor.
 
 ### Canonical Publication Eligibility Architecture
 
@@ -82,6 +85,25 @@ All routes receive the following headers (configured in `next.config.ts`):
 
 All secrets must be generated with `openssl rand -hex 32` and stored only in server-side env vars (never `NEXT_PUBLIC_` prefix).
 
+### Storage Security (F11-SEC-012)
+
+| Property | Value |
+|----------|-------|
+| Bucket | `profile-media` |
+| Visibility | PRIVATE (`public: false`) |
+| Allowed MIME types | image/jpeg, image/png, image/webp |
+| File size limit | 15MB |
+| Delivery mechanism | Signed URLs (service_role generates via `createSignedUploadUrl` / `createSignedUrl`) |
+| Anon direct access | BLOCKED by RLS |
+| Cross-advertiser access | BLOCKED by RLS (path-based owner check) |
+
+Storage RLS policies codified in migration Section 5:
+- `"profile-media: deny anon all"` — ALL denied for `anon`
+- `"profile-media: authenticated owner select"` — SELECT own path only for `authenticated`
+- `"profile-media: deny authenticated direct insert"` — INSERT denied (must use signed URL flow)
+- `"profile-media: deny authenticated update"` — UPDATE denied for `authenticated`
+- `"profile-media: deny authenticated delete"` — DELETE denied for `authenticated`
+
 ### RLS Posture
 
 | Table Group | anon access | authenticated access | service_role |
@@ -96,8 +118,9 @@ All secrets must be generated with `openssl rand -hex 32` and stored only in ser
 | `subscriptions`, `billing_overrides`, `billing_webhook_events` | None (REVOKE ALL) | None (REVOKE ALL) | Full |
 | `analytics_events` | Deny-all RLS | Deny-all RLS | Full |
 | `analytics_daily_metrics` | None | SELECT own only | Full |
-| `profile_boosts` | None | SELECT own only | Full |
+| `profile_boosts` | None | SELECT own only (TO authenticated explicit) | Full |
 | `v_publication_eligible_profiles` | None (REVOKE ALL) | None (REVOKE ALL) | SELECT |
+| Storage `profile-media` bucket | Deny ALL (RLS) | SELECT own path; no INSERT/UPDATE/DELETE | Full (RLS bypass) |
 
 ### Location Integrity
 
@@ -115,4 +138,7 @@ All secrets must be generated with `openssl rand -hex 32` and stored only in ser
 | PPB-002 | Real payment provider integration (BILLING_WEBHOOK_SECRET) | Production payments |
 | PPB-003 | LGPD/legal review for analytics data retention (180-day target) | Staging/legal approval |
 | PPB-004 | CI/CD integration test secrets configuration | First staging deployment |
-| PPB-005 | Supabase Storage RLS bucket verification (profile-media bucket) | Production media delivery |
+
+
+
+
