@@ -19,9 +19,31 @@ const nextConfig: NextConfig = {
   },
 
   /**
+   * Image optimization — remote patterns.
+   *
+   * Narrowly scoped to Supabase storage for approved profile media delivery.
+   * Only *.supabase.co is permitted — no arbitrary remote hosts.
+   *
+   * FASE 12.2A: Prepared for profile photo rendering in FASE 12.2C/D.
+   */
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        pathname: '/storage/v1/object/**',
+      },
+    ],
+  },
+
+  /**
    * Security Headers — F11-SEC-004
    *
    * Applied to every route via source: '/:path*'.
+   *
+   * FASE 12.2A changes:
+   * - font-src updated: added https://fonts.gstatic.com for next/font/google
+   * - style-src updated: added https://fonts.googleapis.com for font preconnect
    *
    * Notes:
    * - `unsafe-inline` for script-src is currently required for Next.js App Router
@@ -55,10 +77,12 @@ const nextConfig: NextConfig = {
         value: [
           "default-src 'self'",
           "script-src 'self' 'unsafe-inline'",
-          "style-src 'self' 'unsafe-inline'",
+          // unsafe-inline required for next/font injected <style> tags
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "img-src 'self' data: blob: https:",
           "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-          "font-src 'self'",
+          // fonts.gstatic.com serves the actual font files loaded by next/font/google
+          "font-src 'self' https://fonts.gstatic.com",
           "object-src 'none'",
           "base-uri 'self'",
           "form-action 'self'",
@@ -87,3 +111,4 @@ const nextConfig: NextConfig = {
 }
 
 export default nextConfig
+

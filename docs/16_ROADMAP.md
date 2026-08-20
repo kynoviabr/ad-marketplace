@@ -15,8 +15,13 @@ FASE 7 — Billing / Founders — SPEC COMPLETE; gateway underwriting pending
 FASE 8 — Boosts & Additional Monetization — CLOSED & VALIDATED AGAINST REAL SUPABASE DEV (v1.1)
 FASE 9 — Analytics & Business Intelligence — CLOSED & VALIDATED AGAINST REAL SUPABASE DEV (v1.2)
 FASE 10 — SEO, Growth & São Paulo GTM — CLOSED & VALIDATED AGAINST REAL SUPABASE DEV (v1.1)
-FASE 11 — Security, Privacy, LGPD & Production Hardening — SPEC COMPLETE
-FASE 12 — Closed Beta & Launch Readiness — SPEC COMPLETE
+FASE 11 — Security, Privacy, LGPD & Production Hardening — CLOSED & VALIDATED AGAINST REAL SUPABASE DEV
+FASE 12 — Closed Beta & Launch Readiness — IN PROGRESS
+  FASE 12.1A — Architecture (Attribution, WhatsApp, Eligibility) — FROZEN
+  FASE 12.1B — Visual Direction (Editorial Contemporary) — SUPERSEDED BY 12.1C
+  FASE 12.1C — Design Contract Freeze — FROZEN (authoritative)
+  FASE 12.2A — Design Foundation & Public Shell — CLOSED (2026-08-20)
+  FASE 12.2B — Home Page — PENDING FASE 12.2A approval
 
 ## Commercial objective
 OBJ-001 — Target R$50,000 monthly portal revenue by the end of month 6 after the São Paulo Commercial Launch. Operating target, not a forecast or guarantee.
