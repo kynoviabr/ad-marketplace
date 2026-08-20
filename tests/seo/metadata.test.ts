@@ -10,6 +10,7 @@ import type { City, MarketplaceLocation } from '@/modules/locations/types'
 describe('FASE 10 — Next.js Metadata Construction & OG Media Fail-Closed', () => {
   const originalAppEnv = process.env.NEXT_PUBLIC_APP_ENV
   const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL
+  const originalMarketplaceName = process.env.MARKETPLACE_NAME
 
   const mockCity: City = {
     id: '11111111-1111-4111-a111-111111111111',
@@ -35,11 +36,17 @@ describe('FASE 10 — Next.js Metadata Construction & OG Media Fail-Closed', () 
   beforeEach(() => {
     process.env.NEXT_PUBLIC_APP_ENV = 'production'
     process.env.NEXT_PUBLIC_APP_URL = 'https://admarketplace.com.br'
+    process.env.MARKETPLACE_NAME = 'AD-Marketplace'
   })
 
   afterEach(() => {
     process.env.NEXT_PUBLIC_APP_ENV = originalAppEnv
     process.env.NEXT_PUBLIC_APP_URL = originalAppUrl
+    if (originalMarketplaceName === undefined) {
+      delete process.env.MARKETPLACE_NAME
+    } else {
+      process.env.MARKETPLACE_NAME = originalMarketplaceName
+    }
   })
 
   it('constructs complete metadata for city landing page', () => {

@@ -26,7 +26,7 @@ describe('Foundation Structure', () => {
 
   describe('Application files', () => {
     it('app/layout.tsx exists', () => expect(exists('app/layout.tsx')).toBe(true))
-    it('app/page.tsx exists', () => expect(exists('app/page.tsx')).toBe(true))
+    it('app/(public)/page.tsx exists', () => expect(exists('app/(public)/page.tsx')).toBe(true))
     it('app/globals.css exists', () => expect(exists('app/globals.css')).toBe(true))
     it('app/api/health/route.ts exists', () =>
       expect(exists('app/api/health/route.ts')).toBe(true))

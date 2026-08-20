@@ -7,13 +7,20 @@ import {
 
 describe('FASE 10 — Schema.org JSON-LD Structured Data Generators', () => {
   const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL
+  const originalMarketplaceName = process.env.MARKETPLACE_NAME
 
   beforeEach(() => {
     process.env.NEXT_PUBLIC_APP_URL = 'https://admarketplace.com.br'
+    process.env.MARKETPLACE_NAME = 'AD-Marketplace'
   })
 
   afterEach(() => {
     process.env.NEXT_PUBLIC_APP_URL = originalAppUrl
+    if (originalMarketplaceName === undefined) {
+      delete process.env.MARKETPLACE_NAME
+    } else {
+      process.env.MARKETPLACE_NAME = originalMarketplaceName
+    }
   })
 
   it('generates valid WebSite structured data', () => {

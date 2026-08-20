@@ -5,7 +5,13 @@
  * Server-side components imported directly — no 'use client' boundary here.
  */
 
-export { PublicHeader } from './public-header'
-export { PublicFooter } from './public-footer'
-export { MobileNavigation } from './mobile-navigation'
-export { PublicContainer, PublicSection } from './public-container'
+export * from './public-header'
+export * from './mobile-navigation'
+export * from './public-footer'
+export * from './public-container'
+export * from './home-hero'
+export * from './home-locations'
+export * from './home-profile-card'
+export * from './home-profile-grid'
+export * from './home-trust-section'
+export * from './home-acquisition'

@@ -20,8 +20,9 @@ FASE 12 — Closed Beta & Launch Readiness — IN PROGRESS
   FASE 12.1A — Architecture (Attribution, WhatsApp, Eligibility) — FROZEN
   FASE 12.1B — Visual Direction (Editorial Contemporary) — SUPERSEDED BY 12.1C
   FASE 12.1C — Design Contract Freeze — FROZEN (authoritative)
-  FASE 12.2A — Design Foundation & Public Shell — CLOSED (2026-08-20)
-  FASE 12.2B — Home Page — PENDING FASE 12.2A approval
+- [x] **FASE 12.2A** = CLOSED (Public design foundation, shell, brand config)
+- [ ] **FASE 12.2B** = IMPLEMENTED — AWAITING HUMAN VISUAL APPROVAL (Home marketplace discovery)
+- [ ] **FASE 12.2C** = NOT STARTED (Search / Location redesign)ve
 
 ## Commercial objective
 OBJ-001 — Target R$50,000 monthly portal revenue by the end of month 6 after the São Paulo Commercial Launch. Operating target, not a forecast or guarantee.

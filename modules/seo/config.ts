@@ -1,4 +1,5 @@
 import type { SeoConfig } from './types'
+import { getMarketplaceName } from '@/lib/brand'
 
 /**
  * Returns the environment-aware SEO and site configuration.
@@ -19,11 +20,12 @@ export function getSeoConfig(): SeoConfig {
     siteUrl.includes('staging.')
 
   const isProduction = appEnv === 'production' && !isLocalOrPreview
+  const siteName = getMarketplaceName()
 
   return {
-    siteName: 'AD-Marketplace',
+    siteName,
     siteUrl,
-    defaultTitle: 'AD-Marketplace | Acompanhantes Verificadas 18+ em São Paulo',
+    defaultTitle: `${siteName} | Acompanhantes Verificadas 18+ em São Paulo`,
     defaultDescription:
       'Portal de classificados de acompanhantes verificadas 18+ em São Paulo. Fotos auditadas e contato direto via WhatsApp.',
     locale: 'pt_BR',

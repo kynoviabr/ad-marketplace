@@ -84,7 +84,7 @@ function mapRowToSearchResultDTO(row: any, placementType: 'ORGANIC' | 'SPONSORED
     : null
 
   return {
-    id: row.slug,
+    id: row.id,
     slug: row.slug,
     stageName: row.stage_name,
     headline: row.headline,
