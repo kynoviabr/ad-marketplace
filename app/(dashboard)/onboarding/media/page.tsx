@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireVerifiedAdvertiser } from '@/modules/verification/dal'
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
-import { getProfileMedia } from '@/modules/media/dal'
+import { getManageableProfileMedia } from '@/modules/media/dal'
 import { MediaGalleryManager } from '@/components/media/media-gallery-manager'
 import Link from 'next/link'
 
@@ -17,7 +17,7 @@ export default async function OnboardingMediaPage() {
     redirect('/onboarding/profile')
   }
 
-  const media = await getProfileMedia(profile.id)
+  const media = await getManageableProfileMedia(profile.id)
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">

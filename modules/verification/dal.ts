@@ -47,14 +47,14 @@ export async function getVerificationSafe(accountUserId: string): Promise<Verifi
  * 1. requireAccount() — auth + ACTIVE account + terms acceptance
  * 2. canProceedToProfessionalProfile() — status VERIFIED + identity_verified + age_verified (>= 18)
  *
- * Redirects unverified advertisers to /onboarding/verification.
+ * Redirects unverified advertisers to the canonical Velvet verification step.
  */
 export async function requireVerifiedAdvertiser() {
   const account = await requireAccount()
   const verification = await getVerificationSafe(account.id)
 
   if (!canProceedToProfessionalProfile(verification)) {
-    redirect('/onboarding/verification')
+    redirect('/onboarding/verificacao')
   }
 
   return {

@@ -2,216 +2,117 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import type { VerificationSafeDTO } from '@/modules/verification/types'
-import { startVerificationAction, getVerificationStatusAction } from '@/modules/verification/actions'
-import { Button } from '@/components/ui/button'
+import type { VerificationSafeDTO, VerificationStatus } from '@/modules/verification/types'
+import { continueAfterVerificationAction, getVerificationStatusAction, startVerificationAction } from '@/modules/verification/actions'
 
 interface VerificationStatusCardProps {
   initialVerification: VerificationSafeDTO | null
+  initialVerifiedAdult: boolean
 }
 
-export function VerificationStatusCard({ initialVerification }: VerificationStatusCardProps) {
+const statusLabels: Record<VerificationStatus, string> = {
+  NOT_STARTED: 'Não iniciada', PENDING: 'Aguardando conclusão', IN_PROGRESS: 'Em andamento',
+  IN_REVIEW: 'Em análise', VERIFIED: 'Confirmada', REJECTED: 'Não concluída', EXPIRED: 'Expirada',
+}
+
+function isVerifiedAdult(verification: VerificationSafeDTO | null): boolean {
+  if (!verification || verification.status !== 'VERIFIED') return false
+  if (!verification.identityVerified || !verification.ageVerified) return false
+  return !verification.expiresAt || new Date(verification.expiresAt).getTime() > Date.now()
+}
+
+export function VerificationStatusCard({ initialVerification, initialVerifiedAdult }: VerificationStatusCardProps) {
   const router = useRouter()
   const [verification, setVerification] = useState<VerificationSafeDTO | null>(initialVerification)
+  const [verifiedAdult, setVerifiedAdult] = useState(initialVerifiedAdult)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const status = verification?.status ?? 'NOT_STARTED'
 
-  const status = verification?.status || 'NOT_STARTED'
-
-  const handleStartVerification = () => {
+  const startVerification = () => {
     setError(null)
     startTransition(async () => {
       const result = await startVerificationAction()
-      if (result.success) {
-        // Redirect to the provider's hosted verification URL
-        window.location.href = result.data.verificationUrl
-      } else {
-        setError(result.error)
-      }
+      if (result.success) window.location.assign(result.data.verificationUrl)
+      else setError(result.error)
     })
   }
 
-  const handleRefreshStatus = () => {
+  const refreshStatus = () => {
     setError(null)
     startTransition(async () => {
       const result = await getVerificationStatusAction()
-      if (result.success) {
-        setVerification(result.data)
-        router.refresh()
-      } else {
-        setError(result.error)
-      }
+      if (!result.success) return setError(result.error)
+      setVerification(result.data)
+      setVerifiedAdult(isVerifiedAdult(result.data))
+      router.refresh()
+    })
+  }
+
+  const continueToPhotos = () => {
+    setError(null)
+    startTransition(async () => {
+      const result = await continueAfterVerificationAction()
+      if (!result.success) setError(result.error)
     })
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 max-w-xl mx-auto">
-      <div className="flex items-center justify-between border-b pb-4 mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Verificação de Identidade e Idade (KYC)</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Requisito obrigatório para anunciantes do AD-Marketplace
-          </p>
-        </div>
-        <span
-          className={`px-3 py-1 text-xs font-semibold rounded-full ${
-            status === 'VERIFIED'
-              ? 'bg-emerald-100 text-emerald-800'
-              : status === 'REJECTED'
-              ? 'bg-rose-100 text-rose-800'
-              : status === 'IN_REVIEW'
-              ? 'bg-amber-100 text-amber-800'
-              : status === 'PENDING' || status === 'IN_PROGRESS'
-              ? 'bg-blue-100 text-blue-800'
-              : 'bg-gray-100 text-gray-800'
-          }`}
-        >
-          {status}
-        </span>
+    <section className="verification-panel" aria-labelledby="verification-panel-title">
+      <div className="verification-mark" aria-hidden="true">V</div>
+      <div className="verification-status-line" role="status" aria-live="polite">
+        <span>Estado da verificação</span><b>{statusLabels[status]}</b>
       </div>
+      {error && <p className="verification-error" role="alert">{error}</p>}
 
-      {error && (
-        <div className="mb-6 p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* State: NOT_STARTED */}
       {status === 'NOT_STARTED' && (
-        <div className="space-y-4">
-          <p className="text-gray-600 text-sm leading-relaxed">
-            Para garantir a segurança do marketplace e cumprir com os termos de uso, todos os
-            anunciantes devem comprovar documentalmente sua identidade e maioridade (18+ anos).
-          </p>
-          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-xs text-slate-600 space-y-2">
-            <p className="font-semibold text-slate-800">O que você precisará:</p>
-            <ul className="list-disc list-inside space-y-1">
-              <li>Documento oficial com foto (RG ou CNH)</li>
-              <li>Câmera do celular ou computador para biometria facial</li>
-              <li>Apenas 2 a 3 minutos para conclusão</li>
-            </ul>
-          </div>
-          <Button
-            onClick={handleStartVerification}
-            disabled={isPending}
-            className="w-full py-2.5"
-          >
-            {isPending ? 'Iniciando sessão...' : 'Iniciar Verificação'}
-          </Button>
+        <div className="verification-state">
+          <h2 id="verification-panel-title">Confirme sua identidade</h2>
+          <p>Você será direcionada ao ambiente seguro do parceiro de verificação.</p>
+          <ol className="verification-steps">
+            <li><span>01</span>Você inicia a verificação.</li>
+            <li><span>02</span>Identidade e maioridade são analisadas.</li>
+            <li><span>03</span>Você retorna à Velvet para continuar.</li>
+          </ol>
+          <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
+            {isPending ? 'Preparando ambiente seguro…' : 'Verificar minha identidade'}<span aria-hidden="true">↗</span>
+          </button>
+          <p className="verification-external-note">Abre o ambiente externo do parceiro de verificação.</p>
         </div>
       )}
 
-      {/* State: PENDING or IN_PROGRESS */}
-      {(status === 'PENDING' || status === 'IN_PROGRESS') && (
-        <div className="space-y-4">
-          <p className="text-gray-600 text-sm leading-relaxed">
-            Sua sessão de verificação foi iniciada. Conclua o processo no ambiente seguro do
-            provedor para liberar as próximas etapas.
-          </p>
-          <div className="flex gap-3">
-            <Button
-              onClick={handleStartVerification}
-              disabled={isPending}
-              className="flex-1"
-            >
-              {isPending ? 'Carregando...' : 'Continuar Verificação'}
-            </Button>
-            <Button
-              onClick={handleRefreshStatus}
-              disabled={isPending}
-              variant="ghost"
-            >
-              Atualizar Status
-            </Button>
-          </div>
+      {['PENDING', 'IN_PROGRESS', 'IN_REVIEW'].includes(status) && (
+        <div className="verification-state">
+          <h2 id="verification-panel-title">Verificação em andamento</h2>
+          <p>{status === 'IN_REVIEW' ? 'Seus dados estão em análise. O resultado pode levar algum tempo.' : 'Conclua o processo no ambiente de verificação. O resultado oficial chegará à Velvet com segurança.'}</p>
+          <button type="button" className="onboarding-primary" onClick={refreshStatus} disabled={isPending}>
+            {isPending ? 'Consultando…' : 'Atualizar status'}<span aria-hidden="true">↻</span>
+          </button>
         </div>
       )}
 
-      {/* State: IN_REVIEW */}
-      {status === 'IN_REVIEW' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm">
-            <p className="font-semibold mb-1">Verificação em Análise Manual</p>
-            <p className="text-xs text-amber-700">
-              Seus documentos foram enviados e estão sendo analisados. Você receberá a confirmação
-              assim que a análise for concluída.
-            </p>
-          </div>
-          <Button
-            onClick={handleRefreshStatus}
-            disabled={isPending}
-            variant="ghost"
-            className="w-full"
-          >
-            {isPending ? 'Verificando...' : 'Verificar Atualização'}
-          </Button>
+      {status === 'VERIFIED' && verifiedAdult && (
+        <div className="verification-state verification-state--verified">
+          <h2 id="verification-panel-title">Identidade confirmada</h2>
+          <ul className="verification-confirmations">
+            <li><span aria-hidden="true">✓</span> Identidade confirmada</li>
+            <li><span aria-hidden="true">✓</span> Maioridade confirmada</li>
+          </ul>
+          <button type="button" className="onboarding-primary" onClick={continueToPhotos} disabled={isPending}>
+            {isPending ? 'Continuando…' : 'Continuar'}<span aria-hidden="true">→</span>
+          </button>
         </div>
       )}
 
-      {/* State: VERIFIED */}
-      {status === 'VERIFIED' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm">
-            <p className="font-semibold flex items-center gap-2">
-              <span className="text-emerald-600">✓</span> Identidade & Maioridade Confirmadas
-            </p>
-            <p className="text-xs text-emerald-700 mt-1">
-              Sua conta está aprovada e habilitada para criar o perfil profissional.
-            </p>
-            {verification?.verifiedAt && (
-              <p className="text-xs text-emerald-600 mt-2">
-                Verificado em: {new Date(verification.verifiedAt).toLocaleDateString('pt-BR')}
-              </p>
-            )}
-          </div>
-          <Button
-            onClick={() => router.push('/dashboard')}
-            className="w-full"
-          >
-            Ir para o Dashboard
-          </Button>
+      {((status === 'VERIFIED' && !verifiedAdult) || status === 'REJECTED' || status === 'EXPIRED') && (
+        <div className="verification-state">
+          <h2 id="verification-panel-title">{status === 'EXPIRED' ? 'Verificação expirada' : 'Não foi possível concluir'}</h2>
+          <p>{status === 'EXPIRED' ? 'A sessão ou validade da verificação terminou. Inicie uma nova tentativa.' : 'A confirmação necessária não foi concluída. Você pode iniciar uma nova tentativa.'}</p>
+          <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
+            {isPending ? 'Preparando…' : 'Tentar novamente'}<span aria-hidden="true">↗</span>
+          </button>
         </div>
       )}
-
-      {/* State: REJECTED */}
-      {status === 'REJECTED' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-900 text-sm">
-            <p className="font-semibold mb-1">Verificação Não Aprovada</p>
-            <p className="text-xs text-rose-700">
-              Não foi possível validar seus documentos ou os critérios de maioridade (18+ anos) não
-              foram atendidos.
-            </p>
-          </div>
-          <Button
-            onClick={handleStartVerification}
-            disabled={isPending}
-            className="w-full"
-          >
-            {isPending ? 'Iniciando...' : 'Tentar Novamente'}
-          </Button>
-        </div>
-      )}
-
-      {/* State: EXPIRED */}
-      {status === 'EXPIRED' && (
-        <div className="space-y-4">
-          <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 text-sm">
-            <p className="font-semibold mb-1">Sessão Expirada</p>
-            <p className="text-xs text-slate-500">
-              O tempo limite para conclusão da verificação expirou. Inicie uma nova sessão para
-              continuar.
-            </p>
-          </div>
-          <Button
-            onClick={handleStartVerification}
-            disabled={isPending}
-            className="w-full"
-          >
-            {isPending ? 'Iniciando...' : 'Iniciar Nova Sessão'}
-          </Button>
-        </div>
-      )}
-    </div>
+    </section>
   )
 }

@@ -49,7 +49,7 @@ Copy `.env.example` to `.env.local` and populate:
 |----------|-------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Public (browser + server) | Your Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public (browser + server) | Supabase anon/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** | Service role key — bypasses RLS |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server only** | Supabase Secret API Key (`sb_secret_...`) — elevated access, bypasses RLS |
 | `NEXT_PUBLIC_APP_URL` | Public | Base URL of the application |
 
 ### ⚠️ Secret Security Rules
@@ -105,7 +105,7 @@ for deployment on **Hostinger** or any equivalent Node.js host.
 1. Create a Supabase project at [supabase.com](https://supabase.com).
 2. Copy the **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
 3. Copy the **anon/public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-4. Copy the **service_role key** → `SUPABASE_SERVICE_ROLE_KEY`
+4. Create/copy a server-only **Secret API Key** (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY`
 
 > **Note**: In FASE 00 (Foundation), no database tables or domain schema are created.
 > The Supabase connection infrastructure is in place, but no migrations have been run.
@@ -117,7 +117,7 @@ for deployment on **Hostinger** or any equivalent Node.js host.
 |------|---------|----------|
 | `lib/supabase/client.ts` | Browser / Client Components | `ANON_KEY` |
 | `lib/supabase/server.ts` | Server Components / API Routes | `ANON_KEY` + cookies |
-| `lib/supabase/admin.ts` | Admin / server-only operations | `SERVICE_ROLE_KEY` |
+| `lib/supabase/admin.ts` | Admin / server-only operations | Secret API Key via compatibility env name `SUPABASE_SERVICE_ROLE_KEY` |
 
 ---
 

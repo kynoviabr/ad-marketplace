@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
-import { HomeHero, HomeLocations, HomeProfileGrid, HomeTrustSection, HomeAcquisition } from '@/components/public'
+import { HomeHero, HomeLocations, PublicProfileGrid, HomeTrustSection, HomeAcquisition } from '@/components/public'
 import { getMarketplaceName } from '@/lib/brand'
 import { HOME_PROFILE_PREVIEW_COUNT } from '@/lib/config'
 import { getLocationsByCitySlug } from '@/modules/locations/dal'
-import { executeSearch } from '@/modules/search/dal'
-import { getPrimaryMedia } from '@/modules/media/dal'
-import { getApprovedMediaDeliveryUrl } from '@/modules/media/delivery'
+import { getHomeDiscoveryProfiles } from '@/modules/search/dal'
+import { resolveProfilesWithMedia } from '@/modules/media/delivery'
 import { constructRootMetadata } from '@/modules/seo/metadata'
 import { getSeoConfig } from '@/modules/seo/config'
 import { JsonLd } from '@/components/seo/json-ld'
@@ -36,27 +35,11 @@ export default async function HomePage() {
     }
   }
 
-  // 2. Fetch canonical profiles (organic + sponsored logic from FASE 08 handled by dal)
-  const searchResponse = await executeSearch({
-    citySlug: 'sao-paulo',
-    limit: HOME_PROFILE_PREVIEW_COUNT,
-    sort: 'recommended',
-  })
+  // 2. Fetch canonical profiles (pure organic discovery, no sponsored injection)
+  const homeProfiles = await getHomeDiscoveryProfiles('sao-paulo', HOME_PROFILE_PREVIEW_COUNT)
 
-  // 3. Resolve approved primary media for profiles
-  const profilesWithMedia = await Promise.all(
-    searchResponse.results.map(async (profile) => {
-      // profile.id is now the real UUID thanks to our mapping fix
-      const media = await getPrimaryMedia(profile.id)
-      const mediaUrl = await getApprovedMediaDeliveryUrl(media)
-      return {
-        ...profile,
-        mediaUrl,
-      }
-    })
-  )
-
-  const city = await getCityBySlug('sao-paulo')
+  // 3. Resolve approved primary media for profiles via batch
+  const profilesWithMedia = await resolveProfilesWithMedia(homeProfiles)
 
   return (
     <>
@@ -70,9 +53,9 @@ export default async function HomePage() {
         }}
       />
 
-      <HomeHero />
-      <HomeLocations locationsByZone={locationsByZone} />
-      <HomeProfileGrid profiles={profilesWithMedia} />
+      <HomeHero profiles={profilesWithMedia.slice(0, 2)} />
+      <PublicProfileGrid profiles={profilesWithMedia} />
+      <HomeLocations locationsByZone={locationsByZone} profiles={profilesWithMedia.slice(0, 5)} />
       <HomeTrustSection />
       <HomeAcquisition />
     </>

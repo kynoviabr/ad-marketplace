@@ -18,8 +18,9 @@ export function SignupForm() {
 
   return (
     <form action={formAction} className="auth-form" noValidate>
-      <h1 className="auth-title">Criar conta</h1>
-      <p className="auth-subtitle">AD-Marketplace</p>
+      <p className="auth-eyebrow">PARA PROFISSIONAIS</p>
+      <h1 className="auth-title">Comece seu espaço.</h1>
+      <p className="auth-subtitle">Crie sua conta para montar seu perfil na Velvet.</p>
 
       {!state.success && state.error && !fieldErrors && (
         <FormMessage type="error" message={state.error} />
@@ -120,7 +121,7 @@ export function SignupForm() {
       </Button>
 
       <p className="auth-footer">
-        Já tem conta?{' '}
+        Já tenho uma conta <span aria-hidden="true">→</span>{' '}
         <Link href="/login">Entrar</Link>
       </p>
     </form>

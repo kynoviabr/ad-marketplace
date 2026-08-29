@@ -37,6 +37,68 @@ export const CreateProfileDraftSchema = z.object({
 export type CreateProfileDraftInput = z.infer<typeof CreateProfileDraftSchema>
 
 /**
+ * First onboarding step: public identity and preferred direct contact.
+ * Legal identity and date of birth intentionally remain in the KYC domain.
+ */
+export const InitialProfessionalProfileSchema = z.object({
+  stage_name: CreateProfileDraftSchema.shape.stage_name,
+  whatsapp_phone: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+    z
+      .string()
+      .transform(normalizePhoneToE164)
+      .pipe(z.string().regex(/^\+[1-9]\d{1,14}$/, 'Informe um WhatsApp válido com DDD.'))
+      .nullable()
+  ),
+})
+
+export type InitialProfessionalProfileInput = z.infer<typeof InitialProfessionalProfileSchema>
+
+const optionalIntegerFromForm = (schema: z.ZodNumber) =>
+  z.preprocess(
+    (value) => (value === '' || value === null ? null : Number(value)),
+    schema.nullable()
+  )
+
+const optionalEnumFromForm = <T extends z.ZodEnum>(schema: T) =>
+  z.preprocess((value) => (value === '' ? null : value), schema.nullable())
+
+/**
+ * Step 02: canonical public presentation fields. Visibility flags reuse the
+ * profile domain's existing privacy model; no legal/KYC data belongs here.
+ */
+export const PublicPresentationProfileSchema = z.object({
+  headline: z
+    .string()
+    .trim()
+    .min(5, 'O título deve ter no mínimo 5 caracteres')
+    .max(120, 'O título deve ter no máximo 120 caracteres'),
+  bio: z
+    .string()
+    .trim()
+    .min(20, 'A apresentação deve ter no mínimo 20 caracteres')
+    .max(2000, 'A apresentação deve ter no máximo 2000 caracteres'),
+  public_age: optionalIntegerFromForm(
+    z.number().int().min(18, 'A idade pública deve ser de no mínimo 18 anos').max(99, 'Idade máxima permitida é 99 anos')
+  ),
+  height_cm: optionalIntegerFromForm(
+    z.number().int().min(100, 'Altura mínima de 100 cm').max(250, 'Altura máxima de 250 cm')
+  ),
+  weight_kg: optionalIntegerFromForm(
+    z.number().int().min(30, 'Peso mínimo de 30 kg').max(300, 'Peso máximo de 300 kg')
+  ),
+  eye_color: optionalEnumFromForm(EyeColorEnum),
+  hair_color: optionalEnumFromForm(HairColorEnum),
+  hair_length: optionalEnumFromForm(HairLengthEnum),
+  body_type: optionalEnumFromForm(BodyTypeEnum),
+  show_age: z.boolean(),
+  show_height: z.boolean(),
+  show_weight: z.boolean(),
+})
+
+export type PublicPresentationProfileInput = z.infer<typeof PublicPresentationProfileSchema>
+
+/**
  * Schema for editing profile draft data (relaxed validation for partial saves).
  */
 export const UpdateProfileSchema = z.object({

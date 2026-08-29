@@ -1,16 +1,13 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ProfileMedia } from './types'
+import { getPrimaryMediaBatch } from './dal'
 
 /**
  * Centralized Media Delivery Abstraction.
  *
  * Exclusively provides access URLs for media in APPROVED status.
  * Returns null for any media in non-approved states (PENDING, REJECTED, QUARANTINED, UPLOADING, etc.).
- *
- * This layer encapsulates the current Supabase signed URL generation and allows
- * future migration to CDN, AWS CloudFront, or an image proxy without modifying
- * consuming domain components.
  */
 export async function getApprovedMediaDeliveryUrl(
   media: Pick<ProfileMedia, 'status' | 'storage_path'> | null | undefined
@@ -34,4 +31,26 @@ export async function getApprovedMediaDeliveryUrl(
     console.error('[media:delivery] Error generating signed delivery URL:', err)
     return null
   }
+}
+
+/**
+ * Convenience method to resolve primary media URLs for a batch of profiles in a single pass.
+ */
+export async function resolveProfilesWithMedia<T extends { id: string }>(profiles: T[]): Promise<(T & { mediaUrl: string | null })[]> {
+  if (profiles.length === 0) return []
+
+  const profileIds = profiles.map(p => p.id)
+  const primaryMediaList = await getPrimaryMediaBatch(profileIds)
+  const mediaMap = new Map(primaryMediaList.map(m => [m.profile_id, m]))
+
+  return Promise.all(
+    profiles.map(async (profile) => {
+      const media = mediaMap.get(profile.id) || null
+      const mediaUrl = await getApprovedMediaDeliveryUrl(media)
+      return {
+        ...profile,
+        mediaUrl,
+      }
+    })
+  )
 }

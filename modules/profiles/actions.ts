@@ -4,14 +4,187 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireVerifiedAdvertiser } from '@/modules/verification/dal'
 import {
   CreateProfileDraftSchema,
+  InitialProfessionalProfileSchema,
+  PublicPresentationProfileSchema,
   UpdateProfileSchema,
   type CreateProfileDraftInput,
   type UpdateProfileInput,
 } from './schemas'
+import { redirect } from 'next/navigation'
+import { requireAccount } from '@/modules/auth/dal'
 import { generateUniqueSlug } from './slug'
 import { isProfileDataComplete } from './completeness'
 import { getProfileByAccountUserId, checkSlugExists } from './dal'
 import type { ProfessionalProfile, ProfileActionResult } from './types'
+
+export type InitialProfileActionState = ProfileActionResult<{
+  stageName: string
+  whatsappPhone: string | null
+}>
+
+export type PublicPresentationActionState = ProfileActionResult<void>
+
+/** Persists Step 02 against the profile owned by the authenticated account. */
+export async function savePublicPresentationProfileAction(
+  _previousState: PublicPresentationActionState,
+  formData: FormData
+): Promise<PublicPresentationActionState> {
+  const account = await requireAccount()
+  const parsed = PublicPresentationProfileSchema.safeParse({
+    headline: formData.get('headline'),
+    bio: formData.get('bio'),
+    public_age: formData.get('public_age'),
+    height_cm: formData.get('height_cm'),
+    weight_kg: formData.get('weight_kg'),
+    eye_color: formData.get('eye_color'),
+    hair_color: formData.get('hair_color'),
+    hair_length: formData.get('hair_length'),
+    body_type: formData.get('body_type'),
+    show_age: formData.get('show_age') === 'on',
+    show_height: formData.get('show_height') === 'on',
+    show_weight: formData.get('show_weight') === 'on',
+  })
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: 'Revise os campos indicados.',
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    }
+  }
+
+  try {
+    const admin = createAdminClient()
+    const { data, error } = await admin
+      .from('professional_profiles')
+      .update({
+        headline: parsed.data.headline,
+        bio: parsed.data.bio,
+        public_age: parsed.data.public_age,
+        height_cm: parsed.data.height_cm,
+        weight_kg: parsed.data.weight_kg,
+        eye_color: parsed.data.eye_color,
+        hair_color: parsed.data.hair_color,
+        hair_length: parsed.data.hair_length,
+        body_type: parsed.data.body_type,
+        show_age: parsed.data.show_age,
+        show_height: parsed.data.show_height,
+        show_weight: parsed.data.show_weight,
+        content_moderation_status: 'PENDING',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('account_user_id', account.id)
+      .select('id')
+      .maybeSingle()
+
+    if (error || !data) {
+      console.error('[onboarding:profile] Profile update failed:', error?.message)
+      return { success: false, error: 'Não foi possível salvar agora. Tente novamente.' }
+    }
+
+    await admin
+      .from('account_users')
+      .update({ onboarding_status: 'IN_PROGRESS', onboarding_step: 3 })
+      .eq('id', account.id)
+      .lt('onboarding_step', 3)
+  } catch (error) {
+    console.error(
+      '[onboarding:profile] Unexpected persistence failure:',
+      error instanceof Error ? error.message : error
+    )
+    return { success: false, error: 'Não foi possível salvar agora. Tente novamente.' }
+  }
+
+  redirect('/onboarding/onde-atende')
+}
+
+/**
+ * Persists Step 01 without accepting an account/profile id from the browser.
+ * The account is resolved from the verified Supabase session and every write
+ * is scoped to that canonical account id. KYC remains a later publication gate.
+ */
+export async function saveInitialProfessionalProfileAction(
+  _previousState: InitialProfileActionState,
+  formData: FormData
+): Promise<InitialProfileActionState> {
+  // Keep redirects from requireAccount outside the catch block so an expired
+  // session reaches the existing login recovery flow.
+  const account = await requireAccount()
+
+  const parsed = InitialProfessionalProfileSchema.safeParse({
+    stage_name: formData.get('stage_name'),
+    whatsapp_phone: formData.get('whatsapp_phone'),
+  })
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: 'Revise os campos indicados.',
+      fieldErrors: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+    }
+  }
+
+  try {
+    const admin = createAdminClient()
+    const existing = await getProfileByAccountUserId(account.id)
+    let saved: ProfessionalProfile | null = null
+
+    if (existing) {
+      const { data, error } = await admin
+        .from('professional_profiles')
+        .update({
+          stage_name: parsed.data.stage_name,
+          whatsapp_phone: parsed.data.whatsapp_phone,
+          content_moderation_status: 'PENDING',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('account_user_id', account.id)
+        .select('*')
+        .single()
+
+      if (error || !data) {
+        console.error('[onboarding:you] Profile update failed:', error?.message)
+        return { success: false, error: 'Não foi possível salvar agora. Tente novamente.' }
+      }
+      saved = data as ProfessionalProfile
+    } else {
+      const slug = await generateUniqueSlug(parsed.data.stage_name, checkSlugExists)
+      const { data, error } = await admin
+        .from('professional_profiles')
+        .insert({
+          account_user_id: account.id,
+          stage_name: parsed.data.stage_name,
+          whatsapp_phone: parsed.data.whatsapp_phone,
+          slug,
+          status: 'DRAFT',
+          content_moderation_status: 'PENDING',
+        })
+        .select('*')
+        .single()
+
+      if (error || !data) {
+        console.error('[onboarding:you] Profile creation failed:', error?.message)
+        return { success: false, error: 'Não foi possível salvar agora. Tente novamente.' }
+      }
+      saved = data as ProfessionalProfile
+    }
+
+    await admin
+      .from('account_users')
+      .update({ onboarding_status: 'IN_PROGRESS', onboarding_step: 2 })
+      .eq('id', account.id)
+      .lt('onboarding_step', 2)
+
+  } catch (error) {
+    console.error(
+      '[onboarding:you] Unexpected persistence failure:',
+      error instanceof Error ? error.message : error
+    )
+    return { success: false, error: 'Não foi possível salvar agora. Tente novamente.' }
+  }
+
+  redirect('/onboarding/seu-perfil')
+}
 
 /**
  * Server Action: Create Initial Profile Draft.

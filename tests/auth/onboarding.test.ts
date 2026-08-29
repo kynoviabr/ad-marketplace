@@ -51,13 +51,13 @@ describe('Onboarding State', () => {
       expect(content).toContain('createAdminClient()')
     })
 
-    it('dashboard page has "Começar" button when NOT_STARTED', () => {
+    it('dashboard sends incomplete accounts to the canonical onboarding resolver', () => {
       const dashboard = readFileSync(
         join(ROOT, 'app/(dashboard)/dashboard/page.tsx'),
         'utf-8'
       )
-      expect(dashboard).toContain('NOT_STARTED')
-      expect(dashboard).toContain('Começar')
+      expect(dashboard).toContain("account.onboarding_status !== 'COMPLETED'")
+      expect(dashboard).toContain("redirect('/onboarding')")
     })
   })
 
@@ -72,24 +72,24 @@ describe('Onboarding State', () => {
     })
   })
 
-  describe('Dashboard renders onboarding state', () => {
-    it('dashboard page shows all onboarding states', () => {
+  describe('Dashboard resolves onboarding state', () => {
+    it('dashboard renders only after COMPLETED and delegates other states', () => {
       const dashboard = readFileSync(
         join(ROOT, 'app/(dashboard)/dashboard/page.tsx'),
         'utf-8'
       )
       expect(dashboard).toContain('onboarding_status')
-      expect(dashboard).toContain('NOT_STARTED')
-      expect(dashboard).toContain('IN_PROGRESS')
+      expect(dashboard).toContain('COMPLETED')
+      expect(dashboard).toContain("redirect('/onboarding')")
     })
 
-    it('dashboard page has logout form', () => {
-      const dashboard = readFileSync(
-        join(ROOT, 'app/(dashboard)/dashboard/page.tsx'),
+    it('shared dashboard header has logout form', () => {
+      const header = readFileSync(
+        join(ROOT, 'components/dashboard/professional-dashboard-header.tsx'),
         'utf-8'
       )
-      expect(dashboard).toContain('logoutAction')
-      expect(dashboard).toContain('Sair')
+      expect(header).toContain('logoutAction')
+      expect(header).toContain('Sair')
     })
   })
 })

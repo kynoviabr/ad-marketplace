@@ -123,16 +123,16 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to update identity verification: ${updateError.message}`)
     }
 
-    // 8. If decision is VERIFIED, advance account onboarding_step to at least 3 monotonically
-    if (decision.normalizedStatus === 'VERIFIED') {
+    // 8. Advance only when both identity and adult-age checks are authoritative.
+    if (decision.normalizedStatus === 'VERIFIED' && decision.identityVerified && decision.ageVerified) {
       const { error: accountUpdateError } = await admin
         .from('account_users')
         .update({
-          onboarding_step: 3, // KYC verified -> ready for Profile (FASE 03)
+          onboarding_step: 5,
           updated_at: now,
         })
         .eq('id', verificationRecord.account_user_id)
-        .lt('onboarding_step', 3) // Monotonic update
+        .lt('onboarding_step', 5)
 
       if (accountUpdateError) {
         console.error('[webhook:didit] Error advancing account onboarding_step:', accountUpdateError.message)

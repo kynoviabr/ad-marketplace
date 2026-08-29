@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   const nextParam = searchParams.get('next')
 
   // Validate the redirect target
-  const next = isSafeRedirect(nextParam) ? nextParam : '/dashboard'
+  const next = isSafeRedirect(nextParam) ? nextParam : '/onboarding'
 
   if (code) {
     const supabase = await createServerClient()

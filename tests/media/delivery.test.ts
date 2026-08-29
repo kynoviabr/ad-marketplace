@@ -46,4 +46,10 @@ describe('FASE 06 — Media Delivery Abstraction', () => {
       })
     ).toBeNull()
   })
+
+  it('returns null for failed and deleted media', async () => {
+    for (const status of ['PROCESSING_FAILED', 'DELETED'] as const) {
+      expect(await getApprovedMediaDeliveryUrl({ status, storage_path: 'profiles/123/photo.jpg' })).toBeNull()
+    }
+  })
 })

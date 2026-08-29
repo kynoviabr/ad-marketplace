@@ -5,8 +5,9 @@ import { headers } from 'next/headers'
 import { executeSearch, getFilterOptions } from '@/modules/search/dal'
 import { isReservedSlug } from '@/modules/search/schemas'
 import { recordSearchPerformedEvent } from '@/modules/analytics/write'
-import { SearchFilterSidebar } from '@/components/search/search-filter-sidebar'
-import { SearchResultCard } from '@/components/search/search-result-card'
+import { PublicSearchFilters } from '@/components/search/public-search-filters'
+import { PublicProfileCard } from '@/components/public/public-profile-card'
+import { resolveProfilesWithMedia } from '@/modules/media/delivery'
 import {
   getLocationSeoData,
   constructLocationMetadata,
@@ -17,6 +18,8 @@ import {
   isSearchCrawler,
 } from '@/modules/seo'
 import { JsonLd } from '@/components/seo/json-ld'
+import { PublicHeader } from '@/components/public/public-header'
+import { PublicFooter } from '@/components/public/public-footer'
 
 interface NeighborhoodSearchPageProps {
   params: Promise<{ city: string; neighborhood: string }>
@@ -130,91 +133,89 @@ export default async function NeighborhoodSearchPage({
     { name: locationName, url: `${seoConfig.siteUrl}/${citySlug}/${neighborhoodSlug}` },
   ])
 
+  // FASE 12.2C: Resolve approved primary media for search profiles
+  const profilesWithMedia = await resolveProfilesWithMedia(searchResponse.results)
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <div className="velvet-public-shell">
+      <PublicHeader />
+      <main className="velvet-explore">
       <JsonLd data={breadcrumbJsonLd} />
 
-      {/* Header */}
-      <div className="border-b pb-6 mb-8">
-        <div className="text-xs text-gray-500 mb-1">
-          <span>{filterOptions.city.name}</span> &gt; <span>{locationName}</span>
-        </div>
-        <h1 className="text-3xl font-extrabold text-gray-900">
-          Acompanhantes em {locationName}, {filterOptions.city.name}
-        </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Anunciantes verificadas que atendem na região de {locationName}
-        </p>
-      </div>
+      {/* Header and Filters (Desktop + Mobile) */}
+      <header className="velvet-explore-header">
+          <div>
+            <div>
+              <p className="velvet-overline">{filterOptions.city.name.toUpperCase()} / {locationName.toUpperCase()}</p>
+              <h1>
+                Profissionais em {locationName}
+              </h1>
+              <p>Perfis verificados que atendem na região de {locationName}.</p>
+            </div>
 
-      {/* Main Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Filter Sidebar */}
-        <div className="lg:col-span-1">
-          <SearchFilterSidebar
-            filterOptions={filterOptions}
-            currentNeighborhood={neighborhoodSlug}
-          />
-        </div>
-
-        {/* Results Grid */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>
-              {searchResponse.totalProfiles}{' '}
-              {searchResponse.totalProfiles === 1 ? 'perfil encontrado' : 'perfis encontrados'}
-            </span>
-            <span>
-              Página {searchResponse.page} de {Math.max(1, searchResponse.totalPages)}
-            </span>
+            {/* Horizontal Desktop Filters / Mobile Filter Trigger */}
+            <div>
+              <PublicSearchFilters
+                filterOptions={filterOptions}
+                currentNeighborhood={neighborhoodSlug}
+              />
+            </div>
           </div>
+      </header>
 
-          {searchResponse.results.length === 0 ? (
-            <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-              <p className="text-gray-500 text-sm">
-                Nenhum perfil encontrado nesta região com os filtros selecionados.
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {searchResponse.results.map((profile, index) => (
-                <SearchResultCard
-                  key={profile.id}
-                  profile={profile}
-                  citySlug={citySlug}
-                  resultPage={searchResponse.page}
-                  resultPosition={index + 1}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Simple Pagination Nav */}
-          {searchResponse.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-6 border-t">
-              {searchResponse.page > 1 && (
-                <a
-                  href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page - 1}`}
-                  className="px-3 py-1.5 text-xs font-medium border rounded hover:bg-gray-50"
-                >
-                  Anterior
-                </a>
-              )}
-              <span className="text-xs text-gray-600">
-                Página {searchResponse.page} de {searchResponse.totalPages}
-              </span>
-              {searchResponse.page < searchResponse.totalPages && (
-                <a
-                  href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page + 1}`}
-                  className="px-3 py-1.5 text-xs font-medium border rounded hover:bg-gray-50"
-                >
-                  Próxima
-                </a>
-              )}
-            </div>
-          )}
+      {/* Results Grid */}
+      <div className="velvet-explore-results">
+        <div className="velvet-explore-summary">
+          <span>
+            {searchResponse.totalProfiles}{' '}
+            {searchResponse.totalProfiles === 1 ? 'perfil encontrado' : 'perfis encontrados'}
+          </span>
         </div>
+
+        {profilesWithMedia.length === 0 ? (
+          <div className="velvet-explore-empty">
+            <p>
+              Nenhum perfil encontrado nesta região com os filtros selecionados.
+            </p>
+          </div>
+        ) : (
+          <div className="velvet-explore-grid">
+            {profilesWithMedia.map((profile, index) => (
+              <PublicProfileCard
+                key={profile.id}
+                profile={profile}
+                mediaUrl={profile.mediaUrl}
+                priority={index < 4}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Simple Pagination Nav */}
+        {searchResponse.totalPages > 1 && (
+          <div className="velvet-explore-pagination">
+            {searchResponse.page > 1 && (
+              <a
+                href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page - 1}`}
+              >
+                Anterior
+              </a>
+            )}
+            <span>
+              Página {searchResponse.page} de {searchResponse.totalPages}
+            </span>
+            {searchResponse.page < searchResponse.totalPages && (
+              <a
+                href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page + 1}`}
+              >
+                Próxima
+              </a>
+            )}
+          </div>
+        )}
       </div>
+      </main>
+      <PublicFooter />
     </div>
   )
 }

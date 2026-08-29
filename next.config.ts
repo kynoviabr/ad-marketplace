@@ -53,6 +53,8 @@ const nextConfig: NextConfig = {
    *   which would break the local dev server and persist across browser sessions.
    */
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production'
+
     const securityHeaders = [
       {
         key: 'X-Content-Type-Options',
@@ -73,10 +75,12 @@ const nextConfig: NextConfig = {
       {
         key: 'Content-Security-Policy',
         // unsafe-inline for scripts is required for Next.js App Router hydration.
-        // Known limitation until nonce-based CSP is implemented.
+        // unsafe-eval is required in development mode by React for debugging.
         value: [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline'",
+          isDev
+            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+            : "script-src 'self' 'unsafe-inline'",
           // unsafe-inline required for next/font injected <style> tags
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "img-src 'self' data: blob: https:",
@@ -111,4 +115,3 @@ const nextConfig: NextConfig = {
 }
 
 export default nextConfig
-

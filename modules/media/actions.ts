@@ -9,15 +9,20 @@ import {
   ReorderMediaSchema,
   SetPrimaryMediaSchema,
   DeleteMediaSchema,
+  RetryUploadSchema,
   type RequestUploadInput,
   type ConfirmUploadInput,
   type ReorderMediaInput,
   type SetPrimaryMediaInput,
   type DeleteMediaInput,
+  type RetryUploadInput,
   MAX_PHOTOS_PER_PROFILE,
 } from './schemas'
 import { getActivePhotoCount, getMediaById, getProfileMedia } from './dal'
 import type { MediaActionResult, ProfileMedia, SignedUploadUrlResponse } from './types'
+import { redirect } from 'next/navigation'
+
+const SIGNED_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000
 
 /**
  * Server Action: Request Signed Upload URL for a new photo.
@@ -96,7 +101,7 @@ export async function requestMediaUploadUrlAction(
         mediaId,
         uploadUrl: signedData.signedUrl,
         storagePath,
-        expiresAt: new Date(Date.now() + 60 * 1000).toISOString(),
+        expiresAt: new Date(Date.now() + SIGNED_UPLOAD_URL_TTL_MS).toISOString(),
       },
     }
   } catch (err) {
@@ -134,7 +139,24 @@ export async function confirmMediaUploadAction(
       return { success: false, error: 'Foto não encontrada ou não pertence a este perfil.' }
     }
 
-    // Advance to PENDING_MODERATION
+    if (media.status === 'PENDING_MODERATION') {
+      return { success: true, data: media }
+    }
+    if (!['UPLOADING', 'PROCESSING_FAILED'].includes(media.status)) {
+      return { success: false, error: 'Esta foto não está aguardando confirmação.' }
+    }
+
+    const separator = media.storage_path.lastIndexOf('/')
+    const folder = media.storage_path.slice(0, separator)
+    const filename = media.storage_path.slice(separator + 1)
+    const { data: storedObjects, error: storageError } = await admin.storage
+      .from('profile-media')
+      .list(folder, { search: filename, limit: 2 })
+    if (storageError || !storedObjects?.some((object) => object.name === filename)) {
+      return { success: false, error: 'O arquivo ainda não foi recebido pelo armazenamento seguro.' }
+    }
+
+    // Advance to PENDING_MODERATION idempotently.
     const { data: updated, error } = await admin
       .from('profile_media')
       .update({
@@ -182,6 +204,13 @@ export async function reorderMediaAction(
       return { success: false, error: 'Perfil não encontrado.' }
     }
 
+    const current = await getProfileMedia(profile.id)
+    const submitted = validated.data.media_ids
+    if (new Set(submitted).size !== submitted.length || submitted.length !== current.length ||
+      submitted.some((id) => !current.some((item) => item.id === id))) {
+      return { success: false, error: 'A ordenação precisa incluir exatamente todas as fotos do perfil.' }
+    }
+
     const { error } = await admin.rpc('reorder_profile_media', {
       p_profile_id: profile.id,
       p_media_ids: validated.data.media_ids,
@@ -198,6 +227,52 @@ export async function reorderMediaAction(
     console.error('[media:reorder] Unexpected error:', err instanceof Error ? err.message : err)
     return { success: false, error: 'Ocorreu um erro ao reordenar fotos.' }
   }
+}
+
+/** Reuses a failed canonical record and storage path; it never consumes another quota slot. */
+export async function retryMediaUploadUrlAction(
+  input: RetryUploadInput
+): Promise<MediaActionResult<SignedUploadUrlResponse>> {
+  try {
+    const { account } = await requireVerifiedAdvertiser()
+    const validated = RetryUploadSchema.safeParse(input)
+    if (!validated.success) return { success: false, error: 'Arquivo inválido para nova tentativa.' }
+    const profile = await getProfileByAccountUserId(account.id)
+    if (!profile) return { success: false, error: 'Perfil não encontrado.' }
+    const media = await getMediaById(validated.data.media_id)
+    if (!media || media.profile_id !== profile.id || media.deleted_at ||
+      !['UPLOADING', 'PROCESSING_FAILED'].includes(media.status)) {
+      return { success: false, error: 'Esta tentativa de upload não pode ser reutilizada.' }
+    }
+    if (media.mime_type !== validated.data.mime_type || media.file_size_bytes !== validated.data.file_size_bytes) {
+      return { success: false, error: 'Selecione novamente o mesmo arquivo para tentar de novo.' }
+    }
+    const admin = createAdminClient()
+    const { data, error } = await admin.storage.from('profile-media').createSignedUploadUrl(media.storage_path)
+    if (error || !data) return { success: false, error: 'Não foi possível preparar a nova tentativa.' }
+    await admin.from('profile_media').update({ status: 'UPLOADING', updated_at: new Date().toISOString() }).eq('id', media.id)
+    return { success: true, data: { mediaId: media.id, uploadUrl: data.signedUrl, storagePath: media.storage_path, expiresAt: new Date(Date.now() + SIGNED_UPLOAD_URL_TTL_MS).toISOString() } }
+  } catch (error) {
+    console.error('[media:retryUpload] Unexpected error:', error instanceof Error ? error.message : error)
+    return { success: false, error: 'Não foi possível tentar o upload novamente.' }
+  }
+}
+
+/** Step 05 completion requires one persisted, non-deleted, non-failed photo. */
+export async function continueAfterPhotosAction(): Promise<MediaActionResult<void>> {
+  const { account } = await requireVerifiedAdvertiser()
+  const profile = await getProfileByAccountUserId(account.id)
+  if (!profile) return { success: false, error: 'Perfil não encontrado.' }
+  const media = await getProfileMedia(profile.id)
+  if (!media.some((item) => !['UPLOADING', 'PROCESSING_FAILED', 'DELETED'].includes(item.status))) {
+    return { success: false, error: 'Adicione ao menos uma foto enviada com sucesso para continuar.' }
+  }
+  const admin = createAdminClient()
+  const { error } = await admin.from('account_users')
+    .update({ onboarding_status: 'IN_PROGRESS', onboarding_step: 6 })
+    .eq('id', account.id).lt('onboarding_step', 6)
+  if (error) return { success: false, error: 'Não foi possível continuar agora.' }
+  redirect('/onboarding/revisar')
 }
 
 /**

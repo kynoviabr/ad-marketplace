@@ -16,8 +16,9 @@ export function LoginForm() {
 
   return (
     <form action={formAction} className="auth-form" noValidate>
-      <h1 className="auth-title">Entrar</h1>
-      <p className="auth-subtitle">AD-Marketplace</p>
+      <p className="auth-eyebrow">SEU ESPAÇO</p>
+      <h1 className="auth-title">Bem-vinda de volta.</h1>
+      <p className="auth-subtitle">Entre para continuar seu perfil na Velvet.</p>
 
       {!state.success && state.error && (
         <FormMessage type="error" message={state.error} />

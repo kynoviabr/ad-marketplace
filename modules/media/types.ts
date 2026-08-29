@@ -31,6 +31,10 @@ export interface ProfileMedia {
   deleted_at: string | null
 }
 
+export interface ManageableProfileMedia extends ProfileMedia {
+  previewUrl: string | null
+}
+
 export interface MediaDTO {
   id: string
   position: number

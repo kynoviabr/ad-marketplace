@@ -1,8 +1,8 @@
 import { SignupForm } from '@/components/auth/signup-form'
 
 export const metadata = {
-  title: 'Criar conta — AD-Marketplace',
-  description: 'Crie sua conta no AD-Marketplace',
+  title: 'Criar conta — Velvet',
+  description: 'Crie sua conta profissional na Velvet',
   robots: 'noindex, nofollow',
 }
 

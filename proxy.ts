@@ -80,7 +80,7 @@ export async function proxy(request: NextRequest) {
 
   // Redirect authenticated users away from auth-only routes
   if (isAuthOnlyRoute && isAuthenticated) {
-    url.pathname = '/dashboard'
+    url.pathname = '/onboarding'
     return NextResponse.redirect(url)
   }
 

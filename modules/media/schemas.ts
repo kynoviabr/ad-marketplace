@@ -37,8 +37,15 @@ export const DeleteMediaSchema = z.object({
   media_id: z.string().uuid({ message: 'ID de mídia inválido' }),
 })
 
+export const RetryUploadSchema = z.object({
+  media_id: z.string().uuid({ message: 'ID de mídia inválido' }),
+  mime_type: z.enum(ALLOWED_MIME_TYPES),
+  file_size_bytes: z.number().int().min(1).max(MAX_FILE_SIZE_BYTES),
+})
+
 export type RequestUploadInput = z.infer<typeof RequestUploadSchema>
 export type ConfirmUploadInput = z.infer<typeof ConfirmUploadSchema>
 export type ReorderMediaInput = z.infer<typeof ReorderMediaSchema>
 export type SetPrimaryMediaInput = z.infer<typeof SetPrimaryMediaSchema>
 export type DeleteMediaInput = z.infer<typeof DeleteMediaSchema>
+export type RetryUploadInput = z.infer<typeof RetryUploadSchema>

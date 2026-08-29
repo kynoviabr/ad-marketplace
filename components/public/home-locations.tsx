@@ -1,8 +1,7 @@
-'use client'
-
-import React, { useState } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { PublicContainer } from './public-container'
+import Image from 'next/image'
+import type { ProfileWithMedia } from './public-profile-grid'
 
 interface LocationItem {
   id: string
@@ -12,64 +11,42 @@ interface LocationItem {
 
 interface HomeLocationsProps {
   locationsByZone: Record<string, LocationItem[]>
+  profiles: ProfileWithMedia[]
 }
 
-export function HomeLocations({ locationsByZone }: HomeLocationsProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const zones = Object.entries(locationsByZone).filter(([_, locs]) => locs.length > 0)
+export function HomeLocations({ locationsByZone, profiles }: HomeLocationsProps) {
+  const canonicalZoneOrder = ['Zona Sul', 'Zona Oeste', 'Centro', 'Zona Norte', 'Zona Leste']
+
+  const zones = Object.entries(locationsByZone)
+    .filter(([_, locs]) => locs.length > 0)
+    .sort(([zoneA], [zoneB]) => {
+      const indexA = canonicalZoneOrder.indexOf(zoneA)
+      const indexB = canonicalZoneOrder.indexOf(zoneB)
+      return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB)
+    })
 
   if (zones.length === 0) return null
 
+  // Flatten locations
+  const allLocations = zones.flatMap(([_, locs]) => locs)
+
   return (
-    <section className="py-12 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
-      <PublicContainer>
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="text-xl md:text-2xl font-bold text-[var(--color-foreground)]" style={{ fontFamily: 'var(--font-display)' }}>
-            Explore por região
-          </h2>
-        </div>
-
-        {/* Desktop: Grid layout. Mobile: Hidden if not expanded (beyond first 2 zones) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-8">
-          {zones.map(([zoneName, locations], index) => {
-            const isVisibleOnMobile = isExpanded || index < 2
-            return (
-              <div
-                key={zoneName}
-                className={`flex flex-col space-y-3 ${isVisibleOnMobile ? 'block' : 'hidden md:flex'}`}
+    <section className="velvet-home-locations">
+      <header className="velvet-home-section-head"><div><p className="velvet-overline">PELA CIDADE</p><h2>Explore São Paulo</h2></div><p>Descubra perfis perto de onde você está.</p></header>
+          <div className="velvet-home-location-rail">
+            {allLocations.slice(0, 8).map((loc, index) => {
+              const portrait = profiles[index % Math.max(profiles.length, 1)]
+              return (
+              <Link
+                key={loc.id}
+                href={`/sao-paulo/${loc.slug}`}
+                className="velvet-home-location"
               >
-                <h3 className="font-semibold text-sm uppercase tracking-wider text-[var(--color-foreground-2)]">
-                  {zoneName}
-                </h3>
-                <ul className="space-y-2">
-                  {locations.map((loc) => (
-                    <li key={loc.id}>
-                      <Link
-                        href={`/sao-paulo/${loc.slug}`}
-                        className="text-[var(--color-foreground)] hover:text-[var(--color-accent)] hover:underline underline-offset-2 transition-colors min-h-[44px] inline-flex items-center"
-                      >
-                        {loc.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Mobile Expansion Toggle */}
-        {zones.length > 2 && (
-          <div className="mt-6 md:hidden">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full min-h-[44px] flex items-center justify-center rounded-lg border border-[var(--color-border-strong)] bg-white text-[var(--color-foreground)] font-medium hover:bg-gray-50 transition-colors"
-            >
-              {isExpanded ? 'Ver menos regiões' : 'Ver todas as regiões'}
-            </button>
+                {portrait?.mediaUrl ? <span><Image src={portrait.mediaUrl} alt="" fill sizes="260px" /></span> : <span className="velvet-home-location-placeholder" aria-hidden="true">SP</span>}
+                <strong>{loc.name}<i aria-hidden="true">→</i></strong>
+              </Link>
+            )})}
           </div>
-        )}
-      </PublicContainer>
     </section>
   )
 }

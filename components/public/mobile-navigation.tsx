@@ -120,7 +120,7 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
       )}
 
       {/* Drawer */}
-      <div
+      {isOpen && <div
         id="mobile-nav-drawer"
         ref={drawerRef}
         role="dialog"
@@ -137,7 +137,7 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
           zIndex: 'var(--z-sheet)',
           display: 'flex',
           flexDirection: 'column',
-          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
+          transform: 'translateX(0)',
           transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: 'var(--shadow-xl)',
         }}
@@ -231,7 +231,7 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
             </NavDrawerLink>
           )}
         </nav>
-      </div>
+      </div>}
     </>
   )
 }

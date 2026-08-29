@@ -425,6 +425,53 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
 
 
 /**
+ * Retrieves deterministic organic profiles for the Home page.
+ * Uses the canonical publication eligibility view but intentionally BYPASSES
+ * sponsored injection (FASE 12.2B-R1). This guarantees that Home displays
+ * pure organic discovery inventory.
+ */
+export async function getHomeDiscoveryProfiles(citySlug: string, limit: number = 8): Promise<SearchResultDTO[]> {
+  const admin = createAdminClient()
+  const city = await getCityBySlug(citySlug)
+  if (!city) return []
+
+  const { data: eligibleData, error: eligibleError } = await admin
+    .from('v_publication_eligible_profiles')
+    .select('profile_id')
+    .eq('city_id', city.id)
+
+  if (eligibleError) {
+    console.error('[search:getHomeDiscoveryProfiles] Error fetching eligible IDs:', eligibleError.message)
+    return []
+  }
+
+  const eligibleProfileIds: string[] = (eligibleData || []).map((r: any) => r.profile_id)
+
+  if (eligibleProfileIds.length === 0) {
+    return []
+  }
+
+  // Fetch organic records in deterministic 'recommended' order (updated_at DESC)
+  let organicQuery = admin
+    .from('professional_profiles')
+    .select(SELECT_PROFILE_SEARCH_FIELDS)
+    .in('id', eligibleProfileIds)
+    .eq('locations.location.city.slug', citySlug)
+    .order('updated_at', { ascending: false })
+    .order('id', { ascending: true })
+    .range(0, limit - 1)
+
+  const { data, error } = await organicQuery
+
+  if (error) {
+    console.error('[search:getHomeDiscoveryProfiles] Error executing query:', error.message)
+    return []
+  }
+
+  return (data || []).map((row: any) => mapRowToSearchResultDTO(row, 'ORGANIC'))
+}
+
+/**
  * Retrieves filter options for a given city.
  */
 export async function getFilterOptions(citySlug: string): Promise<FilterOptions | null> {

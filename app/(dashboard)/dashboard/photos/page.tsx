@@ -1,44 +1,34 @@
-import { redirect } from 'next/navigation'
-import { requireVerifiedAdvertiser } from '@/modules/verification/dal'
-import { getProfileByAccountUserId } from '@/modules/profiles/dal'
-import { getProfileMedia } from '@/modules/media/dal'
-import { MediaGalleryManager } from '@/components/media/media-gallery-manager'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { ProfessionalDashboardHeader } from '@/components/dashboard/professional-dashboard-header'
+import { MediaGalleryManager } from '@/components/media/media-gallery-manager'
+import { getManageableProfileMedia, reconcileStaleUploadingMedia } from '@/modules/media/dal'
+import { getProfileByAccountUserId } from '@/modules/profiles/dal'
+import { getPublicationReviewState } from '@/modules/publication/dal'
+import { requireVerifiedAdvertiser } from '@/modules/verification/dal'
 
-export const metadata = {
-  title: 'Gerenciar Fotos | Dashboard',
-}
+export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Fotos | Velvet', robots: 'noindex, nofollow' }
 
 export default async function DashboardPhotosPage() {
   const { account } = await requireVerifiedAdvertiser()
-
   const profile = await getProfileByAccountUserId(account.id)
-  if (!profile) {
-    redirect('/onboarding/profile')
-  }
+  if (!profile) redirect('/onboarding/seu-perfil')
 
-  const media = await getProfileMedia(profile.id)
+  await reconcileStaleUploadingMedia(profile.id)
+  const [media, publication] = await Promise.all([
+    getManageableProfileMedia(profile.id),
+    getPublicationReviewState(account),
+  ])
 
-  return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900">Gerenciador de Fotos</h1>
-          <p className="text-sm text-gray-600">
-            Adicione, reordene ou altere a foto principal do seu anúncio.
-          </p>
-        </div>
-        <Link
-          href="/dashboard"
-          className="text-xs text-gray-600 hover:text-gray-900 font-semibold"
-        >
-          ← Voltar ao Painel
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <MediaGalleryManager initialMedia={media} />
-      </div>
-    </div>
-  )
+  return <div className="velvet-dashboard velvet-photo-studio">
+    <ProfessionalDashboardHeader activeHref="/dashboard/photos" />
+    <main>
+      <header className="photo-studio-intro">
+        <div><p className="dashboard-eyebrow">FOTOS</p><h1>Construa sua<br />galeria.</h1></div>
+        <div><p>Escolha as imagens que melhor representam seu perfil.</p>{publication.isPublic && publication.slug ? <Link href={`/perfil/${publication.slug}`}>Ver meu perfil <span aria-hidden="true">↗</span></Link> : <Link href="/dashboard">Voltar à visão geral <span aria-hidden="true">→</span></Link>}</div>
+      </header>
+      <MediaGalleryManager initialMedia={media} mode="dashboard" />
+    </main>
+  </div>
 }

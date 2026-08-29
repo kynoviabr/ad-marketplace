@@ -3,7 +3,8 @@
  *
  * ⚠️  CRITICAL SECURITY WARNING ⚠️
  *
- * This client uses the SUPABASE_SERVICE_ROLE_KEY which bypasses ALL
+ * This client reads a Supabase Secret API Key from the compatibility env name
+ * SUPABASE_SERVICE_ROLE_KEY. The key has elevated access and bypasses ALL
  * Row Level Security (RLS) policies. It must NEVER be used in:
  *   - Client Components ('use client')
  *   - Any code that runs in the browser
@@ -43,8 +44,7 @@ export function createAdminClient() {
 
   return createClient(url, serviceRoleKey, {
     auth: {
-      // Disable automatic session management for service role clients.
-      // Service role is used server-side only.
+      // Disable automatic session management for privileged server clients.
       autoRefreshToken: false,
       persistSession: false,
     },

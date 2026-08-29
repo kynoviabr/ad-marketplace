@@ -204,7 +204,7 @@ export async function loginAction(
     return { success: false, error: 'E-mail ou senha incorretos.' }
   }
 
-  redirect('/dashboard')
+  redirect('/onboarding')
 }
 
 // ---------------------------------------------------------------------------
@@ -327,5 +327,6 @@ export async function startOnboardingAction(): Promise<ActionResult> {
  * React form actions require void return type.
  */
 export async function startOnboardingFormAction(): Promise<void> {
-  await startOnboardingAction()
+  const result = await startOnboardingAction()
+  if (result.success) redirect('/onboarding/voce')
 }

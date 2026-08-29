@@ -4,6 +4,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAccount } from '@/modules/auth/dal'
 import { getVerificationProvider } from './providers/factory'
 import { getVerification, getVerificationSafe } from './dal'
+import { canProceedToProfessionalProfile } from './gates'
+import { redirect } from 'next/navigation'
 import type { VerificationActionResult, VerificationSafeDTO } from './types'
 
 /**
@@ -14,10 +16,10 @@ import type { VerificationActionResult, VerificationSafeDTO } from './types'
  * 2. Check if an active session already exists in DB.
  * 3. Invoke verification provider to create hosted session URL.
  * 4. Persist or update verification record atomically using admin client.
- * 5. Advance onboarding_step to at least 2 monotonically.
+ * 5. Advance onboarding_step to Step 04 monotonically.
  * 6. Return verificationUrl to client for redirection.
  */
-export async function startVerificationAction(callbackUrl?: string): Promise<
+export async function startVerificationAction(): Promise<
   VerificationActionResult<{ verificationUrl: string }>
 > {
   try {
@@ -33,12 +35,16 @@ export async function startVerificationAction(callbackUrl?: string): Promise<
       }
     }
 
+    if (existing && ['PENDING', 'IN_PROGRESS', 'IN_REVIEW'].includes(existing.status)) {
+      return { success: false, error: 'Sua verificação já está em andamento. Atualize o status para acompanhar.' }
+    }
+
     const provider = getVerificationProvider()
 
     // Create session in provider first (compensatory pattern: avoid dangling DB records if provider fails)
     const providerSession = await provider.createSession({
       accountUserId: account.id,
-      callbackUrl,
+      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/verificacao`,
     })
 
     const now = new Date().toISOString()
@@ -82,11 +88,11 @@ export async function startVerificationAction(callbackUrl?: string): Promise<
       }
     }
 
-    // Monotonically advance onboarding step to at least 2 (Verification in progress)
-    if (account.onboarding_step < 2) {
+    // Monotonically advance onboarding metadata to Step 04.
+    if (account.onboarding_step < 4) {
       await admin
         .from('account_users')
-        .update({ onboarding_step: 2, onboarding_status: 'IN_PROGRESS' })
+        .update({ onboarding_step: 4, onboarding_status: 'IN_PROGRESS' })
         .eq('id', account.id)
     }
 
@@ -101,6 +107,30 @@ export async function startVerificationAction(callbackUrl?: string): Promise<
       error: 'Ocorreu um erro ao conectar ao serviço de verificação. Tente novamente mais tarde.',
     }
   }
+}
+
+/** Advances only when the canonical verified-adult gate is satisfied. */
+export async function continueAfterVerificationAction(): Promise<VerificationActionResult<void>> {
+  const account = await requireAccount()
+  const verification = await getVerificationSafe(account.id)
+
+  if (!canProceedToProfessionalProfile(verification)) {
+    return { success: false, error: 'A confirmação de identidade e maioridade ainda não foi concluída.' }
+  }
+
+  try {
+    const admin = createAdminClient()
+    await admin
+      .from('account_users')
+      .update({ onboarding_status: 'IN_PROGRESS', onboarding_step: 5 })
+      .eq('id', account.id)
+      .lt('onboarding_step', 5)
+  } catch (error) {
+    console.error('[verification:continue] Progress update failed:', error instanceof Error ? error.message : error)
+    return { success: false, error: 'Não foi possível continuar agora. Tente novamente.' }
+  }
+
+  redirect('/onboarding/fotos')
 }
 
 /**

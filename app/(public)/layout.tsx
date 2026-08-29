@@ -22,20 +22,9 @@ import { PublicFooter } from '@/components/public/public-footer'
  */
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-        background: 'var(--color-background)',
-      }}
-    >
+    <div className="velvet-public-shell">
       <PublicHeader />
-      <main
-        id="main-content"
-        tabIndex={-1}
-        style={{ flex: 1 }}
-      >
+      <main id="main-content" tabIndex={-1}>
         {children}
       </main>
       <PublicFooter />

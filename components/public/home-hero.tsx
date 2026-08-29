@@ -1,22 +1,26 @@
-import React from 'react'
-import { getMarketplaceName } from '@/lib/brand'
-import { PublicContainer } from './public-container'
+import Image from 'next/image'
+import Link from 'next/link'
+import type { ProfileWithMedia } from './public-profile-grid'
 
-export function HomeHero() {
-  const brandName = getMarketplaceName()
-
+export function HomeHero({ profiles }: { profiles: ProfileWithMedia[] }) {
+  const [primary, secondary] = profiles.filter((profile) => profile.mediaUrl)
   return (
-    <section className="bg-[var(--color-surface-muted)] border-b border-[var(--color-border)]">
-      <PublicContainer>
-        <div className="py-12 md:py-20 max-w-3xl flex flex-col justify-center min-h-[30vh] md:min-h-[380px]">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[var(--color-foreground)] tracking-tight leading-[1.15] mb-4" style={{ fontFamily: 'var(--font-display)' }}>
-            Encontre perfis em São Paulo
-          </h1>
-          <p className="text-lg md:text-xl text-[var(--color-foreground-muted)] max-w-2xl leading-relaxed">
-            Descubra perfis verificados diretamente no {brandName}. Acesso direto, sem intermediários.
-          </p>
-        </div>
-      </PublicContainer>
+    <section className="velvet-home-hero">
+      <div className="velvet-home-hero-copy">
+        <p className="velvet-overline">SÃO PAULO · PERFIS VERIFICADOS</p>
+        <h1>Encontre perfis<br />em São Paulo</h1>
+        <p>Explore profissionais por região e entre em contato diretamente.</p>
+        <form className="velvet-home-search" action="/sao-paulo">
+          <span aria-hidden="true">⌕</span>
+          <label><small>LOCALIZAÇÃO</small><input name="local" placeholder="Onde você quer explorar?" /></label>
+          <button type="submit">Buscar</button>
+        </form>
+      </div>
+      {primary ? <div className={`velvet-home-hero-art${secondary ? '' : ' is-single'}`} aria-label="Seleção editorial Velvet">
+        <figure className="velvet-home-hero-main"><Image src={primary.mediaUrl!} alt={`Retrato editorial de ${primary.stageName}`} fill priority sizes="(max-width: 700px) 72vw, 34vw" /><figcaption><span>{primary.stageName}{primary.publicAge ? `, ${primary.publicAge}` : ''}</span><small>{primary.primaryLocation?.name ?? 'São Paulo'} · São Paulo</small></figcaption></figure>
+        {secondary ? <figure className="velvet-home-hero-offset"><Image src={secondary.mediaUrl!} alt={`Retrato editorial de ${secondary.stageName}`} fill sizes="(max-width: 700px) 38vw, 17vw" /><figcaption><span>{secondary.stageName}{secondary.publicAge ? `, ${secondary.publicAge}` : ''}</span><small>{secondary.primaryLocation?.name ?? 'São Paulo'} · São Paulo</small></figcaption></figure> : null}
+        <span className="velvet-home-hero-index">V / 01</span>
+      </div> : <Link className="velvet-home-hero-placeholder" href="/sao-paulo"><span>V</span><small>EXPLORAR SÃO PAULO →</small></Link>}
     </section>
   )
 }
