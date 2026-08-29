@@ -81,6 +81,7 @@ export interface AdvertiserMetricsSummaryDTO {
   impressionsTotal: number
   impressionsOrganic: number
   impressionsSponsored: number
+  profileViews: number
   whatsappClicks: number
   ctr: number // 0 if impressions === 0
   days: 7 | 30 | 90
@@ -89,6 +90,7 @@ export interface AdvertiserMetricsSummaryDTO {
     impressionsTotal: number
     impressionsOrganic: number
     impressionsSponsored: number
+    profileViews: number
     whatsappClicks: number
   }>
 }

@@ -62,37 +62,11 @@ export function CheckoutButton({
         type="button"
         onClick={handleCheckout}
         disabled={disabled || loading}
-        style={{
-          width: '100%',
-          padding: '0.75rem 1.25rem',
-          backgroundColor: disabled || loading ? '#4b5563' : '#2563eb',
-          color: '#ffffff',
-          fontSize: '0.95rem',
-          fontWeight: 600,
-          borderRadius: '0.5rem',
-          border: 'none',
-          cursor: disabled || loading ? 'not-allowed' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem',
-          transition: 'background-color 0.2s, opacity 0.2s',
-          opacity: disabled ? 0.6 : 1,
-        }}
+        className="billing-checkout-button"
       >
         {loading ? (
           <>
-            <span
-              style={{
-                display: 'inline-block',
-                width: '1rem',
-                height: '1rem',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderTopColor: '#ffffff',
-                borderRadius: '50%',
-                animation: 'spin 0.8s linear infinite',
-              }}
-            />
+            <span className="billing-checkout-spinner" />
             <span>Iniciando checkout...</span>
           </>
         ) : (
@@ -101,18 +75,7 @@ export function CheckoutButton({
       </button>
 
       {errorMessage && (
-        <p
-          style={{
-            color: '#ef4444',
-            fontSize: '0.8125rem',
-            marginTop: '0.5rem',
-            textAlign: 'center',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            padding: '0.375rem 0.5rem',
-            borderRadius: '0.25rem',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-          }}
-        >
+        <p className="billing-checkout-error" role="alert">
           {errorMessage}
         </p>
       )}

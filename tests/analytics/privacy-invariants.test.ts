@@ -82,6 +82,7 @@ describe('FASE 09 — Privacy & LGPD Invariants', () => {
       impressionsTotal: 100,
       impressionsOrganic: 80,
       impressionsSponsored: 20,
+      profileViews: 20,
       whatsappClicks: 5,
       ctr: 5,
       days: 30,

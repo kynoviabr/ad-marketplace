@@ -37,6 +37,7 @@ export async function getAdvertiserMetrics(
       impressionsTotal: 0,
       impressionsOrganic: 0,
       impressionsSponsored: 0,
+      profileViews: 0,
       whatsappClicks: 0,
       ctr: 0,
       days,
@@ -49,12 +50,14 @@ export async function getAdvertiserMetrics(
   let impressionsTotal = 0
   let impressionsOrganic = 0
   let impressionsSponsored = 0
+  let profileViews = 0
   let whatsappClicks = 0
 
   const dailyBreakdown = metricsList.map((r: any) => {
     impressionsTotal += r.impressions_total || 0
     impressionsOrganic += r.impressions_organic || 0
     impressionsSponsored += r.impressions_sponsored || 0
+    profileViews += r.views_total || 0
     whatsappClicks += r.whatsapp_clicks || 0
 
     return {
@@ -62,6 +65,7 @@ export async function getAdvertiserMetrics(
       impressionsTotal: r.impressions_total || 0,
       impressionsOrganic: r.impressions_organic || 0,
       impressionsSponsored: r.impressions_sponsored || 0,
+      profileViews: r.views_total || 0,
       whatsappClicks: r.whatsapp_clicks || 0,
     }
   })
@@ -72,6 +76,7 @@ export async function getAdvertiserMetrics(
     impressionsTotal,
     impressionsOrganic,
     impressionsSponsored,
+    profileViews,
     whatsappClicks,
     ctr,
     days,

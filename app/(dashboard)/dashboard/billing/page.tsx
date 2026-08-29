@@ -1,247 +1,80 @@
+import Link from 'next/link'
+import { ProfessionalDashboardHeader } from '@/components/dashboard/professional-dashboard-header'
 import { requireAccount } from '@/modules/auth/dal'
 import { getBillingAction } from '@/modules/billing/actions'
-import { getActivePlans, getActivePricesForPlan } from '@/modules/billing/dal'
-import { SubscriptionStatus } from '@/components/billing/subscription-status'
-import { CheckoutButton } from '@/components/billing/checkout-button'
-import Link from 'next/link'
+import { getActiveOverride, getActivePlans, getActivePricesForPlan } from '@/modules/billing/dal'
+import { hasPublicationEntitlement } from '@/modules/billing/entitlements'
+import type { BillingDTO, SubscriptionStatus } from '@/modules/billing/types'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { title: 'Plano | Velvet', robots: 'noindex, nofollow' }
 
-export const metadata = {
-  title: 'Assinatura e Cobrança — AD-Marketplace',
-  robots: 'noindex, nofollow',
+const statusCopy: Record<SubscriptionStatus, { label: string; detail: string }> = {
+  ACTIVE: { label: 'Acesso ativo', detail: 'Seu plano está vigente.' },
+  PAST_DUE: { label: 'Pagamento pendente', detail: 'O provedor ainda está tentando processar o pagamento.' },
+  GRACE_PERIOD: { label: 'Período de tolerância', detail: 'Seu acesso permanece temporariamente ativo durante o prazo indicado.' },
+  INCOMPLETE: { label: 'Ativação incompleta', detail: 'A configuração do plano ainda não foi concluída.' },
+  EXPIRED: { label: 'Acesso encerrado', detail: 'Este plano não concede mais direito de publicação.' },
 }
 
-interface BillingPageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+const monthNames = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.']
+function formatDate(value: string | null) {
+  if (!value) return null
+  const [date] = value.split('T')
+  const [year, month, day] = date.split('-').map(Number)
+  return `${String(day).padStart(2, '0')} de ${monthNames[month - 1] ?? ''} de ${year}`
 }
 
-export default async function BillingPage({ searchParams }: BillingPageProps) {
-  // Enforce account auth
-  await requireAccount()
-  const resolvedSearchParams = await searchParams
+function AccessDetails({ billing, hasEntitlement, hasOverride, overrideExpiry }: { billing: BillingDTO | null; hasEntitlement: boolean; hasOverride: boolean; overrideExpiry: string | null }) {
+  const status = billing ? statusCopy[billing.status] : null
+  const accessName = billing?.isFreeLaunch ? 'Acesso de lançamento' : billing?.planName ?? (hasOverride ? 'Acesso administrativo' : 'Sem plano ativo')
+  const periodEnd = billing ? formatDate(billing.currentPeriodEnd) : null
+  const graceEnd = billing ? formatDate(billing.gracePeriodEnd) : null
 
-  const isSuccess = resolvedSearchParams.success === 'true'
-  const isCanceled = resolvedSearchParams.canceled === 'true'
+  return <section className={`billing-access billing-access--${hasEntitlement ? 'active' : 'inactive'}`} aria-labelledby="billing-access-title">
+    <div className="billing-access-lead"><p className="dashboard-eyebrow">ACESSO ATUAL</p><h2 id="billing-access-title">{hasEntitlement ? 'Seu acesso à Velvet está ativo.' : 'Seu acesso de publicação não está ativo.'}</h2><p>{billing?.isFreeLaunch ? 'Você faz parte do período de lançamento e não há cobrança para este acesso.' : status?.detail ?? (hasEntitlement ? 'Uma liberação administrativa mantém seu direito de publicação ativo.' : 'Não há uma assinatura ou liberação administrativa vigente para esta conta.')}</p></div>
+    <dl>
+      <div><dt>Modalidade</dt><dd>{accessName}</dd></div>
+      <div><dt>Status</dt><dd>{status?.label ?? (hasEntitlement ? 'Acesso ativo' : 'Sem acesso')}</dd></div>
+      {billing ? <div><dt>Valor</dt><dd>{billing.priceDisplay}</dd></div> : null}
+      {periodEnd ? <div><dt>{billing?.cancelAtPeriodEnd ? 'Acesso até' : 'Período atual'}</dt><dd>{periodEnd}</dd></div> : null}
+      {graceEnd ? <div><dt>Tolerância até</dt><dd>{graceEnd}</dd></div> : null}
+      {!billing && hasOverride && overrideExpiry ? <div><dt>Liberação até</dt><dd>{formatDate(overrideExpiry) ?? 'Sem data definida'}</dd></div> : null}
+    </dl>
+    {billing?.cancelAtPeriodEnd ? <p className="billing-access-note">Este acesso não será renovado e termina na data indicada.</p> : null}
+  </section>
+}
 
-  const billingRes = await getBillingAction()
-  const billing = billingRes.success ? billingRes.data : null
+export default async function BillingPage() {
+  const account = await requireAccount()
+  const [billingResult, override, publicationEntitlement] = await Promise.all([
+    getBillingAction(),
+    getActiveOverride(account.id),
+    hasPublicationEntitlement(account.id),
+  ])
+  const billing = billingResult.success ? billingResult.data : null
+  const shouldOfferPlans = !publicationEntitlement && !billing
+  const plans = shouldOfferPlans ? await getActivePlans() : []
+  const plansWithPrices = shouldOfferPlans ? await Promise.all(plans.map(async (plan) => ({ plan, prices: await getActivePricesForPlan(plan.id) }))) : []
 
-  // Fetch available active plans and prices
-  const plans = await getActivePlans()
-  const plansWithPrices = await Promise.all(
-    plans.map(async (plan) => {
-      const prices = await getActivePricesForPlan(plan.id)
-      return { plan, prices }
-    })
-  )
+  return <div className="velvet-dashboard velvet-billing">
+    <ProfessionalDashboardHeader activeHref="/dashboard/billing" />
+    <main>
+      <section className="billing-intro"><div><p className="dashboard-eyebrow">PLANO</p><h1>Sua presença na Velvet.</h1></div><p>Acompanhe as condições que mantêm seu acesso profissional e o direito de publicação.</p></section>
 
-  const hasActiveBilling =
-    billing !== null &&
-    ['ACTIVE', 'PAST_DUE', 'GRACE_PERIOD', 'INCOMPLETE'].includes(billing.status)
+      {!billingResult.success ? <p className="billing-notice billing-notice--alert" role="alert">Não foi possível carregar todos os detalhes de billing agora. O direito de publicação continua sendo validado pelo servidor.</p> : null}
 
-  return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1rem' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <Link
-            href="/dashboard"
-            style={{ color: '#9ca3af', fontSize: '0.875rem', textDecoration: 'none' }}
-          >
-            ← Voltar ao Dashboard
-          </Link>
-        </div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#ffffff', margin: 0 }}>
-          Assinatura & Cobrança
-        </h1>
-        <p style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.25rem' }}>
-          Gerencie seu plano de anúncio, status de pagamento e benefícios contratados.
-        </p>
-      </div>
+      <AccessDetails billing={billing} hasEntitlement={publicationEntitlement} hasOverride={Boolean(override)} overrideExpiry={override?.expires_at ?? null} />
 
-      {isSuccess && (
-        <div
-          style={{
-            backgroundColor: '#064e3b',
-            color: '#a7f3d0',
-            border: '1px solid #059669',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            marginBottom: '1.5rem',
-            fontSize: '0.875rem',
-          }}
-        >
-          ✓ Pagamento confirmado com sucesso! Sua assinatura foi atualizada.
-        </div>
-      )}
+      {shouldOfferPlans ? <section className="billing-options" aria-labelledby="billing-options-title"><div className="billing-section-heading"><p className="dashboard-eyebrow">ACESSO DISPONÍVEL</p><h2 id="billing-options-title">Condições em preparação.</h2><p>A Velvet ainda não integrou um provedor real de pagamentos. Planos e preços abaixo são registros de produto e não podem ser contratados neste momento.</p></div>
+        {plansWithPrices.length ? <div className="billing-plan-list">{plansWithPrices.map(({ plan, prices }) => {
+          const price = prices.find((item) => item.amount_minor > 0 && item.is_active)
+          const priceDisplay = price ? `R$ ${(price.amount_minor / 100).toFixed(2).replace('.', ',')} / ${price.billing_interval === 'MONTH' ? 'mês' : 'ano'}` : 'Sem oferta paga disponível'
+          return <article key={plan.id}><div><p className="dashboard-eyebrow">PLANO</p><h3>{plan.name}</h3>{plan.description ? <p>{plan.description}</p> : null}</div><div><strong>{priceDisplay}</strong><span>{price ? 'Contratação ainda não disponível.' : 'Ativação indisponível no momento.'}</span></div></article>
+        })}</div> : <p className="billing-no-plans">Nenhum plano está disponível no momento. Seu perfil não será apresentado como publicado sem entitlement válido.</p>}
+      </section> : null}
 
-      {isCanceled && (
-        <div
-          style={{
-            backgroundColor: '#78350f',
-            color: '#fde68a',
-            border: '1px solid #f59e0b',
-            padding: '1rem',
-            borderRadius: '0.5rem',
-            marginBottom: '1.5rem',
-            fontSize: '0.875rem',
-          }}
-        >
-          O processo de checkout foi cancelado. Nenhuma cobrança foi efetuada.
-        </div>
-      )}
-
-      {hasActiveBilling && billing ? (
-        <div>
-          <SubscriptionStatus
-            status={billing.status}
-            planName={billing.planName}
-            priceDisplay={billing.priceDisplay}
-            currentPeriodEnd={billing.currentPeriodEnd}
-            cancelAtPeriodEnd={billing.cancelAtPeriodEnd}
-            gracePeriodEnd={billing.gracePeriodEnd}
-            isFreeLaunch={billing.isFreeLaunch}
-          />
-        </div>
-      ) : (
-        <div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#ffffff', marginBottom: '0.5rem' }}>
-              Escolha seu Plano de Anúncio
-            </h2>
-            <p style={{ fontSize: '0.875rem', color: '#9ca3af' }}>
-              Selecione um dos planos disponíveis para publicar seu anúncio e liberar todas as funcionalidades.
-            </p>
-          </div>
-
-          {plansWithPrices.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '3rem',
-                backgroundColor: '#1f2937',
-                borderRadius: '0.5rem',
-                color: '#9ca3af',
-              }}
-            >
-              Nenhum plano disponível no momento.
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '1.5rem',
-              }}
-            >
-              {plansWithPrices.map(({ plan, prices }) => {
-                const paidPrice = prices.find((p) => p.amount_minor > 0 && p.is_active) || prices[0]
-                const isPromotional = paidPrice?.is_promotional ?? false
-                const priceFormatted =
-                  !paidPrice || paidPrice.amount_minor === 0
-                    ? 'Gratuito'
-                    : `R$ ${(paidPrice.amount_minor / 100).toFixed(2).replace('.', ',')} / ${
-                        paidPrice.billing_interval === 'MONTH' ? 'mês' : 'ano'
-                      }`
-
-                return (
-                  <div
-                    key={plan.id}
-                    style={{
-                      backgroundColor: '#1f2937',
-                      borderRadius: '0.75rem',
-                      border: isPromotional ? '2px solid #f59e0b' : '1px solid #374151',
-                      padding: '1.5rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      position: 'relative',
-                    }}
-                  >
-                    {isPromotional && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '-0.75rem',
-                          right: '1rem',
-                          backgroundColor: '#f59e0b',
-                          color: '#111827',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '9999px',
-                        }}
-                      >
-                        Promoção
-                      </div>
-                    )}
-
-                    <div>
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: '0.5rem',
-                        }}
-                      >
-                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ffffff', margin: 0 }}>
-                          {plan.name}
-                        </h3>
-                        <span
-                          style={{
-                            fontSize: '0.75rem',
-                            color: '#9ca3af',
-                            backgroundColor: '#374151',
-                            padding: '0.2rem 0.5rem',
-                            borderRadius: '0.25rem',
-                            fontFamily: 'monospace',
-                          }}
-                        >
-                          {plan.code}
-                        </span>
-                      </div>
-
-                      {plan.description && (
-                        <p
-                          style={{
-                            fontSize: '0.875rem',
-                            color: '#9ca3af',
-                            marginBottom: '1rem',
-                            lineHeight: '1.4',
-                          }}
-                        >
-                          {plan.description}
-                        </p>
-                      )}
-
-                      <div
-                        style={{
-                          fontSize: '1.75rem',
-                          fontWeight: 800,
-                          color: '#ffffff',
-                          margin: '1rem 0 1.5rem 0',
-                        }}
-                      >
-                        {priceFormatted}
-                      </div>
-                    </div>
-
-                    {paidPrice && paidPrice.amount_minor > 0 && (
-                      <CheckoutButton
-                        planId={plan.id}
-                        priceId={paidPrice.id}
-                        label="Assinar Plano"
-                        disabled={false}
-                      />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
+      <section className="billing-publication" aria-labelledby="billing-publication-title"><div><p className="dashboard-eyebrow">PUBLICAÇÃO</p><h2 id="billing-publication-title">Acesso é uma parte da jornada.</h2></div><div><p>{publicationEntitlement ? 'Seu acesso permite que o perfil permaneça publicado enquanto os demais critérios da Velvet estiverem atendidos.' : 'Sem acesso vigente, a publicação permanece bloqueada mesmo que as outras etapas estejam completas.'}</p><p>A decisão final continua sendo feita pela elegibilidade canônica, que também considera perfil, verificação, regiões, fotos e moderação.</p><Link href="/onboarding/revisar">Revisar publicação <span aria-hidden="true">→</span></Link></div></section>
+    </main>
+  </div>
 }

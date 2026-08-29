@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export function HomeTrustSection() {
   return (
-    <section className="velvet-home-trust">
+    <section id="sobre" className="velvet-home-trust">
       <p className="velvet-overline">CONFIANÇA E TRANSPARÊNCIA</p>
       <span aria-hidden="true">V</span>
       <h2>Identidade confirmada.<br />Conexões diretas.</h2>
