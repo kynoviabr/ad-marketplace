@@ -8,25 +8,49 @@ export interface DiditWebhookVerifierOptions {
   now?: () => number
 }
 
-/**
- * Recursively sorts object keys while preserving array order and JSON value types.
- * JSON.stringify then produces Didit's compact, Unicode-preserved V2 form.
- */
-function canonicalizeDiditV3(value: unknown): unknown {
+/** Match Didit's recursive numeric-normalization pass before key sorting. */
+function shortenDiditFloats(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map(canonicalizeDiditV3)
+    return value.map(shortenDiditFloats)
+  }
+
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+        key,
+        shortenDiditFloats(item),
+      ])
+    )
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value) && value % 1 === 0) {
+    return Math.trunc(value)
+  }
+
+  return value
+}
+
+/** Recursively sort object keys while preserving arrays, empty maps and nulls. */
+function sortDiditKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortDiditKeys)
   }
 
   if (value !== null && typeof value === 'object') {
     return Object.keys(value as Record<string, unknown>)
       .sort()
       .reduce<Record<string, unknown>>((sorted, key) => {
-        sorted[key] = canonicalizeDiditV3((value as Record<string, unknown>)[key])
+        sorted[key] = sortDiditKeys((value as Record<string, unknown>)[key])
         return sorted
       }, {})
   }
 
   return value
+}
+
+/** Reproduce Didit's official Node V2 pipeline exactly. */
+export function canonicalizeDiditV3(value: unknown): string {
+  return JSON.stringify(sortDiditKeys(shortenDiditFloats(value)))
 }
 
 /** Verifies Didit v3 X-Signature-V2 using its canonical JSON contract. */
@@ -71,7 +95,7 @@ export function verifyDiditWebhookSignature(
     return null
   }
 
-  const canonicalJson = JSON.stringify(canonicalizeDiditV3(parsedJson))
+  const canonicalJson = canonicalizeDiditV3(parsedJson)
   const expectedHex = createHmac('sha256', secret).update(canonicalJson, 'utf8').digest('hex')
 
   const expectedBuf = Buffer.from(expectedHex, 'utf8')
