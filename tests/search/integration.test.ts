@@ -66,7 +66,7 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Re
         show_weight: true, // Visible weight!
         show_whatsapp: true,
         whatsapp_phone: '+5511999998888',
-        status: 'READY_FOR_REVIEW',
+        status: 'ACTIVE',
         content_moderation_status: 'APPROVED', // Gate 4 (FASE 11)
       })
       .select('id')
@@ -144,7 +144,7 @@ describe('FASE 04 — Live Supabase DEV Locations & Search Integration Tests (Re
         show_weight: false, // HIDDEN weight!
         show_whatsapp: true,
         whatsapp_phone: '+5511988887777',
-        status: 'READY_FOR_REVIEW',
+        status: 'ACTIVE',
         content_moderation_status: 'APPROVED', // Gate 4 (FASE 11)
       })
       .select('id')

@@ -17,6 +17,10 @@ export const ModerateMediaSchema = z.object({
     ])
     .optional(),
   notes: z.string().max(1000).optional(),
+}).superRefine((value, context) => {
+  if (['REJECT', 'QUARANTINE'].includes(value.decision) && !value.reasonCode) {
+    context.addIssue({ code: 'custom', path: ['reasonCode'], message: 'Informe o motivo da decisão' })
+  }
 })
 
 export const ModerateProfileSchema = z.object({
@@ -26,4 +30,8 @@ export const ModerateProfileSchema = z.object({
   }),
   reasonCode: z.string().max(50).optional(),
   notes: z.string().max(1000).optional(),
+}).superRefine((value, context) => {
+  if (['REJECT', 'FLAG'].includes(value.decision) && !value.reasonCode?.trim()) {
+    context.addIssue({ code: 'custom', path: ['reasonCode'], message: 'Informe o motivo da decisão' })
+  }
 })

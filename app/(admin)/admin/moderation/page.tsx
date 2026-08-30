@@ -3,8 +3,9 @@ import { ModerationQueueTable } from '@/components/admin/moderation-queue-table'
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminModerationPage() {
-  const pendingItems = await getPendingMediaQueue()
+export default async function AdminModerationPage({ searchParams }: { searchParams: Promise<{ profile?: string }> }) {
+  const { profile } = await searchParams
+  const pendingItems = await getPendingMediaQueue(profile)
 
   return (
     <div>

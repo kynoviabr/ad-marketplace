@@ -19,6 +19,7 @@ import {
   MAX_PHOTOS_PER_PROFILE,
 } from './schemas'
 import { getActivePhotoCount, getMediaById, getProfileMedia } from './dal'
+import { submitOwnedProfileForReview } from '@/modules/profiles/submission'
 import type { MediaActionResult, ProfileMedia, SignedUploadUrlResponse } from './types'
 import { redirect } from 'next/navigation'
 
@@ -267,6 +268,7 @@ export async function continueAfterPhotosAction(): Promise<MediaActionResult<voi
   if (!media.some((item) => !['UPLOADING', 'PROCESSING_FAILED', 'DELETED'].includes(item.status))) {
     return { success: false, error: 'Adicione ao menos uma foto enviada com sucesso para continuar.' }
   }
+  await submitOwnedProfileForReview(account.id)
   const admin = createAdminClient()
   const { error } = await admin.from('account_users')
     .update({ onboarding_status: 'IN_PROGRESS', onboarding_step: 6 })
@@ -365,9 +367,10 @@ export async function deleteMediaAction(
     if (media.is_primary) {
       const remaining = await getProfileMedia(profile.id)
       if (remaining.length > 0) {
+        const replacement = remaining.find((item) => item.status === 'APPROVED') ?? remaining[0]
         await admin.rpc('set_primary_profile_media', {
           p_profile_id: profile.id,
-          p_media_id: remaining[0].id,
+          p_media_id: replacement.id,
         })
       }
     }

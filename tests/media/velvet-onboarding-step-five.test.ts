@@ -64,7 +64,7 @@ describe('Velvet onboarding Step 05 — Fotos', () => {
     expect(actions).toContain("rpc('reorder_profile_media'")
     expect(actions).toContain("status: 'DELETED'")
     expect(actions).toContain('if (media.is_primary)')
-    expect(actions).toContain('remaining[0].id')
+    expect(actions).toContain("remaining.find((item) => item.status === 'APPROVED') ?? remaining[0]")
     expect(actions).toContain('new Set(submitted).size !== submitted.length')
   })
 
@@ -78,6 +78,7 @@ describe('Velvet onboarding Step 05 — Fotos', () => {
   it('continues with one persisted successful upload into the implemented Step 06 review', () => {
     const actions = read('modules/media/actions.ts')
     expect(actions).toContain('continueAfterPhotosAction')
+    expect(actions).toContain('submitOwnedProfileForReview(account.id)')
     expect(actions).toContain('onboarding_step: 6')
     expect(actions).toContain("redirect('/onboarding/revisar')")
     const review = read('app/(dashboard)/onboarding/revisar/page.tsx')

@@ -80,7 +80,7 @@ async function getLocationAndPlanIds() {
  * Create a "fully eligible" profile setup:
  * - Account ACTIVE
  * - KYC VERIFIED (identity + age)
- * - Profile READY_FOR_REVIEW, content_moderation_status APPROVED
+ * - Profile ACTIVE, content_moderation_status APPROVED
  * - 1 active service location (Moema)
  * - 1 approved photo
  * - Active subscription (LAUNCH_FREE, no expiry)
@@ -116,14 +116,18 @@ async function setupFullyEligibleProfile(
     verified_at: new Date().toISOString(),
   })
 
-  // Profile: READY_FOR_REVIEW, APPROVED moderation
+  // Profile: explicitly ACTIVE with complete public presentation
   const { data: prof } = await admin
     .from('professional_profiles')
     .insert({
       account_user_id: accountId,
       stage_name: `Eligibility Test ${suffix}`,
       slug: `eligibility-test-${suffix}-${Date.now()}`,
-      status: 'READY_FOR_REVIEW',
+      headline: 'Apresentação completa para elegibilidade',
+      bio: 'Biografia pública completa para validar todos os critérios canônicos.',
+      whatsapp_phone: '+5511999999999',
+      show_whatsapp: true,
+      status: 'ACTIVE',
       content_moderation_status: 'APPROVED',
     })
     .select('id')
@@ -322,7 +326,14 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
     expect(inView).toBe(false)
   })
 
-  it('Gate 3b: profile status PAUSED → NOT in view', async () => {
+  it('Gate 3b: profile status READY_FOR_REVIEW → NOT public before explicit activation', async () => {
+    const { accountId } = await createBaseAccount('gate3b-ready')
+    const profId = await setupFullyEligibleProfile(accountId, moemaId, planId, priceId, 'gate3b-ready')
+    await admin.from('professional_profiles').update({ status: 'READY_FOR_REVIEW' }).eq('id', profId)
+    expect(await isInView(profId)).toBe(false)
+  })
+
+  it('Gate 3c: profile status PAUSED → NOT in view', async () => {
     const { accountId } = await createBaseAccount('gate3b')
     const profId = await setupFullyEligibleProfile(accountId, moemaId, planId, priceId, 'gate3b')
     await admin.from('professional_profiles').update({ status: 'PAUSED' }).eq('id', profId)
@@ -330,7 +341,7 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
     expect(inView).toBe(false)
   })
 
-  it('Gate 3c: profile status SUSPENDED → NOT in view', async () => {
+  it('Gate 3d: profile status SUSPENDED → NOT in view', async () => {
     const { accountId } = await createBaseAccount('gate3c')
     const profId = await setupFullyEligibleProfile(accountId, moemaId, planId, priceId, 'gate3c')
     await admin.from('professional_profiles').update({ status: 'SUSPENDED' }).eq('id', profId)

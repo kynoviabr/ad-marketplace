@@ -2,6 +2,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { moderateMediaAction } from '@/modules/moderation/actions'
 import type { PendingMediaQueueItem, ModerationReasonCode } from '@/modules/moderation/types'
 
@@ -135,9 +136,15 @@ export function ModerationQueueTable({ initialItems }: ModerationQueueTableProps
                 <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.75rem', color: '#9ca3af', marginBottom: '1rem' }}>
                   <span>{item.public_age ? `${item.public_age} anos` : 'Idade ñ inf.'}</span>
                   <span>•</span>
-                  <span style={{ color: '#10b981', fontWeight: 500 }}>KYC 18+ Confirmado</span>
+                  <span style={{ color: item.identity_verified && item.age_verified ? '#10b981' : '#f59e0b', fontWeight: 500 }}>
+                    Identidade {item.identity_verified ? 'verificada' : 'pendente'} · Maioridade {item.age_verified ? 'confirmada' : 'pendente'}
+                  </span>
                 </div>
               </div>
+
+              <Link href={`/admin/profiles?profile=${item.profile_id}`} style={{ display: 'inline-block', marginTop: '0.75rem', color: '#93c5fd', fontSize: '0.75rem' }}>
+                Ver moderação dos textos
+              </Link>
 
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button

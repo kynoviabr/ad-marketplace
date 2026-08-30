@@ -46,7 +46,8 @@ export interface PendingMediaQueueItem {
   is_primary: boolean
   position: number
   created_at: string
-  verified_adult: boolean
+  identity_verified: boolean
+  age_verified: boolean
 }
 
 export interface PendingProfileQueueItem {
@@ -61,6 +62,7 @@ export interface PendingProfileQueueItem {
   telegram_username: string | null
   content_moderation_status: string
   completed_at: string | null
-  verified_adult: boolean
+  identity_verified: boolean
+  age_verified: boolean
   approved_photos_count: number
 }

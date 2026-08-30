@@ -104,7 +104,7 @@ export function isPublicationReady(
  *
  * Gate 1: Account ACTIVE
  * Gate 2: KYC VERIFIED + identity_verified + age_verified (18+)
- * Gate 3: Profile data complete (READY_FOR_REVIEW or ACTIVE, never DRAFT)
+ * Gate 3: Profile explicitly ACTIVE
  * Gate 4: Content moderation APPROVED
  * Gate 5: At least 1 service location configured
  * Gate 6: At least 1 approved photo
@@ -131,8 +131,8 @@ export function isPublicSearchEligible(
     verification.status === 'VERIFIED' &&
     verification.identity_verified === true &&
     verification.age_verified === true &&
-    // Gate 3: Profile data complete
-    (profile.status === 'READY_FOR_REVIEW' || profile.status === 'ACTIVE') &&
+    // Gate 3: Explicit publication is required
+    profile.status === 'ACTIVE' &&
     // Gate 4: Content moderation
     profile.content_moderation_status === 'APPROVED' &&
     // Gate 5: Locations

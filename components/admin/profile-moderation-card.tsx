@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { moderateProfileAction } from '@/modules/moderation/actions'
 import type { PendingProfileQueueItem } from '@/modules/moderation/types'
 
@@ -58,7 +59,7 @@ export function ProfileModerationCard({ initialProfiles }: ProfileModerationCard
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', backgroundColor: '#065f46', color: '#10b981', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontWeight: 500 }}>
-                KYC Adulto: Sim
+                Identidade: {profile.identity_verified ? 'Verificada' : 'Pendente'} · 18+: {profile.age_verified ? 'Confirmado' : 'Pendente'}
               </span>
               <span style={{ fontSize: '0.75rem', backgroundColor: '#1e3a8a', color: '#60a5fa', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontWeight: 500 }}>
                 {profile.approved_photos_count} Fotos Aprovadas
@@ -84,6 +85,9 @@ export function ProfileModerationCard({ initialProfiles }: ProfileModerationCard
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <Link href={`/admin/moderation?profile=${profile.id}`} style={{ padding: '0.5rem 1rem', color: '#93c5fd', fontSize: '0.875rem' }}>
+              Ver fotos pendentes
+            </Link>
             <button
               onClick={() => handleAction(profile.id, 'FLAG', 'UNDERAGE_OR_POLICY')}
               disabled={actionInProgress === profile.id}

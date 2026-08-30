@@ -3,8 +3,9 @@ import { ProfileModerationCard } from '@/components/admin/profile-moderation-car
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdminProfilesPage() {
-  const pendingProfiles = await getPendingProfileQueue()
+export default async function AdminProfilesPage({ searchParams }: { searchParams: Promise<{ profile?: string }> }) {
+  const { profile } = await searchParams
+  const pendingProfiles = await getPendingProfileQueue(profile)
 
   return (
     <div>

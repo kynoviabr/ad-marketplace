@@ -12,10 +12,29 @@ import type {
  * Generates temporary signed preview URLs specifically for the admin session.
  * Applies data minimization: never exposes legal names, CPFs or KYC provider payloads.
  */
-export async function getPendingMediaQueue(): Promise<PendingMediaQueueItem[]> {
+async function getSafeVerificationByAccount(accountIds: string[]) {
+  const result = new Map<string, { identity_verified: boolean; age_verified: boolean }>()
+  if (accountIds.length === 0) return result
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from('identity_verifications')
+    .select('account_user_id, status, identity_verified, age_verified, created_at')
+    .in('account_user_id', accountIds)
+    .order('created_at', { ascending: false })
+  for (const verification of data ?? []) {
+    if (result.has(verification.account_user_id)) continue
+    result.set(verification.account_user_id, {
+      identity_verified: verification.status === 'VERIFIED' && verification.identity_verified === true,
+      age_verified: verification.status === 'VERIFIED' && verification.age_verified === true,
+    })
+  }
+  return result
+}
+
+export async function getPendingMediaQueue(profileId?: string): Promise<PendingMediaQueueItem[]> {
   const admin = createAdminClient()
 
-  const { data, error } = await admin
+  let query = admin
     .from('profile_media')
     .select(`
       id,
@@ -34,14 +53,20 @@ export async function getPendingMediaQueue(): Promise<PendingMediaQueueItem[]> {
     .eq('status', 'PENDING_MODERATION')
     .is('deleted_at', null)
     .order('created_at', { ascending: true })
+  if (profileId) query = query.eq('profile_id', profileId)
+  const { data, error } = await query
 
   if (error || !data) {
     return []
   }
 
+  const rows = data as any[]
+  const verificationByAccount = await getSafeVerificationByAccount(
+    [...new Set(rows.flatMap((item) => item.profile?.account_user_id ? [item.profile.account_user_id] : []))]
+  )
   const items: PendingMediaQueueItem[] = []
 
-  for (const item of data as any[]) {
+  for (const item of rows) {
     // Generate temporary 15-minute preview URL for admin UI
     const { data: signed } = await admin.storage
       .from('profile-media')
@@ -58,7 +83,8 @@ export async function getPendingMediaQueue(): Promise<PendingMediaQueueItem[]> {
       is_primary: item.is_primary,
       position: item.position,
       created_at: item.created_at,
-      verified_adult: true, // Derived from KYC invariant
+      identity_verified: verificationByAccount.get(item.profile?.account_user_id)?.identity_verified ?? false,
+      age_verified: verificationByAccount.get(item.profile?.account_user_id)?.age_verified ?? false,
     })
   }
 
@@ -68,10 +94,10 @@ export async function getPendingMediaQueue(): Promise<PendingMediaQueueItem[]> {
 /**
  * Retrieves the pending profile text moderation queue.
  */
-export async function getPendingProfileQueue(): Promise<PendingProfileQueueItem[]> {
+export async function getPendingProfileQueue(profileId?: string): Promise<PendingProfileQueueItem[]> {
   const admin = createAdminClient()
 
-  const { data, error } = await admin
+  let query = admin
     .from('professional_profiles')
     .select(`
       id,
@@ -85,17 +111,24 @@ export async function getPendingProfileQueue(): Promise<PendingProfileQueueItem[
       telegram_username,
       content_moderation_status,
       completed_at,
+      account_user_id,
       photos:profile_media(id, status, deleted_at)
     `)
     .eq('content_moderation_status', 'PENDING')
     .in('status', ['READY_FOR_REVIEW', 'ACTIVE'])
     .order('completed_at', { ascending: true, nullsFirst: false })
+  if (profileId) query = query.eq('id', profileId)
+  const { data, error } = await query
 
   if (error || !data) {
     return []
   }
 
-  return (data as any[]).map((p) => {
+  const rows = data as any[]
+  const verificationByAccount = await getSafeVerificationByAccount(
+    [...new Set(rows.map((profile) => profile.account_user_id).filter(Boolean))]
+  )
+  return rows.map((p) => {
     const approvedCount = (p.photos || []).filter(
       (m: any) => m.status === 'APPROVED' && !m.deleted_at
     ).length
@@ -112,7 +145,8 @@ export async function getPendingProfileQueue(): Promise<PendingProfileQueueItem[
       telegram_username: p.telegram_username,
       content_moderation_status: p.content_moderation_status,
       completed_at: p.completed_at,
-      verified_adult: true,
+      identity_verified: verificationByAccount.get(p.account_user_id)?.identity_verified ?? false,
+      age_verified: verificationByAccount.get(p.account_user_id)?.age_verified ?? false,
       approved_photos_count: approvedCount,
     }
   })

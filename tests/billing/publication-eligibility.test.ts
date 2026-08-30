@@ -9,7 +9,7 @@ describe('FASE 07 — Publication Eligibility with Billing Gate', () => {
     age_verified: true,
   }
   const baseProfile = {
-    status: 'READY_FOR_REVIEW' as const,
+    status: 'ACTIVE' as const,
     content_moderation_status: 'APPROVED' as const,
   }
 

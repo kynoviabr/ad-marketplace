@@ -38,6 +38,10 @@ describe('FASE 06 — Moderation State Machine & Validation', () => {
     expect(res.success).toBe(false)
   })
 
+  it.each(['REJECT', 'QUARANTINE'] as const)('requires a reason for media %s', (decision) => {
+    expect(ModerateMediaSchema.safeParse({ mediaId: '123e4567-e89b-12d3-a456-426614174000', decision }).success).toBe(false)
+  })
+
   it('validates profile moderation schema with APPROVE / REJECT / FLAG', () => {
     const validApprove = ModerateProfileSchema.safeParse({
       profileId: '123e4567-e89b-12d3-a456-426614174000',
@@ -52,5 +56,9 @@ describe('FASE 06 — Moderation State Machine & Validation', () => {
       notes: 'Investigação necessária',
     })
     expect(validFlag.success).toBe(true)
+    expect(ModerateProfileSchema.safeParse({
+      profileId: '123e4567-e89b-12d3-a456-426614174000',
+      decision: 'REJECT',
+    }).success).toBe(false)
   })
 })
