@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import type { ParsedWebhookEvent } from '../interface'
 import { DiditWebhookPayloadSchema } from '../../schemas'
 
@@ -205,8 +205,20 @@ export function verifyDiditWebhookSignature(
 
   logger({ category: 'DIDIT_AUTH_OK', ...diagnostic })
 
+  // Current Didit v3 destination events carry event_id. Some authenticated Try
+  // Webhook envelopes omit it, so derive a retry-stable ledger key exclusively
+  // from non-PII event coordinates. The schema requires created_at in that case.
+  const eventId = validated.data.event_id ?? createHash('sha256')
+    .update([
+      'didit-v3',
+      validated.data.webhook_type,
+      validated.data.session_id,
+      String(validated.data.created_at),
+    ].join(':'), 'utf8')
+    .digest('hex')
+
   return {
-    eventId: validated.data.event_id,
+    eventId,
     sessionId: validated.data.session_id,
     rawStatus: validated.data.status,
     vendorData: validated.data.vendor_data,

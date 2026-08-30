@@ -1,6 +1,9 @@
 import { createHmac } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { verifyDiditWebhookSignature } from '@/modules/verification/providers/didit/webhook'
+import {
+  canonicalizeDiditV3,
+  verifyDiditWebhookSignature,
+} from '@/modules/verification/providers/didit/webhook'
 
 const mocks = vi.hoisted(() => ({
   verifyWebhook: vi.fn(),
@@ -48,20 +51,14 @@ describe('Didit webhook route idempotency', () => {
     )
   })
 
-  function sign(body: typeof payload, signingSecret = secret): string {
-    const canonical = JSON.stringify(
-      Object.keys(body)
-        .sort()
-        .reduce<Record<string, unknown>>((result, key) => {
-          result[key] = body[key as keyof typeof body]
-          return result
-        }, {})
-    )
-    return createHmac('sha256', signingSecret).update(canonical, 'utf8').digest('hex')
+  function sign(body: Record<string, unknown>, signingSecret = secret): string {
+    return createHmac('sha256', signingSecret)
+      .update(canonicalizeDiditV3(body), 'utf8')
+      .digest('hex')
   }
 
   function requestFor(
-    body: typeof payload,
+    body: Record<string, unknown>,
     signature: string,
     timestamp = String(nowMs / 1000),
     testWebhook = false
@@ -84,6 +81,26 @@ describe('Didit webhook route idempotency', () => {
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ message: 'Event already received and processed' })
+    expect(mocks.maybeSingle).toHaveBeenCalledOnce()
+  })
+
+  it('preserves ledger idempotency for an authenticated Try Webhook without event_id', async () => {
+    const tryWebhookPayload = {
+      session_id: 'sess_try_duplicate',
+      status: 'Approved',
+      webhook_type: 'status.updated',
+      timestamp: Math.floor(nowMs / 1000),
+      created_at: Math.floor(nowMs / 1000) - 1,
+      vendor_data: null,
+      decision: { id_verifications: [], reviews: [] },
+    }
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: { code: '23505' } })
+
+    const response = await POST(
+      requestFor(tryWebhookPayload, sign(tryWebhookPayload), undefined, true) as never
+    )
+
+    expect(response.status).toBe(200)
     expect(mocks.maybeSingle).toHaveBeenCalledOnce()
   })
 
