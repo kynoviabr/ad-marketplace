@@ -50,3 +50,4 @@ coverage/
 
 # Supabase CLI state (local link, not project config)
 supabase/.temp/
+.vercel

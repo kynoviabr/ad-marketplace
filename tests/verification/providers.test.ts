@@ -138,23 +138,49 @@ describe('Verification Providers & Normalizers', () => {
 
   describe('Didit Webhook Signature Verifier', () => {
     const secret = 'didit_webhook_secret_xyz'
+    const nowMs = 1_774_970_000_000
 
-    it('accepts valid signatures with X-Signature-V2', () => {
-      const payload = {
-        webhook_type: 'status.updated',
-        event_id: 'evt_999',
-        data: { session_id: 'sess_999', status: 'Approved' },
+    function canonicalize(value: unknown): unknown {
+      if (Array.isArray(value)) return value.map(canonicalize)
+      if (value !== null && typeof value === 'object') {
+        return Object.keys(value as Record<string, unknown>)
+          .sort()
+          .reduce<Record<string, unknown>>((result, key) => {
+            result[key] = canonicalize((value as Record<string, unknown>)[key])
+            return result
+          }, {})
       }
+      return value
+    }
+
+    function signV3(payload: unknown, signingSecret = secret): string {
+      const canonical = JSON.stringify(canonicalize(payload))
+      return createHmac('sha256', signingSecret).update(canonical, 'utf8').digest('hex')
+    }
+
+    function validPayload() {
+      return {
+        status: 'Approved',
+        webhook_type: 'status.updated',
+        session_id: 'sess_999',
+        event_id: 'evt_999',
+        timestamp: Math.floor(nowMs / 1000),
+        decision: { score: 87.42, subject: 'José' },
+      }
+    }
+
+    it('accepts a valid current Didit v3 canonical X-Signature-V2', () => {
+      const payload = validPayload()
       const rawBody = Buffer.from(JSON.stringify(payload), 'utf8')
-      const signature = createHmac('sha256', secret).update(rawBody).digest('hex')
+      const signature = signV3(payload)
 
       const result = verifyDiditWebhookSignature(
         rawBody,
         {
-          'x-signature-v2': `sha256=${signature}`,
-          'x-timestamp': String(Math.floor(Date.now() / 1000)),
+          'x-signature-v2': signature,
+          'x-timestamp': String(Math.floor(nowMs / 1000)),
         },
-        { secret }
+        { secret, now: () => nowMs }
       )
 
       expect(result).not.toBeNull()
@@ -162,23 +188,78 @@ describe('Verification Providers & Normalizers', () => {
       expect(result?.sessionId).toBe('sess_999')
     })
 
-    it('rejects requests with timestamp drift exceeding threshold', () => {
-      const payload = { webhook_type: 'status.updated', event_id: 'evt_1', data: { session_id: 'sess_1' } }
+    it('rejects an invalid signature', () => {
+      const payload = validPayload()
       const rawBody = Buffer.from(JSON.stringify(payload), 'utf8')
-      const signature = createHmac('sha256', secret).update(rawBody).digest('hex')
+      const result = verifyDiditWebhookSignature(
+        rawBody,
+        { 'x-signature-v2': '0'.repeat(64), 'x-timestamp': String(nowMs / 1000) },
+        { secret, now: () => nowMs }
+      )
+      expect(result).toBeNull()
+    })
 
-      const oldTimestamp = Math.floor(Date.now() / 1000) - 600 // 10 minutes ago
+    it('rejects a valid digest generated with the wrong secret', () => {
+      const payload = validPayload()
+      const rawBody = Buffer.from(JSON.stringify(payload), 'utf8')
+      const result = verifyDiditWebhookSignature(
+        rawBody,
+        { 'x-signature-v2': signV3(payload, 'wrong_secret'), 'x-timestamp': String(nowMs / 1000) },
+        { secret, now: () => nowMs }
+      )
+      expect(result).toBeNull()
+    })
+
+    it('rejects requests with timestamp drift exceeding five minutes', () => {
+      const payload = validPayload()
+      const rawBody = Buffer.from(JSON.stringify(payload), 'utf8')
 
       const result = verifyDiditWebhookSignature(
         rawBody,
         {
-          'x-signature-v2': signature,
-          'x-timestamp': String(oldTimestamp),
+          'x-signature-v2': signV3(payload),
+          'x-timestamp': String(nowMs / 1000 - 301),
         },
-        { secret, maxDriftSeconds: 300 }
+        { secret, maxDriftSeconds: 300, now: () => nowMs }
       )
 
       expect(result).toBeNull()
+    })
+
+    it.each(['', 'not-a-timestamp', '1774970000.5', '-1774970000'])('rejects malformed timestamp %j', (timestamp) => {
+      const payload = validPayload()
+      const result = verifyDiditWebhookSignature(
+        Buffer.from(JSON.stringify(payload), 'utf8'),
+        { 'x-signature-v2': signV3(payload), 'x-timestamp': timestamp },
+        { secret, now: () => nowMs }
+      )
+      expect(result).toBeNull()
+    })
+
+    it('rejects a body tampered after signing', () => {
+      const payload = validPayload()
+      const signature = signV3(payload)
+      const tampered = { ...payload, status: 'Declined' }
+      const result = verifyDiditWebhookSignature(
+        Buffer.from(JSON.stringify(tampered), 'utf8'),
+        { 'x-signature-v2': signature, 'x-timestamp': String(nowMs / 1000) },
+        { secret, now: () => nowMs }
+      )
+      expect(result).toBeNull()
+    })
+
+    it('cryptographically accepts a correctly signed Didit test webhook', () => {
+      const payload = validPayload()
+      const result = verifyDiditWebhookSignature(
+        Buffer.from(JSON.stringify(payload), 'utf8'),
+        {
+          'x-signature-v2': signV3(payload),
+          'x-timestamp': String(nowMs / 1000),
+          'x-didit-test-webhook': 'true',
+        },
+        { secret, now: () => nowMs }
+      )
+      expect(result?.eventId).toBe('evt_999')
     })
   })
 
