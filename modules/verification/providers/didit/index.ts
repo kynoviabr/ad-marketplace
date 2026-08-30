@@ -40,10 +40,14 @@ export class DiditProvider implements VerificationProvider {
   }
 
   async createSession(params: CreateSessionParams): Promise<CreatedProviderSession> {
-    const response = await this.client.createSession(params.accountUserId, params.callbackUrl)
+    const response = await this.client.createSession(
+      params.accountUserId,
+      params.callbackUrl,
+      params.appUrlConfigured
+    )
     return {
       providerSessionId: response.session_id,
-      verificationUrl: response.verification_url,
+      verificationUrl: response.url,
       sessionToken: response.session_token,
     }
   }

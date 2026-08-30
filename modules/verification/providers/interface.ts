@@ -3,6 +3,7 @@ import type { VerificationStatus } from '../types'
 export interface CreateSessionParams {
   accountUserId: string
   callbackUrl?: string
+  appUrlConfigured?: boolean
 }
 
 export interface CreatedProviderSession {

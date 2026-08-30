@@ -42,9 +42,11 @@ export async function startVerificationAction(): Promise<
     const provider = getVerificationProvider()
 
     // Create session in provider first (compensatory pattern: avoid dangling DB records if provider fails)
+    const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL
     const providerSession = await provider.createSession({
       accountUserId: account.id,
-      callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/onboarding/verificacao`,
+      callbackUrl: `${configuredAppUrl || 'http://localhost:3000'}/onboarding/verificacao`,
+      appUrlConfigured: Boolean(configuredAppUrl),
     })
 
     const now = new Date().toISOString()
