@@ -71,9 +71,9 @@ describe('Admin KYC operations monitor', () => {
     expect(summarizeKycOperations(items)).toEqual({ notStarted: 1, pending: 1, inReview: 0, verified: 1, problem: 1, unresolved: 3 })
   })
 
-  it('links to the correct internal professional context when a profile exists', () => {
-    expect(items.find((item) => item.accountUserId === 'a2')?.profileHref).toBe('/admin/profiles?profile=p2')
-    expect(items.find((item) => item.accountUserId === 'a1')?.profileHref).toBeNull()
+  it('links every account to its exact support context, including accounts without profiles', () => {
+    expect(items.find((item) => item.accountUserId === 'a2')?.supportHref).toBe('/admin/professionals/a2')
+    expect(items.find((item) => item.accountUserId === 'a1')?.supportHref).toBe('/admin/professionals/a1')
   })
 
   it('requires ADMIN before loading monitor data', () => {
@@ -99,9 +99,9 @@ describe('Admin KYC operations monitor', () => {
 
   it('performs three parallel bulk reads and no per-row query', () => {
     const dal = read('modules/verification/admin-monitor.ts')
-    expect(dal).toContain('await Promise.all([')
-    expect(dal.match(/admin\.from\(/g)).toHaveLength(3)
-    expect(dal.indexOf('admin.from(')).toBeGreaterThan(dal.indexOf('getKycOperationsMonitor'))
+    const monitorReader = dal.slice(dal.indexOf('export async function getKycOperationsMonitor'))
+    expect(monitorReader).toContain('await Promise.all([')
+    expect(monitorReader.match(/admin\.from\(/g)).toHaveLength(3)
   })
 
   it('has no write operation in the monitor module or page', () => {

@@ -61,7 +61,7 @@ export default async function AdminKycPage({ searchParams }: { searchParams: Pro
           <td style={{ padding: '.8rem' }}>{new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(item.lastUpdatedAt))}</td>
           <td style={{ padding: '.8rem' }}>{item.verificationStatus === 'VERIFIED' ? 'Concluída' : <>{formatWaiting(item.waitingMinutes)}{item.attention !== 'NONE' ? <strong style={{ display: 'block', color: item.attention === 'CRITICAL' ? '#fca5a5' : '#fcd34d' }}>Requer atenção</strong> : null}</>}</td>
           <td style={{ padding: '.8rem' }}>{item.profileStatus ?? 'Sem perfil'} · etapa {item.onboardingStep} · {item.onboardingStatus}</td>
-          <td style={{ padding: '.8rem' }}>{item.profileHref ? <Link href={item.profileHref} style={{ color: '#93c5fd' }}>Ver perfil</Link> : <span style={{ color: '#6b7280' }}>Sem perfil</span>}</td>
+          <td style={{ padding: '.8rem' }}><Link href={item.supportHref} style={{ color: '#93c5fd' }}>Ver cadastro</Link></td>
         </tr>)}</tbody>
       </table>
       {items.length === 0 ? <p style={{ padding: '1.5rem', color: '#9ca3af', background: '#1f2937', margin: 0 }}>Nenhum caso neste filtro.</p> : null}
