@@ -9,6 +9,7 @@ export function AdminNavbar() {
   const navItems = [
     { href: '/admin/moderation', label: 'Moderação de Fotos' },
     { href: '/admin/profiles', label: 'Moderação de Perfis' },
+    { href: '/admin/kyc', label: 'KYC / Verificações' },
     { href: '/admin/reports', label: 'Denúncias' },
     { href: '/admin/billing', label: 'Assinaturas' },
     { href: '/admin/boosts', label: 'Destaques' },
