@@ -32,6 +32,7 @@ export type {
   PlanDTO,
   PlanPriceDTO,
   BillingActionResult,
+  AdminFounderEntitlementSummary,
 } from './types'
 
 export {

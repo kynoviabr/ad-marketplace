@@ -39,3 +39,9 @@ export const CreateFreeLaunchSchema = z.object({
   periodEnd: z.string().datetime().nullable().optional(),
 })
 export type CreateFreeLaunchInput = z.infer<typeof CreateFreeLaunchSchema>
+
+/** Admin Founder grant — profile is the authoritative UI context. */
+export const GrantFounderBenefitSchema = z.object({
+  profileId: z.string().uuid('Profile ID inválido.'),
+})
+export type GrantFounderBenefitInput = z.infer<typeof GrantFounderBenefitSchema>

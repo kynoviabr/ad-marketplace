@@ -12,9 +12,10 @@
  *    NEVER grants publication rights.
  */
 
-import type { Subscription } from './types'
 import { MVP_QUOTA_DEFAULTS } from './constants'
 import { getActiveSubscription, getActiveOverride, getPlanEntitlementValue } from './dal'
+import { isSubscriptionPublicationEligible } from './subscription-eligibility'
+export { isSubscriptionPublicationEligible } from './subscription-eligibility'
 
 // ---------------------------------------------------------------------------
 // PUBLICATION ENTITLEMENT — Security/Business Critical
@@ -33,50 +34,6 @@ import { getActiveSubscription, getActiveOverride, getPlanEntitlementValue } fro
  * - GRACE_PERIOD: Eligible ONLY if grace_period_end exists AND is in the future.
  * - INCOMPLETE / EXPIRED: Never eligible.
  */
-export function isSubscriptionPublicationEligible(
-  subscription:
-    | Pick<
-        Subscription,
-        'status' | 'current_period_end' | 'cancel_at_period_end' | 'grace_period_end'
-      >
-    | null
-    | undefined
-): boolean {
-  if (!subscription) return false
-
-  const now = new Date()
-
-  switch (subscription.status) {
-    case 'ACTIVE': {
-      // If current_period_end exists and has passed, fail-closed even if
-      // cron/webhook hasn't transitioned status to EXPIRED yet.
-      if (subscription.current_period_end) {
-        return new Date(subscription.current_period_end) > now
-      }
-      // No period end set (indefinite free launch) → eligible
-      return true
-    }
-
-    case 'PAST_DUE':
-      // Provider still retrying. Profile stays visible.
-      return true
-
-    case 'GRACE_PERIOD': {
-      // Grace period MUST exist and be in the future.
-      if (!subscription.grace_period_end) return false
-      return new Date(subscription.grace_period_end) > now
-    }
-
-    case 'INCOMPLETE':
-    case 'EXPIRED':
-      return false
-
-    default:
-      // Fail-closed for unknown states
-      return false
-  }
-}
-
 /**
  * PUBLICATION ENTITLEMENT — Primary public API.
  *
@@ -97,7 +54,8 @@ export async function hasPublicationEntitlement(
   // 1. Check subscription eligibility (time-aware)
   const subscription = await getActiveSubscription(accountUserId)
   if (subscription && isSubscriptionPublicationEligible(subscription)) {
-    return true
+    const publicationFlag = await getPlanEntitlementValue(subscription.plan_id, 'PROFILE_PUBLICATION')
+    if (publicationFlag === true) return true
   }
 
   // 2. Check admin override
@@ -132,7 +90,7 @@ export async function getPlanEntitlement(
       subscription.plan_id,
       entitlementCode
     )
-    if (configured !== null) return configured
+    if (typeof configured === 'number') return configured
   }
 
   // MVP fallback for backward compatibility (operational quotas ONLY)

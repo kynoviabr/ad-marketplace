@@ -80,6 +80,21 @@ export interface Subscription {
   grace_period_end: string | null
   created_at: string
   updated_at: string
+  granted_by?: string | null
+  grant_source?: string | null
+}
+
+export interface AdminFounderEntitlementSummary {
+  profileId: string
+  stageName: string
+  publicationActive: boolean
+  planCode: string | null
+  planName: string | null
+  priceCode: string | null
+  subscriptionStatus: SubscriptionStatus | null
+  currentPeriodStart: string | null
+  currentPeriodEnd: string | null
+  founderFreePeriod: 'ACTIVE' | 'EXPIRED' | 'NOT_GRANTED'
 }
 
 // ---------------------------------------------------------------------------

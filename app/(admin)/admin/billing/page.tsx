@@ -2,6 +2,8 @@ import { requireAdmin } from '@/modules/moderation/guards'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { BillingOverview } from '@/components/admin/billing-overview'
 import { OverrideForm, type BillingOverrideItem } from '@/components/admin/override-form'
+import { FounderEntitlementManager } from '@/components/admin/founder-entitlement-manager'
+import { getAdminFounderEntitlementSummaries } from '@/modules/billing/dal'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +27,7 @@ export default async function AdminBillingPage() {
     { count: overridesCount },
     { data: activeOverrides },
     { data: recentSubscriptions },
+    founderEntitlements,
   ] = await Promise.all([
     admin.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
     admin.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'PAST_DUE'),
@@ -65,6 +68,7 @@ export default async function AdminBillingPage() {
       `)
       .order('created_at', { ascending: false })
       .limit(20),
+    getAdminFounderEntitlementSummaries(),
   ])
 
   const stats = {
@@ -120,6 +124,8 @@ export default async function AdminBillingPage() {
       </div>
 
       <BillingOverview stats={stats} />
+
+      <FounderEntitlementManager items={founderEntitlements} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem', marginBottom: '2.5rem' }}>
         <OverrideForm accountUserId="" initialOverrides={overridesList} />

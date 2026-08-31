@@ -1,6 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { revalidatePath } from 'next/cache'
 import { requireAccount } from '@/modules/auth/dal'
 import { requireAdmin } from '@/modules/moderation/guards'
 import {
@@ -9,12 +10,76 @@ import {
   GrantOverrideSchema,
   RevokeOverrideSchema,
   CreateFreeLaunchSchema,
+  GrantFounderBenefitSchema,
 } from './schemas'
-import type { InitiateCheckoutInput, CancelSubscriptionInput, GrantOverrideInput, RevokeOverrideInput, CreateFreeLaunchInput } from './schemas'
+import type { InitiateCheckoutInput, CancelSubscriptionInput, GrantOverrideInput, RevokeOverrideInput, CreateFreeLaunchInput, GrantFounderBenefitInput } from './schemas'
 import type { BillingActionResult, Subscription, BillingDTO } from './types'
 import { getActiveSubscription, getPriceById, getSubscriptionWithPlan } from './dal'
 import { getPaymentProvider } from './providers/registry'
 import { DEFAULT_CURRENCY } from './constants'
+import { isSubscriptionPublicationEligible } from './subscription-eligibility'
+
+const FOUNDER_GRANT_SOURCE = 'FOUNDER_LAUNCH'
+
+async function createFounderFreeLaunch(input: {
+  accountUserId: string
+  grantedBy: string
+  periodEnd: string
+}): Promise<BillingActionResult<Subscription>> {
+  const admin = createAdminClient()
+  const { data: existingSubscriptions, error: existingError } = await admin
+    .from('subscriptions')
+    .select('*, plan:subscription_plans(code), price:plan_prices(price_code)')
+    .eq('account_user_id', input.accountUserId)
+    .in('status', ['ACTIVE', 'PAST_DUE', 'GRACE_PERIOD', 'INCOMPLETE'])
+
+  if (existingError) return { success: false, error: 'Não foi possível verificar o acesso atual.' }
+
+  const existingFounder = (existingSubscriptions ?? []).find((subscription: any) => {
+    const plan = Array.isArray(subscription.plan) ? subscription.plan[0] : subscription.plan
+    const price = Array.isArray(subscription.price) ? subscription.price[0] : subscription.price
+    return plan?.code === 'FOUNDER' && price?.price_code === 'LAUNCH_FREE'
+  })
+  if (existingFounder && isSubscriptionPublicationEligible(existingFounder)) {
+    return { success: true, data: existingFounder as Subscription }
+  }
+  if ((existingSubscriptions ?? []).length > 0) {
+    return { success: false, error: 'Já existe uma assinatura não encerrada para esta conta.' }
+  }
+
+  const { data: plan } = await admin.from('subscription_plans').select('id').eq('code', 'FOUNDER').eq('is_active', true).single()
+  if (!plan) return { success: false, error: 'Plano FOUNDER não encontrado ou inativo.' }
+
+  const [{ data: price }, { data: publicationEntitlement }] = await Promise.all([
+    admin.from('plan_prices').select('id, amount_minor').eq('plan_id', plan.id).eq('price_code', 'LAUNCH_FREE').eq('is_active', true).single(),
+    admin.from('plan_entitlements').select('id').eq('plan_id', plan.id).eq('code', 'PROFILE_PUBLICATION').eq('value_bool', true).maybeSingle(),
+  ])
+  if (!price || price.amount_minor !== 0) return { success: false, error: 'Preço LAUNCH_FREE não encontrado ou inválido.' }
+  if (!publicationEntitlement) return { success: false, error: 'O plano FOUNDER não concede publicação.' }
+
+  const now = new Date().toISOString()
+  const { data: subscription, error } = await admin.from('subscriptions').insert({
+    account_user_id: input.accountUserId,
+    plan_id: plan.id,
+    price_id: price.id,
+    provider: null,
+    provider_customer_id: null,
+    provider_subscription_id: null,
+    status: 'ACTIVE',
+    current_period_start: now,
+    current_period_end: input.periodEnd,
+    cancel_at_period_end: false,
+    granted_by: input.grantedBy,
+    grant_source: FOUNDER_GRANT_SOURCE,
+  }).select('*').single()
+
+  if (error || !subscription) {
+    if (error?.code === '23505') return { success: false, error: 'Já existe uma assinatura ativa para esta conta.' }
+    console.error('[billing:founderGrant] Insert error:', error?.message)
+    return { success: false, error: 'Não foi possível conceder o benefício Founder.' }
+  }
+  return { success: true, data: subscription as Subscription }
+}
 
 /**
  * Server Action: Create a free-launch subscription.
@@ -32,69 +97,44 @@ export async function createFreeLaunchAction(
       return { success: false, error: 'Dados inválidos.', fieldErrors: validated.error.flatten().fieldErrors }
     }
 
-    const admin = createAdminClient()
-
-    // 1. Verify no active subscription
-    const existing = await getActiveSubscription(validated.data.accountUserId)
-    if (existing) {
-      return { success: false, error: 'Já existe uma assinatura ativa para esta conta.' }
-    }
-
-    // 2. Get FOUNDER plan and LAUNCH_FREE price
-    const { data: plan } = await admin
-      .from('subscription_plans')
-      .select('id')
-      .eq('code', 'FOUNDER')
-      .eq('is_active', true)
-      .single()
-
-    if (!plan) {
-      return { success: false, error: 'Plano FOUNDER não encontrado ou inativo.' }
-    }
-
-    const { data: price } = await admin
-      .from('plan_prices')
-      .select('id, amount_minor')
-      .eq('plan_id', plan.id)
-      .eq('price_code', 'LAUNCH_FREE')
-      .eq('is_active', true)
-      .single()
-
-    if (!price || price.amount_minor !== 0) {
-      return { success: false, error: 'Preço LAUNCH_FREE não encontrado ou inválido.' }
-    }
-
-    // 3. Create subscription ACTIVE directly (no provider, no checkout)
-    const now = new Date().toISOString()
-    const { data: subscription, error: insertError } = await admin
-      .from('subscriptions')
-      .insert({
-        account_user_id: validated.data.accountUserId,
-        plan_id: plan.id,
-        price_id: price.id,
-        provider: null,
-        provider_customer_id: null,
-        provider_subscription_id: null,
-        status: 'ACTIVE',
-        current_period_start: now,
-        current_period_end: validated.data.periodEnd || null,
-        cancel_at_period_end: false,
-      })
-      .select('*')
-      .single()
-
-    if (insertError || !subscription) {
-      if (insertError?.code === '23505') {
-        return { success: false, error: 'Já existe uma assinatura ativa para esta conta.' }
-      }
-      console.error('[billing:freeLaunch] Insert error:', insertError?.message)
-      return { success: false, error: 'Não foi possível criar a assinatura.' }
-    }
-
-    return { success: true, data: subscription as Subscription }
+    const periodEnd = validated.data.periodEnd
+    if (!periodEnd) return { success: false, error: 'A data final explícita é obrigatória.' }
+    return createFounderFreeLaunch({ accountUserId: validated.data.accountUserId, grantedBy: adminAccount.id, periodEnd })
   } catch (err) {
     console.error('[billing:freeLaunch] Error:', err instanceof Error ? err.message : err)
     return { success: false, error: 'Ocorreu um erro ao criar a assinatura gratuita.' }
+  }
+}
+
+export async function grantFounderBenefitAction(
+  input: GrantFounderBenefitInput
+): Promise<BillingActionResult<Subscription>> {
+  try {
+    const adminAccount = await requireAdmin()
+    const validated = GrantFounderBenefitSchema.safeParse(input)
+    if (!validated.success) return { success: false, error: 'Perfil inválido.' }
+
+    const admin = createAdminClient()
+    const { data: targets, error } = await admin
+      .from('professional_profiles')
+      .select('id, account_user_id, account:account_users!inner(id, status)')
+      .eq('id', validated.data.profileId)
+      .limit(2)
+    if (error || !targets || targets.length !== 1) return { success: false, error: 'Perfil profissional não encontrado.' }
+    const target = targets[0] as any
+    const account = Array.isArray(target.account) ? target.account[0] : target.account
+    if (!account || account.id !== target.account_user_id || account.status !== 'ACTIVE') {
+      return { success: false, error: 'A conta vinculada ao perfil não está apta para o benefício.' }
+    }
+
+    const periodEnd = new Date()
+    periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 3)
+    const result = await createFounderFreeLaunch({ accountUserId: target.account_user_id, grantedBy: adminAccount.id, periodEnd: periodEnd.toISOString() })
+    if (result.success) revalidatePath('/admin/billing')
+    return result
+  } catch (err) {
+    console.error('[billing:founderGrant] Error:', err instanceof Error ? err.message : err)
+    return { success: false, error: 'Ocorreu um erro ao conceder o benefício Founder.' }
   }
 }
 

@@ -7,7 +7,9 @@ import type {
   Subscription,
   BillingOverride,
   BillingWebhookEvent,
+  AdminFounderEntitlementSummary,
 } from './types'
+import { isSubscriptionPublicationEligible } from './subscription-eligibility'
 
 // ---------------------------------------------------------------------------
 // Plans
@@ -81,16 +83,16 @@ export async function getPriceByPlanAndCode(
 export async function getPlanEntitlementValue(
   planId: string,
   code: string
-): Promise<number | null> {
+): Promise<number | boolean | null> {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('plan_entitlements')
-    .select('value_int')
+    .select('value_int, value_bool')
     .eq('plan_id', planId)
     .eq('code', code)
     .maybeSingle()
   if (error || !data) return null
-  return data.value_int
+  return data.value_bool ?? data.value_int
 }
 
 export async function getPlanEntitlements(planId: string): Promise<PlanEntitlement[]> {
@@ -199,6 +201,64 @@ export async function getActiveOverride(
     .maybeSingle()
   if (error || !data) return null
   return data as BillingOverride
+}
+
+/** Safe admin list: excludes provider/customer/payment identifiers. */
+export async function getAdminFounderEntitlementSummaries(): Promise<AdminFounderEntitlementSummary[]> {
+  const admin = createAdminClient()
+  const now = new Date().toISOString()
+  const [{ data: profiles }, { data: subscriptions }, { data: publicationPlans }, { data: overrides }] = await Promise.all([
+    admin.from('professional_profiles').select('id, account_user_id, stage_name').order('created_at', { ascending: false }),
+    admin.from('subscriptions').select(`
+      account_user_id,
+      status,
+      current_period_start,
+      current_period_end,
+      grace_period_end,
+      cancel_at_period_end,
+      created_at,
+      plan:subscription_plans(code, name),
+      price:plan_prices(price_code)
+    `).order('created_at', { ascending: false }),
+    admin.from('plan_entitlements').select('plan_id').eq('code', 'PROFILE_PUBLICATION').eq('value_bool', true),
+    admin.from('billing_overrides').select('account_user_id').is('revoked_at', null).or(`expires_at.is.null,expires_at.gt.${now}`),
+  ])
+
+  const publicationPlanIds = new Set((publicationPlans ?? []).map((item) => item.plan_id))
+  const planIdsByCode = new Map<string, string>()
+  const { data: plans } = await admin.from('subscription_plans').select('id, code')
+  for (const plan of plans ?? []) planIdsByCode.set(plan.code, plan.id)
+
+  return (profiles ?? []).map((profile) => {
+    const accountSubscriptions = (subscriptions ?? []).filter((item) => item.account_user_id === profile.account_user_id) as any[]
+    const current = accountSubscriptions.find((item) => ['ACTIVE', 'PAST_DUE', 'GRACE_PERIOD', 'INCOMPLETE'].includes(item.status)) ?? accountSubscriptions[0] ?? null
+    const plan = Array.isArray(current?.plan) ? current.plan[0] : current?.plan
+    const price = Array.isArray(current?.price) ? current.price[0] : current?.price
+    const planAllowsPublication = plan?.code ? publicationPlanIds.has(planIdsByCode.get(plan.code) ?? '') : false
+    const hasActiveOverride = (overrides ?? []).some((item) => item.account_user_id === profile.account_user_id)
+    const publicationActive = hasActiveOverride || Boolean(current && planAllowsPublication && isSubscriptionPublicationEligible(current))
+    const founderGrant = accountSubscriptions.find((item) => {
+      const itemPlan = Array.isArray(item.plan) ? item.plan[0] : item.plan
+      const itemPrice = Array.isArray(item.price) ? item.price[0] : item.price
+      return itemPlan?.code === 'FOUNDER' && itemPrice?.price_code === 'LAUNCH_FREE'
+    })
+    const founderFreePeriod = !founderGrant
+      ? 'NOT_GRANTED'
+      : isSubscriptionPublicationEligible(founderGrant) ? 'ACTIVE' : 'EXPIRED'
+
+    return {
+      profileId: profile.id,
+      stageName: profile.stage_name,
+      publicationActive,
+      planCode: plan?.code ?? null,
+      planName: plan?.name ?? null,
+      priceCode: price?.price_code ?? null,
+      subscriptionStatus: current?.status ?? null,
+      currentPeriodStart: current?.current_period_start ?? null,
+      currentPeriodEnd: current?.current_period_end ?? null,
+      founderFreePeriod,
+    }
+  })
 }
 
 // ---------------------------------------------------------------------------
