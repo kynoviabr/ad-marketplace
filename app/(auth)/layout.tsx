@@ -6,19 +6,24 @@
  */
 
 import Link from 'next/link'
+import { LanguageSelector } from '@/components/i18n'
+import { getTranslations } from '@/lib/i18n/server'
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export const metadata = { robots: { index: false, follow: false } }
+
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const { t } = await getTranslations()
   return (
     <main className="auth-layout">
-      <Link href="/" className="velvet-wordmark auth-wordmark" aria-label="Velvet, início">
+      <Link href="/" className="velvet-wordmark auth-wordmark" aria-label={t('navigation.home')}>
         velvet<span>.</span>
       </Link>
       <aside className="auth-editorial" aria-hidden="true">
-        <p>PARA PROFISSIONAIS</p>
-        <strong>Seu espaço.<br />Sua imagem.<br />Suas escolhas.</strong>
-        <span>VELVET / SÃO PAULO</span>
+        <p>{t('auth.professionals')}</p>
+        <strong>{t('auth.editorial').split('\n').map((line) => <span key={line}>{line}<br /></span>)}</strong>
+        <span>{t('auth.location')}</span>
       </aside>
-      <div className="auth-container">{children}</div>
+      <div className="auth-container"><LanguageSelector />{children}</div>
     </main>
   )
 }

@@ -110,6 +110,6 @@ describe('Admin KYC operations monitor', () => {
   })
 
   it('adds the monitor to the existing admin navigation', () => {
-    expect(read('components/admin/admin-navbar.tsx')).toContain("{ href: '/admin/kyc', label: 'KYC / Verificações' }")
+    expect(read('components/admin/admin-navbar.tsx')).toContain("{ href: '/admin/kyc', label: t('admin.kyc') }")
   })
 })

@@ -89,7 +89,7 @@ describe('Onboarding State', () => {
         'utf-8'
       )
       expect(header).toContain('logoutAction')
-      expect(header).toContain('Sair')
+      expect(header).toContain("t('common.logout')")
     })
   })
 })

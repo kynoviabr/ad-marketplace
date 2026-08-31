@@ -2,6 +2,7 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { ProfileWithMedia } from './public-profile-grid'
+import { getTranslations } from '@/lib/i18n/server'
 
 interface LocationItem {
   id: string
@@ -14,7 +15,8 @@ interface HomeLocationsProps {
   profiles: ProfileWithMedia[]
 }
 
-export function HomeLocations({ locationsByZone, profiles }: HomeLocationsProps) {
+export async function HomeLocations({ locationsByZone, profiles }: HomeLocationsProps) {
+  const { t } = await getTranslations()
   const canonicalZoneOrder = ['Zona Sul', 'Zona Oeste', 'Centro', 'Zona Norte', 'Zona Leste']
 
   const zones = Object.entries(locationsByZone)
@@ -32,7 +34,7 @@ export function HomeLocations({ locationsByZone, profiles }: HomeLocationsProps)
 
   return (
     <section className="velvet-home-locations">
-      <header className="velvet-home-section-head"><div><p className="velvet-overline">PELA CIDADE</p><h2>Explore São Paulo</h2></div><p>Descubra perfis perto de onde você está.</p></header>
+      <header className="velvet-home-section-head"><div><p className="velvet-overline">{t('home.aroundCity')}</p><h2>{t('home.exploreCity')}</h2></div><p>{t('home.nearYou')}</p></header>
           <div className="velvet-home-location-rail">
             {allLocations.slice(0, 8).map((loc, index) => {
               const portrait = profiles[index % Math.max(profiles.length, 1)]

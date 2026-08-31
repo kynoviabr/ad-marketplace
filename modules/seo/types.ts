@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import type { City, MarketplaceLocation } from '@/modules/locations/types'
+import type { Locale } from '@/lib/i18n/config'
 
 export interface SeoConfig {
   siteName: string
@@ -42,6 +43,7 @@ export interface CityMetadataProps {
   hasFilters: boolean
   page: number
   lastModified?: string | null
+  locale?: Locale
 }
 
 export interface LocationMetadataProps {
@@ -51,6 +53,7 @@ export interface LocationMetadataProps {
   hasFilters: boolean
   page: number
   lastModified?: string | null
+  locale?: Locale
 }
 
 export interface ProfileMetadataContractProps {
@@ -60,4 +63,5 @@ export interface ProfileMetadataContractProps {
   cityName: string
   slug: string
   primaryMediaUrl?: string | null
+  locale?: Locale
 }

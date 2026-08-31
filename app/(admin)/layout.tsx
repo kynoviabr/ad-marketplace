@@ -2,6 +2,7 @@ import { requireAdmin } from '@/modules/moderation/guards'
 import { AdminNavbar } from '@/components/admin/admin-navbar'
 
 export const dynamic = 'force-dynamic'
+export const metadata = { robots: { index: false, follow: false } }
 
 export default async function AdminLayout({
   children,

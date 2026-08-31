@@ -16,7 +16,7 @@ describe('Velvet professional onboarding foundation', () => {
     const proxy = read('proxy.ts')
     const login = read('modules/auth/actions.ts')
     const callback = read('app/auth/callback/route.ts')
-    expect(proxy).toContain("url.pathname = '/onboarding'")
+    expect(proxy).toContain("url.pathname = localizePathname('/onboarding', locale)")
     expect(login).toContain("redirect('/onboarding')")
     expect(callback).toContain("'/onboarding'")
   })
@@ -66,7 +66,9 @@ describe('Velvet professional onboarding foundation', () => {
 
   it('keeps the six-step shell and the canonical initial step', () => {
     const shell = read('components/onboarding/onboarding-shell.tsx')
-    expect(shell).toContain("['Você', 'Seu perfil', 'Onde atende', 'Verificação', 'Fotos', 'Revisar']")
+    for (const key of ['onboarding.step.you', 'onboarding.step.profile', 'onboarding.step.locations', 'onboarding.step.verification', 'onboarding.step.photos', 'onboarding.step.review']) {
+      expect(shell).toContain(`t('${key}')`)
+    }
     expect(existsSync(join(ROOT, 'app/(dashboard)/onboarding/voce/page.tsx'))).toBe(true)
     expect(existsSync(join(ROOT, 'app/(dashboard)/onboarding/seu-perfil/page.tsx'))).toBe(true)
   })

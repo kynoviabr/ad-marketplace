@@ -9,6 +9,7 @@ import {
   type PublicPresentationActionState,
 } from '@/modules/profiles/actions'
 import type { BodyType, EyeColor, HairColor, HairLength } from '@/modules/profiles/types'
+import { useI18n } from '@/components/i18n'
 
 const initialState: PublicPresentationActionState = { success: false, error: '' }
 
@@ -35,11 +36,12 @@ interface PublicPresentationFormProps {
 }
 
 function ProfileSelect({ id, label, value, options, error }: { id: string; label: string; value: string | null; options: Array<[string, string]>; error?: string }) {
+  const { t } = useI18n()
   return (
     <div className="onboarding-field">
       <Label htmlFor={id}>{label}</Label>
       <select id={id} name={id} defaultValue={value ?? ''} className={`onboarding-select ${error ? 'input--error' : ''}`} aria-invalid={error ? 'true' : undefined} aria-describedby={error ? `${id}-error` : undefined}>
-        <option value="">Prefiro não informar</option>
+        <option value="">{t('profileForm.preferNot')}</option>
         {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
       </select>
       {error && <p id={`${id}-error`} className="input-error" role="alert">{error}</p>}
@@ -48,6 +50,11 @@ function ProfileSelect({ id, label, value, options, error }: { id: string; label
 }
 
 export function PublicPresentationForm({ initial }: PublicPresentationFormProps) {
+  const { locale, t } = useI18n()
+  const localizedEyeColors = locale === 'en' ? [['BLACK', 'Black'], ['BROWN', 'Brown'], ['GREEN', 'Green'], ['BLUE', 'Blue'], ['HAZEL', 'Hazel'], ['OTHER', 'Other']] : eyeColors
+  const localizedHairColors = locale === 'en' ? [['BLACK', 'Black'], ['BRUNETTE', 'Brown'], ['BLONDE', 'Blonde'], ['REDHEAD', 'Red'], ['OTHER', 'Other']] : hairColors
+  const localizedHairLengths = locale === 'en' ? [['SHORT', 'Short'], ['MEDIUM', 'Medium'], ['LONG', 'Long'], ['VERY_LONG', 'Very long'], ['BALD', 'Shaved / no hair']] : hairLengths
+  const localizedBodyTypes = locale === 'en' ? [['SLIM', 'Slim'], ['ATHLETIC', 'Athletic'], ['CURVY', 'Curvy'], ['AVERAGE', 'Average'], ['PLUS_SIZE', 'Plus size'], ['OTHER', 'Other']] : bodyTypes
   const [state, formAction, isPending] = useActionState(savePublicPresentationProfileAction, initialState)
   const [bioLength, setBioLength] = useState(initial.bio.length)
   const fieldErrors = !state.success ? state.fieldErrors : undefined
@@ -57,52 +64,52 @@ export function PublicPresentationForm({ initial }: PublicPresentationFormProps)
       {!state.success && state.error && !fieldErrors && <FormMessage type="error" message={state.error} />}
 
       <div className="onboarding-field">
-        <Label htmlFor="headline" required>Título do perfil</Label>
-        <Input id="headline" name="headline" defaultValue={initial.headline} maxLength={120} placeholder="Uma frase que apresenta você" error={fieldErrors?.headline?.[0]} required />
-        <p className="field-note">Uma frase curta exibida junto ao seu nome público.</p>
+        <Label htmlFor="headline" required>{t('profileForm.headline')}</Label>
+        <Input id="headline" name="headline" defaultValue={initial.headline} maxLength={120} placeholder={t('profileForm.headlinePlaceholder')} error={fieldErrors?.headline?.[0]} required />
+        <p className="field-note">{t('profileForm.headlineNote')}</p>
       </div>
 
       <div className="onboarding-field">
-        <Label htmlFor="bio" required>Conte um pouco sobre você</Label>
+        <Label htmlFor="bio" required>{t('profileForm.bio')}</Label>
         <textarea id="bio" name="bio" defaultValue={initial.bio} minLength={20} maxLength={2000} rows={7} className={`onboarding-textarea ${fieldErrors?.bio ? 'input--error' : ''}`} aria-invalid={fieldErrors?.bio ? 'true' : undefined} aria-describedby={`bio-note bio-counter${fieldErrors?.bio ? ' bio-error' : ''}`} onChange={(event) => setBioLength(event.currentTarget.value.length)} required />
-        <div className="field-note-row"><p id="bio-note" className="field-note">Fale com naturalidade sobre sua personalidade e seu jeito de receber.</p><span id="bio-counter" aria-live="polite">{bioLength}/2000</span></div>
+        <div className="field-note-row"><p id="bio-note" className="field-note">{t('profileForm.bioNote')}</p><span id="bio-counter" aria-live="polite">{bioLength}/2000</span></div>
         {fieldErrors?.bio?.[0] && <p id="bio-error" className="input-error" role="alert">{fieldErrors.bio[0]}</p>}
       </div>
 
       <fieldset className="onboarding-fieldset">
-        <legend>Informações públicas</legend>
+        <legend>{t('profileForm.publicInfo')}</legend>
         <div className="onboarding-field-grid onboarding-field-grid--three">
           <div className="onboarding-field">
-            <Label htmlFor="public_age">Idade pública</Label>
+            <Label htmlFor="public_age">{t('profileForm.publicAge')}</Label>
             <Input id="public_age" name="public_age" type="number" inputMode="numeric" min={18} max={99} defaultValue={initial.publicAge ?? ''} error={fieldErrors?.public_age?.[0]} />
-            <label className="onboarding-privacy-toggle"><input type="checkbox" name="show_age" defaultChecked={initial.showAge} /> Exibir idade</label>
+            <label className="onboarding-privacy-toggle"><input type="checkbox" name="show_age" defaultChecked={initial.showAge} /> {t('profileForm.showAge')}</label>
           </div>
           <div className="onboarding-field">
-            <Label htmlFor="height_cm">Altura</Label>
+            <Label htmlFor="height_cm">{t('profileForm.height')}</Label>
             <div className="measurement-input"><Input id="height_cm" name="height_cm" type="number" inputMode="numeric" min={100} max={250} defaultValue={initial.heightCm ?? ''} error={fieldErrors?.height_cm?.[0]} /><span>cm</span></div>
-            <label className="onboarding-privacy-toggle"><input type="checkbox" name="show_height" defaultChecked={initial.showHeight} /> Exibir altura</label>
+            <label className="onboarding-privacy-toggle"><input type="checkbox" name="show_height" defaultChecked={initial.showHeight} /> {t('profileForm.showHeight')}</label>
           </div>
           <div className="onboarding-field">
-            <Label htmlFor="weight_kg">Peso</Label>
+            <Label htmlFor="weight_kg">{t('profileForm.weight')}</Label>
             <div className="measurement-input"><Input id="weight_kg" name="weight_kg" type="number" inputMode="numeric" min={30} max={300} defaultValue={initial.weightKg ?? ''} error={fieldErrors?.weight_kg?.[0]} /><span>kg</span></div>
-            <label className="onboarding-privacy-toggle"><input type="checkbox" name="show_weight" defaultChecked={initial.showWeight} /> Exibir peso</label>
+            <label className="onboarding-privacy-toggle"><input type="checkbox" name="show_weight" defaultChecked={initial.showWeight} /> {t('profileForm.showWeight')}</label>
           </div>
         </div>
-        <p className="field-note">Campos opcionais. Você decide se idade, altura e peso aparecem publicamente.</p>
+        <p className="field-note">{t('profileForm.optionalNote')}</p>
       </fieldset>
 
       <fieldset className="onboarding-fieldset">
-        <legend>Características</legend>
+        <legend>{t('profileForm.characteristics')}</legend>
         <div className="onboarding-field-grid">
-          <ProfileSelect id="hair_color" label="Cor do cabelo" value={initial.hairColor} options={hairColors} error={fieldErrors?.hair_color?.[0]} />
-          <ProfileSelect id="hair_length" label="Comprimento do cabelo" value={initial.hairLength} options={hairLengths} error={fieldErrors?.hair_length?.[0]} />
-          <ProfileSelect id="eye_color" label="Cor dos olhos" value={initial.eyeColor} options={eyeColors} error={fieldErrors?.eye_color?.[0]} />
-          <ProfileSelect id="body_type" label="Tipo físico" value={initial.bodyType} options={bodyTypes} error={fieldErrors?.body_type?.[0]} />
+          <ProfileSelect id="hair_color" label={t('profileForm.hairColor')} value={initial.hairColor} options={localizedHairColors as Array<[string, string]>} error={fieldErrors?.hair_color?.[0]} />
+          <ProfileSelect id="hair_length" label={t('profileForm.hairLength')} value={initial.hairLength} options={localizedHairLengths as Array<[string, string]>} error={fieldErrors?.hair_length?.[0]} />
+          <ProfileSelect id="eye_color" label={t('profileForm.eyeColor')} value={initial.eyeColor} options={localizedEyeColors as Array<[string, string]>} error={fieldErrors?.eye_color?.[0]} />
+          <ProfileSelect id="body_type" label={t('profileForm.bodyType')} value={initial.bodyType} options={localizedBodyTypes as Array<[string, string]>} error={fieldErrors?.body_type?.[0]} />
         </div>
       </fieldset>
 
       <button type="submit" className="onboarding-primary" disabled={isPending}>
-        {isPending ? 'Salvando…' : 'Salvar e continuar'}<span aria-hidden="true">→</span>
+        {isPending ? t('onboarding.saving') : t('onboarding.saveContinue')}<span aria-hidden="true">→</span>
       </button>
     </form>
   )

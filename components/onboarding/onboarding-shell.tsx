@@ -1,21 +1,24 @@
 import Link from 'next/link'
 import { logoutAction } from '@/modules/auth/actions'
+import { LanguageSelector } from '@/components/i18n'
+import { getTranslations } from '@/lib/i18n/server'
 
-const steps = ['Você', 'Seu perfil', 'Onde atende', 'Verificação', 'Fotos', 'Revisar']
-
-export function OnboardingShell({ children, currentStep = 1 }: { children: React.ReactNode; currentStep?: number }) {
+export async function OnboardingShell({ children, currentStep = 1 }: { children: React.ReactNode; currentStep?: number }) {
+  const { t } = await getTranslations()
+  const steps = [t('onboarding.step.you'), t('onboarding.step.profile'), t('onboarding.step.locations'), t('onboarding.step.verification'), t('onboarding.step.photos'), t('onboarding.step.review')]
   return (
     <div className="onboarding-shell">
       <header className="onboarding-header">
-        <Link href="/" className="velvet-wordmark" aria-label="Velvet, início">
+        <Link href="/" className="velvet-wordmark" aria-label={t('navigation.home')}>
           velvet<span>.</span>
         </Link>
         <form action={logoutAction}>
-          <button type="submit" className="onboarding-exit">Sair</button>
+          <button type="submit" className="onboarding-exit">{t('common.logout')}</button>
         </form>
+        <LanguageSelector compact />
       </header>
 
-      <nav className="onboarding-progress" aria-label="Progresso do cadastro">
+      <nav className="onboarding-progress" aria-label={t('onboarding.progress')}>
         <ol>
           {steps.map((step, index) => (
             <li

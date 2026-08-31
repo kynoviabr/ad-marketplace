@@ -20,6 +20,7 @@ import {
 import { JsonLd } from '@/components/seo/json-ld'
 import { PublicHeader } from '@/components/public/public-header'
 import { PublicFooter } from '@/components/public/public-footer'
+import { getRequestLocale, getTranslations } from '@/lib/i18n/server'
 
 interface CitySearchPageProps {
   params: Promise<{ city: string }>
@@ -27,6 +28,7 @@ interface CitySearchPageProps {
 }
 
 export async function generateMetadata({ params, searchParams }: CitySearchPageProps): Promise<Metadata> {
+  const locale = await getRequestLocale()
   const { city: citySlug } = await params
   if (isReservedSlug(citySlug)) {
     return { robots: { index: false, follow: false } }
@@ -47,10 +49,12 @@ export async function generateMetadata({ params, searchParams }: CitySearchPageP
     hasFilters,
     page: pageNum,
     lastModified: seoData.lastModified,
+    locale,
   })
 }
 
 export default async function CitySearchPage({ params, searchParams }: CitySearchPageProps) {
+  const { t } = await getTranslations()
   const { city: citySlug } = await params
   if (isReservedSlug(citySlug)) {
     notFound()
@@ -136,11 +140,11 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
       <header className="velvet-explore-header">
           <div>
             <div>
-              <p className="velvet-overline">{filterOptions.city.name.toUpperCase()} · EXPLORAR</p>
+              <p className="velvet-overline">{filterOptions.city.name.toUpperCase()} · {t('search.explore')}</p>
               <h1>
-                Profissionais em {filterOptions.city.name}
+                {t('search.cityTitle', { location: filterOptions.city.name })}
               </h1>
-              <p>Uma curadoria de perfis verificados em São Paulo.</p>
+              <p>{t('search.cityDescription')}</p>
             </div>
 
             {/* Horizontal Desktop Filters / Mobile Filter Trigger */}
@@ -154,15 +158,14 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
       <div className="velvet-explore-results">
         <div className="velvet-explore-summary">
           <span>
-            {searchResponse.totalProfiles}{' '}
-            {searchResponse.totalProfiles === 1 ? 'perfil encontrado' : 'perfis encontrados'}
+            {t(searchResponse.totalProfiles === 1 ? 'search.resultOne' : 'search.resultMany', { count: searchResponse.totalProfiles })}
           </span>
         </div>
 
         {profilesWithMedia.length === 0 ? (
           <div className="velvet-explore-empty">
             <p>
-              Nenhum perfil encontrado com os filtros selecionados.
+              {t('search.empty')}
             </p>
           </div>
         ) : (
@@ -185,17 +188,17 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
               <a
                 href={`/${citySlug}?page=${searchResponse.page - 1}`}
               >
-                Anterior
+                {t('common.previous')}
               </a>
             )}
             <span>
-              Página {searchResponse.page} de {searchResponse.totalPages}
+              {t('common.pageOf', { page: searchResponse.page, total: searchResponse.totalPages })}
             </span>
             {searchResponse.page < searchResponse.totalPages && (
               <a
                 href={`/${citySlug}?page=${searchResponse.page + 1}`}
               >
-                Próxima
+                {t('common.next')}
               </a>
             )}
           </div>

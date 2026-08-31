@@ -19,6 +19,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, resolveLocale } from '@/lib/i18n/config'
+import { isLocaleRoutingExcluded, localeFromPathname, localizePathname, stripLocalePrefix } from '@/lib/i18n/routing'
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = ['/dashboard', '/suspended', '/onboarding']
@@ -27,14 +29,49 @@ const PROTECTED_ROUTES = ['/dashboard', '/suspended', '/onboarding']
 const AUTH_ONLY_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
 
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
-
   const url = request.nextUrl.clone()
-  const pathname = url.pathname
+  const requestedPathname = url.pathname
+  const pathLocale = localeFromPathname(requestedPathname)
+  const locale = pathLocale ?? resolveLocale(request.cookies.get(LOCALE_COOKIE)?.value)
+  const pathname = stripLocalePrefix(requestedPathname)
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set(LOCALE_HEADER, locale)
+
+  // Internal endpoints keep one canonical path and are never duplicated under
+  // a locale prefix. This also prevents prefixed API POST aliases.
+  if (pathLocale && isLocaleRoutingExcluded(pathname)) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+    url.pathname = pathname
+    return NextResponse.redirect(url)
+  }
+
+  const createResponse = () => {
+    let nextResponse: NextResponse
+    if (pathLocale) {
+      const rewriteUrl = request.nextUrl.clone()
+      rewriteUrl.pathname = pathname
+      nextResponse = NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } })
+    } else {
+      nextResponse = NextResponse.next({ request: { headers: requestHeaders } })
+    }
+    if (pathLocale === 'en') {
+      nextResponse.cookies.set(LOCALE_COOKIE, 'en', {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: 'lax',
+        secure: request.nextUrl.protocol === 'https:',
+      })
+    }
+    return nextResponse
+  }
+
+  let response = createResponse()
+
+  if (pathLocale === 'en') {
+    request.cookies.set(LOCALE_COOKIE, 'en')
+  }
 
   // Create a Supabase client that can read/write cookies via the request/response
   const supabase = createServerClient(
@@ -51,9 +88,7 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
-          response = NextResponse.next({
-            request,
-          })
+          response = createResponse()
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options as Parameters<typeof response.cookies.set>[2])
           )
@@ -74,13 +109,23 @@ export async function proxy(request: NextRequest) {
 
   // Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !isAuthenticated) {
-    url.pathname = '/login'
+    url.pathname = localizePathname('/login', locale)
     return NextResponse.redirect(url)
   }
 
   // Redirect authenticated users away from auth-only routes
   if (isAuthOnlyRoute && isAuthenticated) {
-    url.pathname = '/onboarding'
+    url.pathname = localizePathname('/onboarding', locale)
+    return NextResponse.redirect(url)
+  }
+
+  if (
+    !pathLocale &&
+    locale !== DEFAULT_LOCALE &&
+    !isLocaleRoutingExcluded(requestedPathname) &&
+    (request.method === 'GET' || request.method === 'HEAD')
+  ) {
+    url.pathname = localizePathname(requestedPathname, locale)
     return NextResponse.redirect(url)
   }
 
@@ -97,6 +142,6 @@ export const config = {
      * - api routes (handled by their own auth checks)
      * - public folder assets
      */
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    '/((?!_next/static|_next/image|api/|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 }

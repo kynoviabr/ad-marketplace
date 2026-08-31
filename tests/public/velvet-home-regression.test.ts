@@ -25,12 +25,13 @@ describe('Velvet public Home regression hotfix — structural contract', () => {
 
   it('locks the Velvet identity and editorial navigation contract', () => {
     expect(header).toContain('velvet<span>.</span>')
-    for (const label of ['São Paulo', 'Explorar', 'Anuncie', 'Entrar']) expect(header).toContain(label)
+    expect(header).toContain('São Paulo')
+    for (const key of ['navigation.explore', 'navigation.advertise', 'navigation.login']) expect(header).toContain(`t('${key}')`)
     expect(header).not.toContain('{brandName}')
   })
 
   it('preserves the approved asymmetric photographic hero and editorial search', () => {
-    expect(hero).toContain('Encontre perfis<br />em São Paulo')
+    expect(hero).toContain("t('home.heroTitle').split('\\n')")
     expect(hero).toContain('velvet-home-hero-art')
     expect(hero).toContain('velvet-home-hero-offset')
     expect(hero).toContain('velvet-home-search')
@@ -46,7 +47,7 @@ describe('Velvet public Home regression hotfix — structural contract', () => {
   it('protects the photographic grid, Olive city chapter and deep closing rhythm', () => {
     expect(publicCss).toContain('grid-template-columns:repeat(4,minmax(0,1fr))')
     expect(publicCss).toContain('grid-template-columns:repeat(2,minmax(0,1fr))')
-    expect(locations).toContain('Explore São Paulo')
+    expect(locations).toContain("t('home.exploreCity')")
     expect(publicCss).toContain('background:var(--public-olive)')
     expect(publicCss).toContain('background:var(--public-aubergine-deep)')
     expect(footer).toContain('className="velvet-public-footer"')

@@ -27,9 +27,9 @@ describe('Velvet onboarding Step 04 — Verificação', () => {
     for (const status of ['NOT_STARTED', 'PENDING', 'IN_PROGRESS', 'IN_REVIEW', 'VERIFIED', 'REJECTED', 'EXPIRED']) {
       expect(card).toContain(status)
     }
-    expect(card).toContain('Identidade confirmada')
-    expect(card).toContain('Maioridade confirmada')
-    expect(card).toContain('Tentar novamente')
+    expect(card).toContain("t('verification.identityConfirmed')")
+    expect(card).toContain("t('verification.ageConfirmed')")
+    expect(card).toContain("t('verification.retry')")
   })
 
   it('continues only through the canonical adult gate and advances to Photos', () => {

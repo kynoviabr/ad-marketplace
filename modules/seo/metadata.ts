@@ -1,29 +1,33 @@
 import type { Metadata } from 'next'
 import { getSeoConfig } from './config'
-import { buildCanonicalUrl } from './canonical'
-import { SEO_TEMPLATES } from './templates'
+import { buildCanonicalUrl, buildLanguageAlternates } from './canonical'
 import { isCityIndexable, isLocationIndexable, getRobotsDirective } from './indexability'
 import type { CityMetadataProps, LocationMetadataProps, ProfileMetadataContractProps } from './types'
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/config'
+import { createTranslator } from '@/lib/i18n/catalog'
 
 /**
  * Builds Next.js Metadata for a City landing page (e.g. /sao-paulo).
  */
 export function constructCityMetadata(props: CityMetadataProps): Metadata {
   const config = getSeoConfig()
-  const { city, eligibleProfileCount, hasFilters, page } = props
+  const { city, eligibleProfileCount, hasFilters, page, locale = DEFAULT_LOCALE } = props
+  const t = createTranslator(locale)
 
   const isIndexable = isCityIndexable(eligibleProfileCount)
-  const canonicalUrl = buildCanonicalUrl(`/${city.slug}`, { page: page > 1 ? String(page) : undefined })
+  const pathname = `/${city.slug}`
+  const canonicalUrl = buildCanonicalUrl(pathname, { page: page > 1 ? String(page) : undefined }, locale)
   const robots = getRobotsDirective({ isIndexable, hasFilters, page })
 
-  const title = SEO_TEMPLATES.city.title(city.name, config.siteName)
-  const description = SEO_TEMPLATES.city.description(city.name)
+  const title = t('seo.cityTitle', { city: city.name, brand: config.siteName })
+  const description = t('seo.cityDescription', { city: city.name })
 
   return {
     title,
     description,
     alternates: {
       canonical: canonicalUrl,
+      languages: buildLanguageAlternates(pathname),
     },
     robots,
     openGraph: {
@@ -31,7 +35,7 @@ export function constructCityMetadata(props: CityMetadataProps): Metadata {
       description,
       url: canonicalUrl,
       siteName: config.siteName,
-      locale: config.locale,
+      locale: locale === 'en' ? 'en_US' : 'pt_BR',
       type: 'website',
     },
     twitter: {
@@ -47,22 +51,25 @@ export function constructCityMetadata(props: CityMetadataProps): Metadata {
  */
 export function constructLocationMetadata(props: LocationMetadataProps): Metadata {
   const config = getSeoConfig()
-  const { city, location, eligibleProfileCount, hasFilters, page } = props
+  const { city, location, eligibleProfileCount, hasFilters, page, locale = DEFAULT_LOCALE } = props
+  const t = createTranslator(locale)
 
   const isIndexable = isLocationIndexable(eligibleProfileCount, location.location_type)
-  const canonicalUrl = buildCanonicalUrl(`/${city.slug}/${location.slug}`, {
+  const pathname = `/${city.slug}/${location.slug}`
+  const canonicalUrl = buildCanonicalUrl(pathname, {
     page: page > 1 ? String(page) : undefined,
-  })
+  }, locale)
   const robots = getRobotsDirective({ isIndexable, hasFilters, page })
 
-  const title = SEO_TEMPLATES.location.title(location.name, city.name, config.siteName)
-  const description = SEO_TEMPLATES.location.description(location.name, city.name)
+  const title = t('seo.locationTitle', { location: location.name, city: city.name, brand: config.siteName })
+  const description = t('seo.locationDescription', { location: location.name, city: city.name })
 
   return {
     title,
     description,
     alternates: {
       canonical: canonicalUrl,
+      languages: buildLanguageAlternates(pathname),
     },
     robots,
     openGraph: {
@@ -70,7 +77,7 @@ export function constructLocationMetadata(props: LocationMetadataProps): Metadat
       description,
       url: canonicalUrl,
       siteName: config.siteName,
-      locale: config.locale,
+      locale: locale === 'en' ? 'en_US' : 'pt_BR',
       type: 'website',
     },
     twitter: {
@@ -90,19 +97,22 @@ export function constructLocationMetadata(props: LocationMetadataProps): Metadat
  */
 export function constructProfileMetadata(props: ProfileMetadataContractProps): Metadata {
   const config = getSeoConfig()
-  const { stageName, headline, cityName, slug, primaryMediaUrl } = props
+  const { stageName, headline, cityName, slug, primaryMediaUrl, locale = DEFAULT_LOCALE } = props
+  const t = createTranslator(locale)
 
-  const canonicalUrl = `${config.siteUrl}/perfil/${slug}`
-  const title = SEO_TEMPLATES.profileContract.title(stageName, cityName, config.siteName)
-  const description = SEO_TEMPLATES.profileContract.description(stageName, headline)
+  const pathname = `/perfil/${slug}`
+  const canonicalUrl = buildCanonicalUrl(pathname, undefined, locale)
+  const title = t('seo.profileTitle', { name: stageName, city: cityName, brand: config.siteName })
+  const description = headline || t('seo.profileDescription', { name: stageName })
 
-  const ogImages = primaryMediaUrl ? [{ url: primaryMediaUrl, alt: `Foto de ${stageName}` }] : undefined
+  const ogImages = primaryMediaUrl ? [{ url: primaryMediaUrl, alt: t('seo.profileImageAlt', { name: stageName }) }] : undefined
 
   return {
     title,
     description,
     alternates: {
       canonical: canonicalUrl,
+      languages: buildLanguageAlternates(pathname),
     },
     robots: {
       index: true,
@@ -113,7 +123,7 @@ export function constructProfileMetadata(props: ProfileMetadataContractProps): M
       description,
       url: canonicalUrl,
       siteName: config.siteName,
-      locale: config.locale,
+      locale: locale === 'en' ? 'en_US' : 'pt_BR',
       type: 'profile',
       images: ogImages,
     },
@@ -129,17 +139,20 @@ export function constructProfileMetadata(props: ProfileMetadataContractProps): M
 /**
  * Builds Root Metadata for app/layout.tsx.
  */
-export function constructRootMetadata(): Metadata {
+export function constructRootMetadata(locale: Locale = DEFAULT_LOCALE): Metadata {
   const config = getSeoConfig()
+  const t = createTranslator(locale)
+  const title = t('seo.defaultTitle', { brand: config.siteName })
+  const description = t('seo.defaultDescription')
 
   if (!config.isProduction) {
     return {
       metadataBase: new URL(config.siteUrl),
       title: {
-        default: config.defaultTitle,
+        default: title,
         template: `%s | ${config.siteName}`,
       },
-      description: config.defaultDescription,
+      description,
       robots: {
         index: false,
         follow: false,
@@ -150,9 +163,13 @@ export function constructRootMetadata(): Metadata {
   return {
     metadataBase: new URL(config.siteUrl),
     title: {
-      default: config.defaultTitle,
+      default: title,
       template: `%s | ${config.siteName}`,
     },
-    description: config.defaultDescription,
+    description,
+    alternates: {
+      canonical: buildCanonicalUrl('/', undefined, locale),
+      languages: buildLanguageAlternates('/'),
+    },
   }
 }

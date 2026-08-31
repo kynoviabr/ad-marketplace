@@ -8,19 +8,21 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { FormMessage } from '@/components/ui/form-message'
 import type { ActionResult } from '@/modules/auth/types'
+import { useI18n } from '@/components/i18n'
 
 const initialState: ActionResult = { success: false, error: '' }
 
 export function SignupForm() {
+  const { t } = useI18n()
   const [state, formAction, isPending] = useActionState(signupAction, initialState)
 
   const fieldErrors = !state.success ? state.fieldErrors : undefined
 
   return (
     <form action={formAction} className="auth-form" noValidate>
-      <p className="auth-eyebrow">PARA PROFISSIONAIS</p>
-      <h1 className="auth-title">Comece seu espaço.</h1>
-      <p className="auth-subtitle">Crie sua conta para montar seu perfil na Velvet.</p>
+      <p className="auth-eyebrow">{t('auth.professionals')}</p>
+      <h1 className="auth-title">{t('auth.signupHeading')}</h1>
+      <p className="auth-subtitle">{t('auth.signupSubtitle')}</p>
 
       {!state.success && state.error && !fieldErrors && (
         <FormMessage type="error" message={state.error} />
@@ -28,7 +30,7 @@ export function SignupForm() {
 
       <div className="form-group">
         <Label htmlFor="email" required>
-          E-mail
+          {t('auth.email')}
         </Label>
         <Input
           id="email"
@@ -43,14 +45,14 @@ export function SignupForm() {
 
       <div className="form-group">
         <Label htmlFor="password" required>
-          Senha
+          {t('auth.password')}
         </Label>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="new-password"
-          placeholder="Mínimo 8 caracteres"
+          placeholder={t('auth.minimumPassword')}
           error={fieldErrors?.password?.[0]}
           required
         />
@@ -58,14 +60,14 @@ export function SignupForm() {
 
       <div className="form-group">
         <Label htmlFor="confirmPassword" required>
-          Confirmar senha
+          {t('auth.confirmPassword')}
         </Label>
         <Input
           id="confirmPassword"
           name="confirmPassword"
           type="password"
           autoComplete="new-password"
-          placeholder="Repita a senha"
+          placeholder={t('auth.repeatPassword')}
           error={fieldErrors?.confirmPassword?.[0]}
           required
         />
@@ -80,7 +82,7 @@ export function SignupForm() {
             className="checkbox"
             required
           />
-          <span>Tenho 18 anos ou mais</span>
+          <span>{t('auth.adultConfirmation')}</span>
         </label>
         {fieldErrors?.acceptedAge && (
           <p className="input-error" role="alert">
@@ -99,14 +101,10 @@ export function SignupForm() {
             required
           />
           <span>
-            Li e aceito os{' '}
-            <a href="/terms" target="_blank" rel="noopener noreferrer">
-              Termos de Uso
-            </a>{' '}
-            e a{' '}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer">
-              Política de Privacidade
-            </a>
+            {t('auth.readAccept')}{' '}
+            <a href="/termos" target="_blank" rel="noopener noreferrer">{t('auth.terms')}</a>{' '}
+            {t('auth.andThe')}{' '}
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer">{t('auth.privacy')}</a>
           </span>
         </label>
         {fieldErrors?.acceptedTerms && (
@@ -117,12 +115,12 @@ export function SignupForm() {
       </div>
 
       <Button type="submit" loading={isPending}>
-        Criar conta
+        {t('auth.createAccount')}
       </Button>
 
       <p className="auth-footer">
-        Já tenho uma conta <span aria-hidden="true">→</span>{' '}
-        <Link href="/login">Entrar</Link>
+        {t('auth.haveAccount')} <span aria-hidden="true">→</span>{' '}
+        <Link href="/login">{t('auth.signIn')}</Link>
       </p>
     </form>
   )

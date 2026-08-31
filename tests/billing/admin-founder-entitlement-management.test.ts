@@ -13,7 +13,7 @@ describe('Admin Founder entitlement management', () => {
   it('lives in the existing protected billing admin surface and displays safe status', () => {
     expect(page).toContain('FounderEntitlementManager')
     expect(page).toContain('getAdminFounderEntitlementSummaries')
-    for (const label of ['Publicação', 'Plano', 'Preço', 'Status', 'Válido até', 'Período Founder']) expect(ui).toContain(label)
+    for (const key of ['admin.publication', 'admin.plan', 'admin.price', 'admin.status', 'admin.validUntil', 'admin.founderPeriod']) expect(ui).toContain(`t('${key}')`)
     expect(dal).not.toContain('provider_customer_id, provider_subscription_id')
   })
 

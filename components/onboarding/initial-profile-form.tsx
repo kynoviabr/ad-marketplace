@@ -8,6 +8,7 @@ import {
   saveInitialProfessionalProfileAction,
   type InitialProfileActionState,
 } from '@/modules/profiles/actions'
+import { useI18n } from '@/components/i18n'
 
 const initialState: InitialProfileActionState = { success: false, error: '' }
 
@@ -20,6 +21,7 @@ export function InitialProfileForm({
   initialStageName,
   initialWhatsappPhone,
 }: InitialProfileFormProps) {
+  const { t } = useI18n()
   const [state, formAction, isPending] = useActionState(
     saveInitialProfessionalProfileAction,
     initialState
@@ -31,7 +33,7 @@ export function InitialProfileForm({
       {state.success && (
         <FormMessage
           type="success"
-          message="Informações salvas. Você poderá continuar daqui quando voltar."
+          message={t('onboarding.saved')}
         />
       )}
       {!state.success && state.error && !fieldErrors && (
@@ -39,19 +41,19 @@ export function InitialProfileForm({
       )}
 
       <div className="onboarding-field">
-        <Label htmlFor="stage_name" required>Nome artístico</Label>
+        <Label htmlFor="stage_name" required>{t('onboarding.stageName')}</Label>
         <Input
           id="stage_name"
           name="stage_name"
           autoComplete="nickname"
           defaultValue={state.success ? state.data.stageName : initialStageName}
-          placeholder="Como você quer ser apresentada?"
+          placeholder={t('onboarding.stageNamePlaceholder')}
           error={fieldErrors?.stage_name?.[0]}
           minLength={2}
           maxLength={60}
           required
         />
-        <p className="field-note">Este será seu nome público. Não precisa ser seu nome civil.</p>
+        <p className="field-note">{t('onboarding.stageNameNote')}</p>
       </div>
 
       <div className="onboarding-field">
@@ -66,11 +68,11 @@ export function InitialProfileForm({
           placeholder="(11) 99999-9999"
           error={fieldErrors?.whatsapp_phone?.[0]}
         />
-        <p className="field-note">Opcional agora. Você controla quando esse contato fica público.</p>
+        <p className="field-note">{t('onboarding.whatsappOptional')}</p>
       </div>
 
       <button type="submit" className="onboarding-primary" disabled={isPending}>
-        {isPending ? 'Salvando…' : state.success ? 'Salvar novamente' : 'Salvar e continuar'}
+        {isPending ? t('onboarding.saving') : state.success ? t('onboarding.saveAgain') : t('onboarding.saveContinue')}
         <span aria-hidden="true">→</span>
       </button>
     </form>

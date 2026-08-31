@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import type { FilterOptions } from '@/modules/search/types'
+import { useI18n } from '@/components/i18n'
 
 interface PublicSearchFiltersProps {
   filterOptions: FilterOptions
@@ -13,6 +14,7 @@ export function PublicSearchFilters({
   filterOptions,
   currentNeighborhood,
 }: PublicSearchFiltersProps) {
+  const { t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -75,11 +77,11 @@ export function PublicSearchFilters({
           className={`velvet-filter-trigger${hasActiveFilters ? ' is-active' : ''}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-          Filtros {hasActiveFilters && '•'}
+          {t('search.filters')} {hasActiveFilters && '•'}
         </button>
 
         <div className="velvet-search-quick-filters">
-          {['Verificadas 18+', 'Idade', 'Cabelo', 'Olhos', 'Corpo'].map(label => (
+          {[t('search.verified18'), t('search.age'), t('search.hair'), t('search.eyes'), t('search.body')].map(label => (
             <button
               key={label}
               onClick={() => setIsFiltersOpen(true)}
@@ -97,8 +99,8 @@ export function PublicSearchFilters({
           <div className="velvet-filter-sheet" role="dialog" aria-modal="true" aria-labelledby="velvet-filter-title">
 
             <div className="velvet-filter-head">
-              <div><p>REFINAR BUSCA</p><h3 id="velvet-filter-title">Filtros</h3></div>
-              <button onClick={() => setIsFiltersOpen(false)} aria-label="Fechar filtros">
+              <div><p>{t('search.refine')}</p><h3 id="velvet-filter-title">{t('search.filters')}</h3></div>
+              <button onClick={() => setIsFiltersOpen(false)} aria-label={t('search.closeFilters')}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
@@ -106,13 +108,13 @@ export function PublicSearchFilters({
             <div className="velvet-filter-body">
 
               <div className="velvet-filter-group">
-                <label>Bairro</label>
+                <label>{t('search.neighborhood')}</label>
                 <select
                   value={selectedNeighborhood}
                   onChange={(e) => setSelectedNeighborhood(e.target.value)}
                   className="velvet-filter-select"
                 >
-                  <option value="">Todos os bairros em {filterOptions.city.name}</option>
+                  <option value="">{t('search.allNeighborhoods', { city: filterOptions.city.name })}</option>
                   {Object.entries(filterOptions.locationsByZone).map(([zone, locs]) => (
                     <optgroup key={zone} label={zone}>
                       {locs.map((loc) => (
@@ -124,11 +126,11 @@ export function PublicSearchFilters({
               </div>
 
               <div className="velvet-filter-group">
-                <label>Idade</label>
+                <label>{t('search.age')}</label>
                 <div className="velvet-filter-age">
                   <input
                     type="number"
-                    placeholder="Min"
+                    placeholder={t('search.min')}
                     value={minAge}
                     onChange={(e) => setMinAge(e.target.value)}
                     className="velvet-filter-input"
@@ -136,7 +138,7 @@ export function PublicSearchFilters({
                   <span>—</span>
                   <input
                     type="number"
-                    placeholder="Max"
+                    placeholder={t('search.max')}
                     value={maxAge}
                     onChange={(e) => setMaxAge(e.target.value)}
                     className="velvet-filter-input"
@@ -145,14 +147,14 @@ export function PublicSearchFilters({
               </div>
 
               <div className="velvet-filter-group">
-                <label>Características</label>
+                <label>{t('search.characteristics')}</label>
                 <div className="velvet-filter-characteristics">
                   <select
                     value={hairColor}
                     onChange={(e) => setHairColor(e.target.value)}
                     className="velvet-filter-select"
                   >
-                    <option value="">Cor do cabelo</option>
+                    <option value="">{t('search.hairColor')}</option>
                     <option value="BLACK">Preto</option>
                     <option value="BRUNETTE">Castanho</option>
                     <option value="BLONDE">Loiro</option>
@@ -163,7 +165,7 @@ export function PublicSearchFilters({
                     onChange={(e) => setEyeColor(e.target.value)}
                     className="velvet-filter-select"
                   >
-                    <option value="">Cor dos olhos</option>
+                    <option value="">{t('search.eyeColor')}</option>
                     <option value="BROWN">Castanhos</option>
                     <option value="GREEN">Verdes</option>
                     <option value="BLUE">Azuis</option>
@@ -173,7 +175,7 @@ export function PublicSearchFilters({
                     onChange={(e) => setBodyType(e.target.value)}
                     className="velvet-filter-select"
                   >
-                    <option value="">Corpo</option>
+                    <option value="">{t('search.body')}</option>
                     <option value="SLIM">Magra</option>
                     <option value="CURVY">Curvilínea</option>
                     <option value="ATHLETIC">Atlética</option>
@@ -187,12 +189,12 @@ export function PublicSearchFilters({
               <button
                 onClick={handleClearFilters}
               >
-                Limpar tudo
+                {t('search.clear')}
               </button>
               <button
                 onClick={handleApplyFilters}
               >
-                Mostrar resultados
+                {t('search.showResults')}
               </button>
             </div>
 

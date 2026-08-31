@@ -11,7 +11,7 @@ const dal = read('modules/verification/admin-monitor.ts')
 describe('Simple KYC support contact flow', () => {
   it('routes Ver cadastro to the exact account support context instead of the moderation queue', () => {
     expect(monitorPage).toContain('href={item.supportHref}')
-    expect(monitorPage).toContain('Ver cadastro')
+    expect(monitorPage).toContain("t('admin.openRegistration')")
     expect(monitorPage).not.toContain('Ver perfil')
     expect(dal).toContain('supportHref: `/admin/professionals/${account.id}`')
   })
@@ -20,7 +20,7 @@ describe('Simple KYC support contact flow', () => {
     expect(dal).toContain(".from('account_users')")
     expect(dal).toContain(".from('professional_profiles')")
     expect(dal).toContain("professionalName: profile?.stage_name?.trim() || 'Profissional sem perfil'")
-    expect(supportPage).toContain("context.profileStatus ?? 'Ainda não criado'")
+    expect(supportPage).toContain("context.profileStatus ?? t('admin.noProfile')")
   })
 
   it('normalizes valid Brazilian phones into wa.me URLs', () => {
@@ -35,18 +35,18 @@ describe('Simple KYC support contact flow', () => {
   })
 
   it('shows WhatsApp only when declared and opens a safe new tab', () => {
-    expect(supportPage).toContain("context.whatsappPhone ?? 'WhatsApp não informado'")
+    expect(supportPage).toContain("context.whatsappPhone ?? t('admin.whatsappMissing')")
     expect(supportPage).toContain('href={context.whatsappUrl}')
     expect(supportPage).toContain('target="_blank"')
     expect(supportPage).toContain('rel="noopener noreferrer"')
-    expect(supportPage).toContain('Abrir WhatsApp')
+    expect(supportPage).toContain("t('admin.openWhatsapp')")
   })
 
   it('does not prefill or automatically send a message', () => {
     expect(dal).not.toContain('encodeURIComponent')
     expect(dal).not.toContain('?text=')
     expect(supportPage).not.toContain('sendMessage')
-    expect(supportPage).toContain('não envia mensagens automaticamente')
+    expect(supportPage).toContain("t('admin.supportDisclaimer')")
   })
 
   it('requires ADMIN before resolving a guessed account URL', () => {
@@ -85,6 +85,6 @@ describe('Simple KYC support contact flow', () => {
 
   it('provides the required backlink to the KYC monitor', () => {
     expect(supportPage).toContain('href="/admin/kyc"')
-    expect(supportPage).toContain('Voltar para KYC')
+    expect(supportPage).toContain("t('admin.backKyc')")
   })
 })

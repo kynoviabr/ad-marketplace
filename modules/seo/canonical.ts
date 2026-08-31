@@ -1,4 +1,6 @@
 import { getSeoConfig } from './config'
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/config'
+import { localizePathname } from '@/lib/i18n/routing'
 
 /**
  * Builds a deterministic canonical URL for a given route and search parameters.
@@ -10,7 +12,8 @@ import { getSeoConfig } from './config'
  */
 export function buildCanonicalUrl(
   pathname: string,
-  searchParams?: Record<string, string | string[] | undefined>
+  searchParams?: Record<string, string | string[] | undefined>,
+  locale: Locale = DEFAULT_LOCALE
 ): string {
   const config = getSeoConfig()
 
@@ -23,7 +26,7 @@ export function buildCanonicalUrl(
     normalizedPath = normalizedPath.slice(0, -1)
   }
 
-  const base = `${config.siteUrl}${normalizedPath}`
+  const base = `${config.siteUrl}${localizePathname(normalizedPath, locale)}`
 
   if (!searchParams) {
     return base
@@ -41,4 +44,14 @@ export function buildCanonicalUrl(
 
   // 4. Page 1 or non-paginated canonicalizes to the clean base path
   return base
+}
+
+export function buildLanguageAlternates(pathname: string): Record<string, string> {
+  const config = getSeoConfig()
+  const ptBR = `${config.siteUrl}${localizePathname(pathname, 'pt-BR')}`
+  return {
+    'pt-BR': ptBR,
+    en: `${config.siteUrl}${localizePathname(pathname, 'en')}`,
+    'x-default': ptBR,
+  }
 }

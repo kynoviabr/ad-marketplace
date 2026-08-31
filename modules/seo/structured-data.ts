@@ -1,18 +1,25 @@
 import { getSeoConfig } from './config'
 import type { BreadcrumbItem, ProfileMetadataContractProps } from './types'
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/config'
+import { createTranslator } from '@/lib/i18n/catalog'
+import { localizePathname } from '@/lib/i18n/routing'
 
 /**
  * Generates Schema.org WebSite structured data.
  */
-export function generateWebsiteJsonLd(): Record<string, unknown> {
+export function generateWebsiteJsonLd(locale: Locale = DEFAULT_LOCALE): Record<string, unknown> {
   const config = getSeoConfig()
+  const t = createTranslator(locale)
+  const localizedUrl = locale === DEFAULT_LOCALE
+    ? config.siteUrl
+    : `${config.siteUrl}${localizePathname('/', locale)}`
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: config.siteName,
-    url: config.siteUrl,
-    description: config.defaultDescription,
-    inLanguage: config.locale.replace('_', '-'),
+    url: localizedUrl,
+    description: t('seo.defaultDescription'),
+    inLanguage: locale,
   }
 }
 
@@ -43,7 +50,7 @@ export function generateBreadcrumbJsonLd(items: BreadcrumbItem[]): Record<string
  */
 export function generateProfileJsonLd(profile: ProfileMetadataContractProps): Record<string, unknown> {
   const config = getSeoConfig()
-  const profileUrl = `${config.siteUrl}/perfil/${profile.slug}`
+  const profileUrl = `${config.siteUrl}${localizePathname(`/perfil/${profile.slug}`, profile.locale ?? DEFAULT_LOCALE)}`
 
   const personEntity: Record<string, unknown> = {
     '@type': 'Person',

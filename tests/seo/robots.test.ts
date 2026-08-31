@@ -25,12 +25,17 @@ describe('FASE 10 — Dynamic robots.txt Architecture', () => {
     expect(rules.allow).toBe('/')
     expect(rules.disallow).toEqual([
       '/admin/',
+      '/en/admin/',
       '/dashboard/',
+      '/en/dashboard/',
       '/onboarding/',
+      '/en/onboarding/',
       '/api/',
       '/auth/',
       '/complete-signup',
+      '/en/complete-signup',
       '/suspended',
+      '/en/suspended',
     ])
     expect(robotsConfig.sitemap).toBe('https://admarketplace.com.br/sitemap.xml')
   })

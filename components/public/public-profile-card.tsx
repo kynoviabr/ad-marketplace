@@ -1,7 +1,10 @@
+'use client'
+
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { SearchResultDTO } from '@/modules/search/types'
+import { useI18n } from '@/components/i18n'
 
 export interface PublicProfileCardProps {
   profile: SearchResultDTO
@@ -10,6 +13,7 @@ export interface PublicProfileCardProps {
 }
 
 export function PublicProfileCard({ profile, mediaUrl, priority = false }: PublicProfileCardProps) {
+  const { t } = useI18n()
   return (
     <Link href={`/perfil/${profile.slug}`} className="velvet-profile-card">
       <div>
@@ -33,12 +37,12 @@ export function PublicProfileCard({ profile, mediaUrl, priority = false }: Publi
           {/* Overlays */}
           <div className="velvet-profile-badges">
             {profile.isVerified && (
-              <div className="velvet-verified-mark"><i>V</i><span>VERIFICADA 18+</span>
+              <div className="velvet-verified-mark"><i>V</i><span>{t('common.verified18')}</span>
               </div>
             )}
             {profile.isSponsored && (
               <div className="velvet-sponsored-mark">
-                Patrocinado
+                {t('common.sponsored')}
               </div>
             )}
           </div>

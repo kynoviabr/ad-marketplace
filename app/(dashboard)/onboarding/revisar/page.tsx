@@ -4,6 +4,8 @@ import { OnboardingShell } from '@/components/onboarding/onboarding-shell'
 import { PublicationAction } from '@/components/onboarding/publication-action'
 import { requireAccount } from '@/modules/auth/dal'
 import { getPublicationReviewState } from '@/modules/publication/dal'
+import { getTranslations } from '@/lib/i18n/server'
+import { publicationReadinessDetail } from '@/lib/i18n/labels'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Revisar e publicar — Onboarding Velvet', robots: 'noindex, nofollow' }
@@ -13,6 +15,7 @@ const hairLabels: Record<string, string> = { BLACK: 'Preto', BRUNETTE: 'Castanho
 const bodyLabels: Record<string, string> = { SLIM: 'Esbelto', ATHLETIC: 'Atlético', CURVY: 'Curvilíneo', AVERAGE: 'Médio', PLUS_SIZE: 'Plus size', OTHER: 'Outro' }
 
 export default async function ReviewAndPublishPage({ searchParams }: { searchParams: Promise<{ published?: string }> }) {
+  const { locale, t } = await getTranslations()
   const account = await requireAccount()
   const [review, params] = await Promise.all([getPublicationReviewState(account), searchParams])
   const justPublished = params.published === '1' && review.isPublic
@@ -28,14 +31,14 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
   return <OnboardingShell currentStep={6}>
     <main className="review-main">
       <header className="review-heading">
-        <p className="onboarding-eyebrow">06 — REVISAR &amp; PUBLICAR</p>
-        <h1>{review.isPublic ? 'Seu perfil está no ar.' : 'Uma última revisão.'}</h1>
-        <p>{review.isPublic ? 'Seu perfil passou pelos critérios atuais de publicação da Velvet.' : 'Confira sua apresentação pública e veja o que ainda precisa de atenção.'}</p>
-        {justPublished ? <p className="review-success" role="status">Perfil publicado com sucesso.</p> : null}
+        <p className="onboarding-eyebrow">{t('review.eyebrow')}</p>
+        <h1>{review.isPublic ? t('review.liveTitle') : t('review.title')}</h1>
+        <p>{review.isPublic ? t('review.liveDescription') : t('review.description')}</p>
+        {justPublished ? <p className="review-success" role="status">{t('review.published')}</p> : null}
       </header>
-      <section className="review-layout" aria-label="Revisão do perfil">
+      <section className="review-layout" aria-label={t('review.profileReview')}>
         <article className="review-preview" aria-labelledby="preview-title">
-          <div className="review-preview-label"><span>PRÉVIA PÚBLICA</span><em>{review.previewPhotoUrl ? 'Somente foto aprovada' : 'Nenhuma foto aprovada'}</em></div>
+          <div className="review-preview-label"><span>{t('review.publicPreview')}</span><em>{review.previewPhotoUrl ? t('review.approvedPhotoOnly') : t('review.noApprovedPhoto')}</em></div>
           <div className="review-portrait">
             {review.previewPhotoUrl && preview ? <Image src={review.previewPhotoUrl} alt={`Foto de ${preview.stageName}`} fill sizes="(max-width: 768px) 100vw, 42vw" /> : <span aria-hidden="true">V</span>}
           </div>
@@ -45,25 +48,25 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
             {preview.headline ? <blockquote>{preview.headline}</blockquote> : null}
             {attributes.length ? <p className="review-attributes">{attributes.join(' · ')}</p> : null}
             {preview.bio ? <p className="review-bio">{preview.bio}</p> : null}
-            {review.serviceAreas.length ? <p className="review-regions"><span>ATENDE EM</span>{review.serviceAreas.join(' · ')}</p> : null}
-          </div> : <p className="review-empty">Complete a primeira etapa para gerar sua prévia.</p>}
+            {review.serviceAreas.length ? <p className="review-regions"><span>{t('review.servesIn')}</span>{review.serviceAreas.join(' · ')}</p> : null}
+          </div> : <p className="review-empty">{t('review.completeFirst')}</p>}
         </article>
         <section className="review-readiness" aria-labelledby="readiness-title">
-          <div className="review-readiness-head"><p>PRONTIDÃO</p><h2 id="readiness-title">Antes de publicar</h2></div>
+          <div className="review-readiness-head"><p>{t('review.readiness')}</p><h2 id="readiness-title">{t('review.beforePublish')}</h2></div>
           <ol>{review.readiness.map((item, index) => <li key={item.key} className={item.ready ? 'is-ready' : 'is-pending'}>
             <span className="review-index">{String(index + 1).padStart(2, '0')}</span>
-            <div><h3>{item.label}</h3><p>{item.detail}</p></div><b>{item.ready ? 'Pronto' : 'Pendente'}</b>
+            <div><h3>{t(`readiness.${item.key}`)}</h3><p>{publicationReadinessDetail(locale, item.detail)}</p></div><b>{item.ready ? t('onboarding.ready') : t('onboarding.pending')}</b>
             {item.editHref ? <Link href={item.editHref}>{item.editLabel}</Link> : null}
           </li>)}</ol>
           {review.photos.pending > 0 ? <p className="review-owner-note">Visível somente para você: {review.photos.pending} foto(s) aguardando processamento ou moderação. Elas não aparecem na prévia pública.</p> : null}
           {review.photos.rejected + review.photos.blocked > 0 ? <p className="review-owner-note review-owner-note--alert">Fotos rejeitadas ou bloqueadas não podem ser publicadas. <Link href="/onboarding/fotos">Gerenciar fotos</Link></p> : null}
           {review.isPublic && review.slug ? <div className="review-live-actions">
-            <Link className="onboarding-primary" href={`/perfil/${review.slug}`}><span>Ver meu perfil</span><span aria-hidden="true">→</span></Link>
-            <Link className="onboarding-secondary" href="/dashboard">Ir para o painel</Link>
-          </div> : <><PublicationAction enabled={review.isCanonicallyEligible && !review.hasDataError} />{!review.isCanonicallyEligible ? <p className="review-blocked-summary" role="status">A publicação será liberada quando todos os itens estiverem prontos.</p> : null}</>}
+            <Link className="onboarding-primary" href={`/perfil/${review.slug}`}><span>{t('review.viewProfile')}</span><span aria-hidden="true">→</span></Link>
+            <Link className="onboarding-secondary" href="/dashboard">{t('review.goPanel')}</Link>
+          </div> : <><PublicationAction enabled={review.isCanonicallyEligible && !review.hasDataError} />{!review.isCanonicallyEligible ? <p className="review-blocked-summary" role="status">{t('review.blocked')}</p> : null}</>}
         </section>
       </section>
     </main>
-    <aside className="onboarding-privacy"><span>PUBLICAÇÃO SEGURA E REVERSÍVEL</span><p>Somente dados escolhidos como públicos e fotos aprovadas aparecem para visitantes.</p></aside>
+    <aside className="onboarding-privacy"><span>{t('review.safePublication')}</span><p>{t('review.safePublicationText')}</p></aside>
   </OnboardingShell>
 }

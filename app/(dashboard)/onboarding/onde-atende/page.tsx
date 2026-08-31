@@ -5,6 +5,7 @@ import { LocationSelectionForm } from '@/components/onboarding/location-selectio
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
 import { getLocationsByCitySlug, getProfileLocations } from '@/modules/locations/dal'
 import { MAX_SERVICE_AREAS } from '@/modules/locations/schemas'
+import { getTranslations } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export const metadata = {
 }
 
 export default async function NextOnboardingStepBoundary() {
+  const { t } = await getTranslations()
   const account = await requireAccount()
   const profile = await getProfileByAccountUserId(account.id)
   if (!profile) redirect('/onboarding/voce')
@@ -27,16 +29,16 @@ export default async function NextOnboardingStepBoundary() {
     <OnboardingShell currentStep={3}>
       <main className="onboarding-main onboarding-main--locations">
         <section className="onboarding-intro">
-          <p className="onboarding-eyebrow">03 — ONDE ATENDE</p>
-          <h1>Escolha onde<br />você atende.</h1>
-          <p>Selecione as regiões onde deseja aparecer nas buscas da Velvet. Você poderá alterá-las depois.</p>
-          <p className="location-intro-limit">Até {MAX_SERVICE_AREAS} regiões em São Paulo.</p>
+          <p className="onboarding-eyebrow">{t('onboarding.locationsEyebrow')}</p>
+          <h1>{t('onboarding.locationsTitle').split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h1>
+          <p>{t('onboarding.locationsDescription')}</p>
+          <p className="location-intro-limit">{t('onboarding.locationsLimit', { count: MAX_SERVICE_AREAS })}</p>
         </section>
         <LocationSelectionForm locations={locations} initialSelections={initialSelections} />
       </main>
       <aside className="onboarding-privacy">
-        <span>APENAS REGIÕES PÚBLICAS</span>
-        <p>A Velvet não solicita endereço, número, coordenadas ou localização residencial nesta etapa.</p>
+        <span>{t('onboarding.regionsPrivacy')}</span>
+        <p>{t('onboarding.regionsPrivacyText')}</p>
       </aside>
     </OnboardingShell>
   )

@@ -20,6 +20,7 @@ import {
 import { JsonLd } from '@/components/seo/json-ld'
 import { PublicHeader } from '@/components/public/public-header'
 import { PublicFooter } from '@/components/public/public-footer'
+import { getRequestLocale, getTranslations } from '@/lib/i18n/server'
 
 interface NeighborhoodSearchPageProps {
   params: Promise<{ city: string; neighborhood: string }>
@@ -30,6 +31,7 @@ export async function generateMetadata({
   params,
   searchParams,
 }: NeighborhoodSearchPageProps): Promise<Metadata> {
+  const locale = await getRequestLocale()
   const { city: citySlug, neighborhood: neighborhoodSlug } = await params
   if (isReservedSlug(citySlug) || isReservedSlug(neighborhoodSlug)) {
     return { robots: { index: false, follow: false } }
@@ -51,6 +53,7 @@ export async function generateMetadata({
     hasFilters,
     page: pageNum,
     lastModified: seoData.lastModified,
+    locale,
   })
 }
 
@@ -58,6 +61,7 @@ export default async function NeighborhoodSearchPage({
   params,
   searchParams,
 }: NeighborhoodSearchPageProps) {
+  const { t } = await getTranslations()
   const { city: citySlug, neighborhood: neighborhoodSlug } = await params
   if (isReservedSlug(citySlug) || isReservedSlug(neighborhoodSlug)) {
     notFound()
@@ -148,9 +152,9 @@ export default async function NeighborhoodSearchPage({
             <div>
               <p className="velvet-overline">{filterOptions.city.name.toUpperCase()} / {locationName.toUpperCase()}</p>
               <h1>
-                Profissionais em {locationName}
+                {t('search.cityTitle', { location: locationName })}
               </h1>
-              <p>Perfis verificados que atendem na região de {locationName}.</p>
+              <p>{t('search.locationDescription', { location: locationName })}</p>
             </div>
 
             {/* Horizontal Desktop Filters / Mobile Filter Trigger */}
@@ -167,15 +171,14 @@ export default async function NeighborhoodSearchPage({
       <div className="velvet-explore-results">
         <div className="velvet-explore-summary">
           <span>
-            {searchResponse.totalProfiles}{' '}
-            {searchResponse.totalProfiles === 1 ? 'perfil encontrado' : 'perfis encontrados'}
+            {t(searchResponse.totalProfiles === 1 ? 'search.resultOne' : 'search.resultMany', { count: searchResponse.totalProfiles })}
           </span>
         </div>
 
         {profilesWithMedia.length === 0 ? (
           <div className="velvet-explore-empty">
             <p>
-              Nenhum perfil encontrado nesta região com os filtros selecionados.
+              {t('search.emptyLocation')}
             </p>
           </div>
         ) : (
@@ -198,17 +201,17 @@ export default async function NeighborhoodSearchPage({
               <a
                 href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page - 1}`}
               >
-                Anterior
+                {t('common.previous')}
               </a>
             )}
             <span>
-              Página {searchResponse.page} de {searchResponse.totalPages}
+              {t('common.pageOf', { page: searchResponse.page, total: searchResponse.totalPages })}
             </span>
             {searchResponse.page < searchResponse.totalPages && (
               <a
                 href={`/${citySlug}/${neighborhoodSlug}?page=${searchResponse.page + 1}`}
               >
-                Próxima
+                {t('common.next')}
               </a>
             )}
           </div>

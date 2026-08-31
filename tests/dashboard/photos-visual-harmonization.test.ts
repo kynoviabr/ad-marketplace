@@ -23,7 +23,7 @@ describe('Velvet dashboard photos visual harmonization R1 — INTEGRATION CONTRA
   })
   it('reuses the established navigation with Fotos active', () => {
     expect(page).toContain('<ProfessionalDashboardHeader activeHref="/dashboard/photos" />')
-    expect(header).toContain("['Fotos', '/dashboard/photos']")
+    expect(header).toContain("[t('dashboard.photos'), '/dashboard/photos']")
   })
   it('shows the public link only for an actually public profile', () => expect(page).toContain('publication.isPublic && publication.slug'))
   it('preserves canonical upload formats, size and count limits', () => {
@@ -32,8 +32,8 @@ describe('Velvet dashboard photos visual harmonization R1 — INTEGRATION CONTRA
     expect(manager).toContain('MAX_PHOTOS_PER_PROFILE')
   })
   it('translates every moderation state and explains non-public pending media', () => {
-    for (const label of ['Enviando', 'Processando', 'Em análise', 'Aprovada', 'Falha no processamento', 'Não aprovada', 'Indisponível', 'Removida']) expect(manager).toContain(label)
-    expect(manager).toContain('Fotos em análise ainda não aparecem no seu perfil público.')
+    for (const status of ['UPLOADING', 'PROCESSING', 'PENDING_MODERATION', 'APPROVED', 'PROCESSING_FAILED', 'REJECTED', 'QUARANTINED', 'DELETED']) expect(manager).toContain(`t('media.status.${status}')`)
+    expect(manager).toContain("t('media.guidance')")
   })
   it('keeps primary, reorder, retry and destructive actions canonical', () => {
     expect(manager).toContain('setPrimaryMediaAction')
@@ -45,7 +45,7 @@ describe('Velvet dashboard photos visual harmonization R1 — INTEGRATION CONTRA
     expect(actions).toContain("admin.rpc('reorder_profile_media'")
   })
   it('retains keyboard and touch accessible controls', () => {
-    expect(manager).toContain('<summary aria-label={`Abrir ações da foto')
+    expect(manager).toContain("<summary aria-label={t('media.openActions'")
     expect(css).toContain('.photo-menu button, .photo-menu label { min-height: 44px')
     expect(manager).toContain('aria-live="polite"')
   })

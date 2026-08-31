@@ -1,14 +1,16 @@
 import Link from 'next/link'
+import { getTranslations } from '@/lib/i18n/server'
 
-export function HomeTrustSection() {
+export async function HomeTrustSection() {
+  const { t } = await getTranslations()
   return (
     <section id="sobre" className="velvet-home-trust">
-      <p className="velvet-overline">CONFIANÇA E TRANSPARÊNCIA</p>
+      <p className="velvet-overline">{t('home.trustOverline')}</p>
       <span aria-hidden="true">V</span>
-      <h2>Identidade confirmada.<br />Conexões diretas.</h2>
-      <div><strong>IDENTIDADE VERIFICADA</strong><i>·</i><strong>MAIORIDADE CONFIRMADA</strong><i>·</i><strong>CONTATO DIRETO</strong></div>
-      <p>Verificamos identidade e maioridade para que cada encontro comece com mais clareza. O contato acontece diretamente entre vocês.</p>
-      <Link href="/anuncie">Como funciona a verificação <span>→</span></Link>
+      <h2>{t('home.trustTitle').split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h2>
+      <div><strong>{t('home.identityVerified')}</strong><i>·</i><strong>{t('home.ageConfirmed')}</strong><i>·</i><strong>{t('home.directContact')}</strong></div>
+      <p>{t('home.trustDescription')}</p>
+      <Link href="/anuncie">{t('home.howVerificationWorks')} <span>→</span></Link>
     </section>
   )
 }

@@ -136,6 +136,38 @@
   --ratio-thumb: 1 / 1;
 }
 
+/* Locale selector — intentionally neutral so it inherits each approved shell. */
+.velvet-language-selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.velvet-language-selector a {
+  min-width: 2rem;
+  min-height: 2rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  opacity: 0.55;
+}
+
+.velvet-language-selector a[aria-current="page"] {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.velvet-language-selector a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 /* ============================================================
    GLOBAL RESET
    ============================================================ */

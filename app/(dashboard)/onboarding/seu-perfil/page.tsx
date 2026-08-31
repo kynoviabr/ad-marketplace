@@ -3,6 +3,7 @@ import { requireAccount } from '@/modules/auth/dal'
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
 import { OnboardingShell } from '@/components/onboarding/onboarding-shell'
 import { PublicPresentationForm } from '@/components/onboarding/public-presentation-form'
+import { getTranslations } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,7 @@ export const metadata = {
 }
 
 export default async function PublicPresentationOnboardingPage() {
+  const { t } = await getTranslations()
   const account = await requireAccount()
   const profile = await getProfileByAccountUserId(account.id)
 
@@ -21,9 +23,9 @@ export default async function PublicPresentationOnboardingPage() {
     <OnboardingShell currentStep={2}>
       <main className="onboarding-main onboarding-main--profile">
         <section className="onboarding-intro">
-          <p className="onboarding-eyebrow">02 — SEU PERFIL</p>
-          <h1>Sua presença,<br />do seu jeito.</h1>
-          <p>Apresente sua personalidade e escolha quais características deseja mostrar no perfil público.</p>
+          <p className="onboarding-eyebrow">{t('onboarding.profileEyebrow')}</p>
+          <h1>{t('onboarding.profileTitle').split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h1>
+          <p>{t('onboarding.profileDescription')}</p>
         </section>
         <PublicPresentationForm initial={{
           headline: profile.headline ?? '',
@@ -41,8 +43,8 @@ export default async function PublicPresentationOnboardingPage() {
         }} />
       </main>
       <aside className="onboarding-privacy">
-        <span>VOCÊ CONTROLA O QUE APARECE</span>
-        <p>Características opcionais permanecem ocultas quando você não escolhe exibi-las.</p>
+        <span>{t('onboarding.optionalPrivacy')}</span>
+        <p>{t('onboarding.optionalPrivacyText')}</p>
       </aside>
     </OnboardingShell>
   )

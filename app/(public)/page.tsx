@@ -8,13 +8,15 @@ import { resolveProfilesWithMedia } from '@/modules/media/delivery'
 import { constructRootMetadata } from '@/modules/seo/metadata'
 import { getSeoConfig } from '@/modules/seo/config'
 import { JsonLd } from '@/components/seo/json-ld'
+import { getRequestLocale } from '@/lib/i18n/server'
 
-export function generateMetadata(): Metadata {
-  return constructRootMetadata()
+export async function generateMetadata(): Promise<Metadata> {
+  return constructRootMetadata(await getRequestLocale())
 }
 
 export default async function HomePage() {
   const brandName = getMarketplaceName()
+  const locale = await getRequestLocale()
 
   // 1. Fetch locations
   const locations = await getLocationsByCitySlug('sao-paulo')
@@ -49,7 +51,8 @@ export default async function HomePage() {
           '@context': 'https://schema.org',
           '@type': 'WebSite',
           name: brandName,
-          url: getSeoConfig().siteUrl,
+          url: locale === 'en' ? `${getSeoConfig().siteUrl}/en` : getSeoConfig().siteUrl,
+          inLanguage: locale,
         }}
       />
 

@@ -13,7 +13,7 @@ describe('Velvet public profile route contract', () => {
 
   it('keeps the canonical /perfil/[slug] route and Step 06 link', () => {
     expect(route).toContain('getEligiblePublicProfileBySlug')
-    expect(review).toContain('Ver meu perfil')
+    expect(review).toContain("t('review.viewProfile')")
     expect(review).toContain('href={`/perfil/${review.slug}`}')
   })
 
@@ -37,8 +37,8 @@ describe('Velvet public profile route contract', () => {
     expect(route).toContain('profile.whatsappPhone')
     expect(route).not.toContain('account_user_id')
     expect(route).not.toContain('provider_session_id')
-    expect(route).toContain('Identidade verificada')
-    expect(route).toContain('Maioridade confirmada')
+    expect(route).toContain("t('profile.verifiedProfile')")
+    expect(route).toContain("t('profile.identityConfirmed')")
     expect(route).not.toMatch(/background check|fotos reais verificadas|profissional segura/i)
   })
 

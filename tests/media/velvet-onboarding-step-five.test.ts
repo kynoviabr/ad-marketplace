@@ -82,14 +82,14 @@ describe('Velvet onboarding Step 05 — Fotos', () => {
     expect(actions).toContain('onboarding_step: 6')
     expect(actions).toContain("redirect('/onboarding/revisar')")
     const review = read('app/(dashboard)/onboarding/revisar/page.tsx')
-    expect(review).toContain('REVISAR &amp; PUBLICAR')
+    expect(review).toContain("t('review.eyebrow')")
     expect(review).toContain('getPublicationReviewState')
   })
 
   it('provides text status, image alt, keyboard controls and confirmation', () => {
     const manager = read('components/media/media-gallery-manager.tsx')
-    expect(manager).toContain('alt={`Foto ${index + 1} do perfil${item.is_primary ? \'')
-    expect(manager).toContain('aria-label={`Mover foto')
+    expect(manager).toContain("t(item.is_primary ? 'media.primaryPhotoAlt' : 'media.photoAlt'")
+    expect(manager).toContain("t('media.moveBefore')")
     expect(manager).toContain("window.confirm('Excluir esta foto? Ela será removida do seu perfil.')")
     expect(manager).toContain('aria-live="polite"')
   })

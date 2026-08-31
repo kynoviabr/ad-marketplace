@@ -8,17 +8,19 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { FormMessage } from '@/components/ui/form-message'
 import type { ActionResult } from '@/modules/auth/types'
+import { useI18n } from '@/components/i18n'
 
 const initialState: ActionResult = { success: false, error: '' }
 
 export function LoginForm() {
+  const { t } = useI18n()
   const [state, formAction, isPending] = useActionState(loginAction, initialState)
 
   return (
     <form action={formAction} className="auth-form" noValidate>
-      <p className="auth-eyebrow">SEU ESPAÇO</p>
-      <h1 className="auth-title">Bem-vinda de volta.</h1>
-      <p className="auth-subtitle">Entre para continuar seu perfil na Velvet.</p>
+      <p className="auth-eyebrow">{t('auth.loginEyebrow')}</p>
+      <h1 className="auth-title">{t('auth.welcomeBack')}</h1>
+      <p className="auth-subtitle">{t('auth.loginSubtitle')}</p>
 
       {!state.success && state.error && (
         <FormMessage type="error" message={state.error} />
@@ -26,7 +28,7 @@ export function LoginForm() {
 
       <div className="form-group">
         <Label htmlFor="email" required>
-          E-mail
+          {t('auth.email')}
         </Label>
         <Input
           id="email"
@@ -40,29 +42,29 @@ export function LoginForm() {
 
       <div className="form-group">
         <Label htmlFor="password" required>
-          Senha
+          {t('auth.password')}
         </Label>
         <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
-          placeholder="Sua senha"
+          placeholder={t('auth.yourPassword')}
           required
         />
       </div>
 
       <div className="form-footer-link">
-        <Link href="/forgot-password">Esqueci minha senha</Link>
+        <Link href="/forgot-password">{t('auth.forgotPassword')}</Link>
       </div>
 
       <Button type="submit" loading={isPending}>
-        Entrar
+        {t('auth.signIn')}
       </Button>
 
       <p className="auth-footer">
-        Não tem conta?{' '}
-        <Link href="/signup">Criar conta</Link>
+        {t('auth.noAccount')}{' '}
+        <Link href="/signup">{t('auth.createAccount')}</Link>
       </p>
     </form>
   )

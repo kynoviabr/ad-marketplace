@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { getSitemapData } from '@/modules/seo/dal'
+import { getSeoConfig } from '@/modules/seo/config'
 
 export const revalidate = 3600
 
@@ -13,11 +14,18 @@ export const revalidate = 3600
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries = await getSitemapData()
+  const { siteUrl } = getSeoConfig()
 
-  return entries.map((e) => ({
-    url: e.url,
-    lastModified: e.lastModified ? new Date(e.lastModified) : undefined,
-    changeFrequency: e.changeFrequency,
-    priority: e.priority,
-  }))
+  return entries.map((e) => {
+    const pathname = new URL(e.url).pathname
+    const englishUrl = `${siteUrl}${pathname === '/' ? '/en' : `/en${pathname}`}`
+    const alternates = { languages: { 'pt-BR': e.url, en: englishUrl, 'x-default': e.url } }
+    return {
+      url: e.url,
+      lastModified: e.lastModified ? new Date(e.lastModified) : undefined,
+      changeFrequency: e.changeFrequency,
+      priority: e.priority,
+      alternates,
+    }
+  })
 }

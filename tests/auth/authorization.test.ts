@@ -116,7 +116,7 @@ describe('Authorization', () => {
 
     it('proxy.ts redirects unauthenticated to /login', () => {
       const proxy = readFileSync(join(ROOT, 'proxy.ts'), 'utf-8')
-      expect(proxy).toContain("url.pathname = '/login'")
+      expect(proxy).toContain("url.pathname = localizePathname('/login', locale)")
     })
 
     it('dashboard layout calls requireAccount() server-side (not just proxy)', () => {

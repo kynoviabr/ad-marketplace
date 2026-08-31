@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { LanguageSelector, useI18n } from '@/components/i18n'
 
 interface MobileNavigationProps {
   brandName: string
@@ -20,6 +21,7 @@ interface MobileNavigationProps {
  * - Touch targets >= 44px
  */
 export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigationProps) {
+  const { t } = useI18n()
   const [isOpen, setIsOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const drawerRef = useRef<HTMLDivElement>(null)
@@ -72,7 +74,7 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
       <button
         ref={triggerRef}
         type="button"
-        aria-label="Abrir menu de navegação"
+        aria-label={t('navigation.openMenu')}
         aria-expanded={isOpen}
         aria-controls="mobile-nav-drawer"
         onClick={() => setIsOpen(true)}
@@ -125,7 +127,7 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Menu de navegação"
+        aria-label={t('navigation.menu')}
         style={{
           position: 'fixed',
           top: 0,
@@ -165,7 +167,7 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
           </span>
           <button
             type="button"
-            aria-label="Fechar menu"
+            aria-label={t('navigation.closeMenu')}
             onClick={handleClose}
             style={{
               display: 'flex',
@@ -200,7 +202,7 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
 
         {/* Drawer navigation */}
         <nav
-          aria-label="Menu principal"
+          aria-label={t('navigation.main')}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -209,10 +211,10 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
           }}
         >
           <NavDrawerLink href="/sao-paulo" onClick={handleClose}>
-            Explorar São Paulo
+            {t('navigation.exploreSaoPaulo')}
           </NavDrawerLink>
           <NavDrawerLink href="/anuncie" onClick={handleClose}>
-            Anuncie seu perfil
+            {t('navigation.advertiseProfile')}
           </NavDrawerLink>
           <div
             style={{
@@ -223,13 +225,14 @@ export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigatio
           />
           {isAuthenticated ? (
             <NavDrawerLink href="/dashboard" onClick={handleClose}>
-              Minha conta
+              {t('navigation.account')}
             </NavDrawerLink>
           ) : (
             <NavDrawerLink href="/login" onClick={handleClose}>
-              Entrar
+              {t('navigation.login')}
             </NavDrawerLink>
           )}
+          <div style={{ padding: '12px 20px' }}><LanguageSelector /></div>
         </nav>
       </div>}
     </>

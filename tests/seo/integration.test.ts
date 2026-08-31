@@ -49,7 +49,7 @@ describe('FASE 10 — Live Supabase DEV SEO DAL Integration Tests', () => {
     // Invariant: Zero URLs with query parameters
     const queryUrls = sitemapEntries.filter((e) => e.url.includes('?'))
     expect(queryUrls).toHaveLength(0)
-  })
+  }, 15_000)
 
   it('verifies that unverified or suspended profiles do NOT inflate eligible SEO counts', async () => {
     const admin = getTestSupabaseAdmin()

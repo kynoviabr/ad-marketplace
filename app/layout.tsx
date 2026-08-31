@@ -3,6 +3,8 @@ import { Plus_Jakarta_Sans, Inter } from 'next/font/google'
 import './globals.css'
 import { constructRootMetadata, generateWebsiteJsonLd } from '@/modules/seo'
 import { JsonLd } from '@/components/seo/json-ld'
+import { I18nProvider } from '@/components/i18n'
+import { getRequestLocale } from '@/lib/i18n/server'
 
 /**
  * Plus Jakarta Sans — display and heading font.
@@ -34,22 +36,23 @@ export async function generateMetadata(): Promise<Metadata> {
   return constructRootMetadata()
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const websiteJsonLd = generateWebsiteJsonLd()
+  const locale = await getRequestLocale()
+  const websiteJsonLd = generateWebsiteJsonLd(locale)
 
   return (
     <html
-      lang="pt-BR"
+      lang={locale}
       className={`${plusJakartaSans.variable} ${inter.variable}`}
     >
       <head>
         <JsonLd data={websiteJsonLd} />
       </head>
-      <body>{children}</body>
+      <body><I18nProvider locale={locale}>{children}</I18nProvider></body>
     </html>
   )
 }

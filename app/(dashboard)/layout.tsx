@@ -7,6 +7,8 @@
 
 import { requireAccount } from '@/modules/auth/dal'
 
+export const metadata = { robots: { index: false, follow: false } }
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Double protection: proxy.ts redirects unauthenticated users.
   // This layout enforces auth at the data layer level.

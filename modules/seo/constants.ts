@@ -32,6 +32,7 @@ export const RESERVED_TOP_LEVEL_SLUGS = new Set([
   'complete-signup',
   'contato',
   'dashboard',
+  'en',
   'favicon.ico',
   'forgot-password',
   'health',
