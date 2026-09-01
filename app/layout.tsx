@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Plus_Jakarta_Sans, Inter } from 'next/font/google'
+import { Plus_Jakarta_Sans, Inter, Newsreader } from 'next/font/google'
 import './globals.css'
 import { constructRootMetadata, generateWebsiteJsonLd } from '@/modules/seo'
 import { JsonLd } from '@/components/seo/json-ld'
@@ -15,6 +15,20 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-display-loaded',
+  display: 'swap',
+  preload: true,
+})
+
+/**
+ * Newsreader — canonical Velvet editorial family.
+ *
+ * R1 only makes the semantic family available. Existing Georgia-based
+ * surfaces migrate to it deliberately in later, visually reviewed releases.
+ */
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-editorial-loaded',
   display: 'swap',
   preload: true,
 })
@@ -47,7 +61,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${plusJakartaSans.variable} ${inter.variable}`}
+      className={`${plusJakartaSans.variable} ${newsreader.variable} ${inter.variable}`}
     >
       <head>
         <JsonLd data={websiteJsonLd} />
