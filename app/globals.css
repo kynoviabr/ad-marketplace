@@ -18,32 +18,42 @@
 @import './velvet-public.css';
 
 /* ============================================================
-   DESIGN TOKENS — Tailwind CSS v4 @theme
-   Frozen in FASE 12.1C Design Contract.
-   All readable text contrast verified against WCAG AA minimum.
+   VELVET DESIGN TOKENS — Tailwind CSS v4 @theme
+   R1 establishes the canonical semantic palette while retaining aliases
+   required by existing surfaces. Page-level migration is intentionally
+   deferred to the later, visually reviewed redesign releases.
    ============================================================ */
 
 @theme {
   /* --- Backgrounds & Surfaces --- */
-  --color-background: #F6F4F1;
-  --color-surface: #FFFFFF;
-  --color-surface-elevated: #FFFFFF;
-  --color-surface-muted: #F0EDE9;
+  --color-bg: #F5F1E8;
+  --color-surface: #FCFAF5;
+  --color-surface-alt: #E9E3D7;
 
-  /* --- Text (all contrast-verified on #FFFFFF) --- */
-  --color-foreground: #1A1918;       /* 18.6:1 on white ✅ AAA */
-  --color-foreground-2: #4B4845;     /*  7.1:1 on white ✅ AA  */
-  --color-foreground-muted: #6B6866; /*  5.4:1 on white ✅ AA  */
-  --color-foreground-inverted: #FFFFFF;
+  /* Compatibility aliases for existing generic surfaces. */
+  --color-background: var(--color-bg);
+  --color-surface-elevated: var(--color-surface);
+  --color-surface-muted: var(--color-surface-alt);
+
+  /* --- Text (contrast-verified against canonical warm surfaces) --- */
+  --color-text-primary: #1F1A18;
+  --color-text-secondary: #6A625B;
+  --color-foreground: var(--color-text-primary);
+  --color-foreground-2: var(--color-text-secondary);
+  --color-foreground-muted: var(--color-text-secondary);
+  --color-foreground-inverted: var(--color-surface);
 
   /* --- Borders --- */
-  --color-border: #E8E4DF;
+  --color-border: #CDC5B8;
   --color-border-strong: #C8C4BF;
 
   /* --- Interactive / Accent --- */
-  --color-accent: #1C1918;
-  --color-accent-hover: #0F0E0D;
-  --color-accent-foreground: #FFFFFF;
+  --color-brand: #754381;
+  --color-brand-hover: #5B2F65;
+  --color-brand-deep: #3B203F;
+  --color-accent: #9AA06A;
+  --color-accent-hover: #858B5A;
+  --color-accent-foreground: var(--color-text-primary);
 
   /* --- Verified (institutional blue) --- */
   --color-verified: #1D4ED8;         /* 7.2:1 on white ✅ AA */
@@ -61,22 +71,27 @@
   --color-whatsapp-disabled: #A3D4B4;
 
   /* --- Status --- */
-  --color-error: #B91C1C;            /* 5.9:1 on white ✅ AA */
+  --color-danger: #9B3131;
+  --color-error: var(--color-danger);
   --color-error-light: #FEF2F2;
-  --color-success: #166534;          /* 7.5:1 on white ✅ AA */
+  --color-success: #2F6B4F;
   --color-success-light: #F0FDF4;
-  --color-warning: #92400E;          /* 7.2:1 on white ✅ AA */
+  --color-warning: #8A4B12;
   --color-warning-light: #FFFBEB;
 
   /* --- Overlays --- */
-  --color-overlay: rgba(0, 0, 0, 0.48);
-  --color-overlay-card: rgba(0, 0, 0, 0.24);
+  --color-focus: #754381;
+  --color-overlay: rgba(31, 26, 24, 0.72);
+  --color-overlay-card: rgba(31, 26, 24, 0.24);
 
   /* --- Typography --- */
-  /* next/font/google injects --font-display-loaded and --font-body-loaded on <html>.
-     We use them as the primary source, falling back to system fonts. */
-  --font-display: var(--font-display-loaded, 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif);
-  --font-body: var(--font-body-loaded, 'Inter', 'Helvetica Neue', Arial, sans-serif);
+  /* Newsreader and Inter are canonical. Plus Jakarta remains a temporary
+     compatibility family for components still consuming --font-display. */
+  --font-editorial: var(--font-editorial-loaded, 'Newsreader', Georgia, 'Times New Roman', serif);
+  --font-ui: var(--font-body-loaded, 'Inter', 'Helvetica Neue', Arial, sans-serif);
+  --font-display-legacy: var(--font-display-loaded, 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif);
+  --font-display: var(--font-display-legacy);
+  --font-body: var(--font-ui);
 
   /* --- Type Scale --- */
   --text-xs: 11px;
@@ -136,6 +151,474 @@
   --ratio-thumb: 1 / 1;
 }
 
+/* ============================================================
+   VELVET DESIGN SYSTEM V1 — CANONICAL PRODUCT FOUNDATION
+   ============================================================ */
+
+:root {
+  /* Semantic typography roles — desktop defaults. */
+  --text-display-xl: 80px;
+  --leading-display-xl: .94;
+  --weight-display-xl: 400;
+  --tracking-display-xl: -.045em;
+  --family-display-xl: var(--font-editorial);
+
+  --text-display-l: 64px;
+  --leading-display-l: .98;
+  --weight-display-l: 400;
+  --tracking-display-l: -.035em;
+  --family-display-l: var(--font-editorial);
+
+  --text-h1: 52px;
+  --leading-h1: 1.02;
+  --weight-h1: 400;
+  --tracking-h1: -.025em;
+  --family-h1: var(--font-editorial);
+
+  --text-h2: 36px;
+  --leading-h2: 1.08;
+  --weight-h2: 400;
+  --tracking-h2: -.018em;
+  --family-h2: var(--font-editorial);
+
+  --text-h3: 24px;
+  --leading-h3: 1.15;
+  --weight-h3: 500;
+  --tracking-h3: -.01em;
+  --family-h3: var(--font-editorial);
+
+  --text-body-l: 18px;
+  --leading-body-l: 1.55;
+  --weight-body-l: 400;
+  --tracking-body-l: 0;
+  --family-body-l: var(--font-ui);
+
+  --text-body: 16px;
+  --leading-body: 1.55;
+  --weight-body: 400;
+  --tracking-body: 0;
+  --family-body: var(--font-ui);
+
+  --text-body-s: 14px;
+  --leading-body-s: 1.5;
+  --weight-body-s: 400;
+  --tracking-body-s: 0;
+  --family-body-s: var(--font-ui);
+
+  --text-navigation: 15px;
+  --leading-navigation: 1.2;
+  --weight-navigation: 500;
+  --tracking-navigation: .01em;
+  --family-navigation: var(--font-ui);
+
+  --text-button: 15px;
+  --leading-button: 1.1;
+  --weight-button: 600;
+  --tracking-button: .01em;
+  --family-button: var(--font-ui);
+
+  --text-label: 13px;
+  --leading-label: 1.3;
+  --weight-label: 600;
+  --tracking-label: .06em;
+  --family-label: var(--font-ui);
+
+  --text-caption: 12px;
+  --leading-caption: 1.4;
+  --weight-caption: 500;
+  --tracking-caption: .02em;
+  --family-caption: var(--font-ui);
+
+  /* Canonical 4px spacing scale. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 80px;
+  --space-10: 96px;
+
+  /* Containers and responsive grid foundation. */
+  --container-reading: 720px;
+  --container-content: 1200px;
+  --container-market: 1320px;
+  --container-wide: 1440px;
+  --gutter-page: clamp(48px, 4vw, 64px);
+  --gutter-grid: 24px;
+  --grid-columns: 12;
+
+  /* Controls, focus, surfaces and motion. */
+  --control-h: 48px;
+  --control-h-mobile: 52px;
+  --field-h: 52px;
+  --chip-h: 36px;
+  --chip-h-mobile: 40px;
+  --target-min: 44px;
+  --radius-control: 4px;
+  --radius-media: 0;
+  --border-default: 1px solid var(--color-border);
+  --focus-ring: 2px solid var(--color-focus);
+  --focus-offset: 2px;
+  --shadow-overlay: 0 24px 64px rgba(31, 26, 24, .24);
+  --duration-fast: 140ms;
+  --duration-base: 240ms;
+  --ease-product: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Shared layout primitives are opt-in; existing pages are not migrated in R1. */
+.velvet-container-reading,
+.velvet-container-content,
+.velvet-container-market,
+.velvet-container-wide {
+  width: calc(100% - (2 * var(--gutter-page)));
+  margin-inline: auto;
+}
+
+.velvet-container-reading { max-width: var(--container-reading); }
+.velvet-container-content { max-width: var(--container-content); }
+.velvet-container-market { max-width: var(--container-market); }
+.velvet-container-wide { max-width: var(--container-wide); }
+
+.velvet-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--grid-columns), minmax(0, 1fr));
+  gap: var(--gutter-grid);
+}
+
+.velvet-interactive-target {
+  min-width: var(--target-min);
+  min-height: var(--target-min);
+}
+
+/* ============================================================
+   VELVET R2 — SHARED PRODUCT PRIMITIVES
+   Opt-in contracts; legacy .btn/.input/.label remain compatibility-only.
+   ============================================================ */
+
+.velvet-button {
+  min-height: var(--control-h);
+  padding-inline: var(--space-5);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: var(--border-default);
+  border-radius: var(--radius-control);
+  font-family: var(--family-button);
+  font-size: var(--text-button);
+  font-weight: var(--weight-button);
+  line-height: var(--leading-button);
+  letter-spacing: var(--tracking-button);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--duration-fast) ease-out,
+    background-color var(--duration-fast) ease-out,
+    border-color var(--duration-fast) ease-out;
+}
+
+.velvet-button--primary {
+  border-color: var(--color-brand);
+  color: var(--color-surface);
+  background: var(--color-brand);
+}
+
+.velvet-button--primary:hover:not(:disabled) {
+  border-color: var(--color-brand-hover);
+  background: var(--color-brand-hover);
+}
+
+.velvet-button--secondary {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  background: transparent;
+}
+
+.velvet-button--secondary:hover:not(:disabled) {
+  color: var(--color-surface);
+  background: var(--color-brand);
+}
+
+.velvet-button--text {
+  min-height: var(--target-min);
+  padding-inline: var(--space-2);
+  border-color: transparent;
+  border-radius: 0;
+  color: var(--color-brand);
+  background: transparent;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.velvet-button--text:hover:not(:disabled) { color: var(--color-brand-hover); }
+
+.velvet-button--danger {
+  border-color: var(--color-danger);
+  color: var(--color-surface);
+  background: var(--color-danger);
+}
+
+.velvet-button--danger:hover:not(:disabled) {
+  filter: brightness(.88);
+}
+
+.velvet-button:disabled,
+.velvet-button[aria-disabled='true'] {
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+  background: var(--color-surface-alt);
+  cursor: not-allowed;
+}
+
+.velvet-button__spinner {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: velvet-spin .8s linear infinite;
+}
+
+@keyframes velvet-spin { to { transform: rotate(360deg); } }
+
+.velvet-link {
+  min-height: var(--target-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-brand);
+  font-family: var(--font-ui);
+  font-size: var(--text-body-s);
+  font-weight: 600;
+  line-height: var(--leading-body-s);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.velvet-link:hover { color: var(--color-brand-hover); }
+
+.velvet-link--navigation {
+  font-size: var(--text-navigation);
+  font-weight: var(--weight-navigation);
+  line-height: var(--leading-navigation);
+  letter-spacing: var(--tracking-navigation);
+  text-decoration: none;
+}
+
+.velvet-link--navigation:hover { text-decoration: underline; text-underline-offset: 5px; }
+
+.velvet-field {
+  display: grid;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+}
+
+.velvet-label {
+  width: fit-content;
+  color: var(--color-text-primary);
+  font-family: var(--family-label);
+  font-size: var(--text-label);
+  font-weight: var(--weight-label);
+  line-height: var(--leading-label);
+  letter-spacing: var(--tracking-label);
+}
+
+.velvet-label__required { color: var(--color-danger); }
+
+.velvet-input,
+.velvet-select,
+.velvet-textarea {
+  width: 100%;
+  min-height: var(--field-h);
+  padding: 12px var(--space-4);
+  border: var(--border-default);
+  border-radius: var(--radius-control);
+  outline: 0;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  transition: border-color var(--duration-fast) ease-out,
+    box-shadow var(--duration-fast) ease-out;
+}
+
+.velvet-textarea { min-height: 144px; resize: vertical; }
+
+.velvet-input::placeholder,
+.velvet-textarea::placeholder { color: var(--color-text-secondary); }
+
+.velvet-input:focus-visible,
+.velvet-select:focus-visible,
+.velvet-textarea:focus-visible {
+  border-color: var(--color-focus);
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+.velvet-input[aria-invalid='true'],
+.velvet-select[aria-invalid='true'],
+.velvet-textarea[aria-invalid='true'] { border-color: var(--color-danger); }
+
+.velvet-field__hint,
+.velvet-field__error {
+  font-family: var(--family-body-s);
+  font-size: var(--text-body-s);
+  line-height: var(--leading-body-s);
+}
+
+.velvet-field__hint { color: var(--color-text-secondary); }
+.velvet-field__error { color: var(--color-danger); }
+
+.velvet-chip {
+  min-height: var(--chip-h);
+  padding-inline: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--border-default);
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font-family: var(--font-ui);
+  font-size: var(--text-body-s);
+  line-height: 1;
+}
+
+.velvet-chip[aria-pressed='true'],
+.velvet-chip[data-selected='true'] {
+  border-color: var(--color-brand-deep);
+  color: var(--color-surface);
+  background: var(--color-brand-deep);
+}
+
+.velvet-badge {
+  min-height: 36px;
+  padding-inline: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: var(--border-default);
+  border-radius: var(--radius-control);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  font-family: var(--font-ui);
+  font-size: var(--text-body-s);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.velvet-badge__icon { flex: none; }
+.velvet-badge--verified { border-color: var(--color-brand); color: var(--color-brand-deep); }
+.velvet-badge--success { border-color: var(--color-success); color: var(--color-success); }
+.velvet-badge--warning { border-color: var(--color-warning); color: var(--color-warning); }
+.velvet-badge--danger { border-color: var(--color-danger); color: var(--color-danger); }
+
+.velvet-section-header {
+  max-width: var(--container-reading);
+  margin-bottom: var(--space-6);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.velvet-section-header__eyebrow {
+  color: var(--color-brand);
+  font-family: var(--family-label);
+  font-size: var(--text-label);
+  font-weight: var(--weight-label);
+  line-height: var(--leading-label);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.velvet-section-header__title {
+  color: var(--color-text-primary);
+  font-family: var(--family-h2);
+  font-size: var(--text-h2);
+  font-weight: var(--weight-h2);
+  line-height: var(--leading-h2);
+  letter-spacing: var(--tracking-h2);
+}
+
+.velvet-section-header__description {
+  max-width: 62ch;
+  color: var(--color-text-secondary);
+  font-family: var(--family-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.velvet-section-header__action { justify-self: start; }
+
+.velvet-empty-state {
+  min-height: 240px;
+  padding: var(--space-7) var(--space-5);
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: var(--space-3);
+  border-block: var(--border-default);
+  color: var(--color-text-primary);
+  background: transparent;
+}
+
+.velvet-empty-state__title {
+  font-family: var(--family-h3);
+  font-size: var(--text-h3);
+  font-weight: var(--weight-h3);
+  line-height: var(--leading-h3);
+  letter-spacing: var(--tracking-h3);
+}
+
+.velvet-empty-state__description {
+  max-width: 58ch;
+  color: var(--color-text-secondary);
+  font-family: var(--family-body);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.velvet-empty-state__action { margin-top: var(--space-2); }
+
+@media (max-width: 1439px) {
+  :root { --gutter-page: clamp(32px, 3vw, 40px); }
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --gutter-page: clamp(24px, 3vw, 32px);
+    --gutter-grid: 18px;
+    --grid-columns: 8;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --text-display-xl: 52px;
+    --text-display-l: 44px;
+    --text-h1: 38px;
+    --text-h2: 30px;
+    --text-h3: 22px;
+    --text-body-l: 17px;
+    --text-navigation: 16px;
+    --gutter-page: 16px;
+    --gutter-grid: 12px;
+    --grid-columns: 4;
+  }
+
+  .velvet-button { min-height: var(--control-h-mobile); }
+  .velvet-chip { min-height: var(--chip-h-mobile); }
+  .velvet-empty-state { min-height: 200px; padding: var(--space-6) var(--space-4); }
+}
+
+@media (max-width: 479px) {
+  :root { --gutter-page: 16px; }
+}
+
 /* Locale selector — intentionally neutral so it inherits each approved shell. */
 .velvet-language-selector {
   display: inline-flex;
@@ -185,11 +668,11 @@
    ============================================================ */
 
 html {
-  font-family: var(--font-body);
+  font-family: var(--font-ui);
   font-size: 16px;
   line-height: 1.5;
-  color: var(--color-foreground);
-  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
@@ -209,9 +692,8 @@ body {
    ============================================================ */
 
 :focus-visible {
-  outline: 2px solid var(--color-verified);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
 }
 
 /* ============================================================
@@ -234,9 +716,9 @@ body {
   width: auto;
   height: auto;
   padding: 8px 16px;
-  background: var(--color-accent);
-  color: var(--color-accent-foreground);
-  font-family: var(--font-body);
+  background: var(--color-brand);
+  color: var(--color-surface);
+  font-family: var(--font-ui);
   font-size: 14px;
   font-weight: 600;
   z-index: var(--z-toast);
@@ -617,11 +1099,12 @@ h1 {
   --velvet-surface: #faf8f3;
   --velvet-olive: #929762;
   --velvet-aubergine: #71357d;
-  --velvet-aubergine-deep: #3b203f;
+  --velvet-aubergine-deep: var(--color-brand-deep);
   --velvet-espresso: #211b19;
   --velvet-line: #c9c3b7;
   --velvet-muted: #625d56;
   --velvet-serif: Georgia, 'Times New Roman', serif;
+  --velvet-sans: var(--font-ui);
 }
 
 .velvet-wordmark {
