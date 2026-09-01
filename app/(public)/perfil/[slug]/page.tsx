@@ -83,8 +83,8 @@ export default async function PublicProfilePage({ params }: Props) {
   const analyticsPayload = { profileSlug: profile.slug, citySlug: city.slug, locationSlug: primaryLocation.slug, placementType: 'ORGANIC' as const }
   const seoContract = { stageName: profile.stageName, headline: profile.headline, cityName: city.name, citySlug: city.slug, slug: profile.slug, primaryMediaUrl: null, locale }
   const galleryCount = supportingMedia.length === 1
-    ? t('profile.galleryCountOne')
-    : t('profile.galleryCountMany', { count: supportingMedia.length })
+    ? t('profile.mediaCountOne')
+    : t('profile.mediaCountMany', { count: supportingMedia.length })
 
   return (
     <div className="profile-detail-page profile-detail-page--r4">
@@ -171,6 +171,7 @@ export default async function PublicProfilePage({ params }: Props) {
               next: t('common.next'),
               open: t('profile.openPhoto'),
               dialog: t('profile.galleryDialog'),
+              viewAll: t('profile.viewAllPhotos', { count: supportingMedia.length }),
             }}
           />
         </section>

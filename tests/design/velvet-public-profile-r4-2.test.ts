@@ -94,14 +94,14 @@ describe('Velvet R4.2 public profile consolidation contracts', () => {
     expect(gallery).toContain('returnFocusRef.current?.focus()')
   })
 
-  it('uses five wide-desktop columns, four default columns and two mobile columns', () => {
+  it('uses six wide-desktop columns, four default columns and two mobile columns', () => {
     expect(css).toMatch(/\.profile-detail-page--r4 \.profile-gallery-grid \{[\s\S]*?grid-template-columns: repeat\(4,/)
-    expect(css).toMatch(/@media \(min-width: 1280px\)[\s\S]*?grid-template-columns: repeat\(5,/)
+    expect(css).toMatch(/@media \(min-width: 1280px\)[\s\S]*?grid-template-columns: repeat\(6,/)
     expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.profile-detail-page--r4 \.profile-gallery-grid \{[\s\S]*?grid-template-columns: repeat\(2,/)
   })
 
-  it('keeps portrait-friendly thumbnails and minimum 44px lightbox controls', () => {
-    expect(css).toMatch(/\.profile-detail-page--r4 \.profile-gallery-thumbnail \{[\s\S]*?aspect-ratio: 4 \/ 5;/)
+  it('keeps stable square preview tiles and minimum 44px lightbox controls', () => {
+    expect(css).toMatch(/\.profile-detail-page--r4 \.profile-gallery-thumbnail \{[\s\S]*?aspect-ratio: 1;/)
     expect(css).toMatch(/\.profile-lightbox-close,[\s\S]*?min-height: 48px;/)
   })
 

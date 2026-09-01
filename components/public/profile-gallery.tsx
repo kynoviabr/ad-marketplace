@@ -16,7 +16,15 @@ interface ProfileGalleryProps {
     next: string
     open: string
     dialog: string
+    viewAll: string
   }
+}
+
+export const DESKTOP_MEDIA_PREVIEW_LIMIT = 10
+export const MOBILE_MEDIA_PREVIEW_LIMIT = 4
+
+export function getProfileMediaPreview(images: GalleryImage[]) {
+  return images.slice(0, DESKTOP_MEDIA_PREVIEW_LIMIT)
 }
 
 const FOCUSABLE_SELECTOR = [
@@ -31,7 +39,9 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const triggerRefs = useRef<Array<HTMLButtonElement | null>>([])
   const returnFocusRef = useRef<HTMLButtonElement | null>(null)
+  const viewAllRef = useRef<HTMLButtonElement>(null)
   const isOpen = activeIndex !== null
+  const previewImages = getProfileMediaPreview(images)
 
   const close = useCallback(() => setActiveIndex(null), [])
   const showPrevious = useCallback(() => {
@@ -113,10 +123,15 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
     setActiveIndex(index)
   }
 
+  const openAll = () => {
+    returnFocusRef.current = viewAllRef.current
+    setActiveIndex(0)
+  }
+
   return (
     <>
       <div className="profile-gallery-grid">
-        {images.map((image, index) => (
+        {previewImages.map((image, index) => (
           <button
             key={image.url}
             ref={(element) => { triggerRefs.current[index] = element }}
@@ -129,12 +144,25 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
               src={image.url}
               alt={image.alt}
               fill
-              sizes="(max-width: 767px) calc(50vw - 20px), (max-width: 1279px) 25vw, 300px"
+              loading="lazy"
+              quality={72}
+              sizes="(max-width: 767px) calc(50vw - 20px), (max-width: 1279px) 231px, 210px"
             />
             <span className="profile-gallery-enlarge" aria-hidden="true">↗</span>
           </button>
         ))}
       </div>
+
+      {images.length > MOBILE_MEDIA_PREVIEW_LIMIT ? (
+        <button
+          ref={viewAllRef}
+          type="button"
+          className={`profile-gallery-view-all${images.length <= DESKTOP_MEDIA_PREVIEW_LIMIT ? ' profile-gallery-view-all--mobile' : ''}`}
+          onClick={openAll}
+        >
+          {labels.viewAll} <span aria-hidden="true">→</span>
+        </button>
+      ) : null}
 
       {activeIndex !== null ? (
         <div
