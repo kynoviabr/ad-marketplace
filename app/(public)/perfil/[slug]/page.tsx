@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ProfileReturnLink } from '@/components/public/profile-return-link'
 import { ProfileGallery } from '@/components/public/profile-gallery'
+import { ProfileInformation } from '@/components/public/profile-information'
 import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 import { VelvetBadge } from '@/components/ui/velvet-badge'
@@ -66,14 +67,19 @@ export default async function PublicProfilePage({ params }: Props) {
   const whatsappUrl = whatsappDigits ? `https://wa.me/${whatsappDigits}` : null
   const bio = createBioPresentation(profile.bio)
   const information = [
-    profile.publicAge ? [t('profile.age'), t('common.ageYears', { age: profile.publicAge })] : null,
-    profile.heightCm ? [t('profile.height'), `${profile.heightCm} cm`] : null,
-    profile.weightKg ? [t('profile.weight'), `${profile.weightKg} kg`] : null,
-    profile.hairColor ? [t('profile.hair'), labels.hair[profile.hairColor]] : null,
-    profile.hairLength ? [t('profile.hairLength'), labels.length[profile.hairLength]] : null,
-    profile.eyeColor ? [t('profile.eyes'), labels.eye[profile.eyeColor]] : null,
-    profile.bodyType ? [t('profile.bodyType'), labels.body[profile.bodyType]] : null,
-  ].filter((item): item is string[] => Boolean(item))
+    profile.publicAge ? { label: t('profile.age'), value: t('common.ageYears', { age: profile.publicAge }) } : null,
+    profile.heightCm ? { label: t('profile.height'), value: `${profile.heightCm} cm` } : null,
+    profile.weightKg ? { label: t('profile.weight'), value: `${profile.weightKg} kg` } : null,
+    profile.hairColor ? { label: t('profile.hair'), value: labels.hair[profile.hairColor] } : null,
+    profile.hairLength ? { label: t('profile.hairLength'), value: labels.length[profile.hairLength] } : null,
+    profile.eyeColor ? { label: t('profile.eyes'), value: labels.eye[profile.eyeColor] } : null,
+    profile.bodyType ? { label: t('profile.bodyType'), value: labels.body[profile.bodyType] } : null,
+  ].filter((item): item is { label: string; value: string } => Boolean(item))
+  const serviceAreas = locations.map((location) => ({
+    id: location.slug,
+    label: location.name,
+    annotation: location.isPrimary ? t('profile.primaryLocation') : undefined,
+  }))
   const analyticsPayload = { profileSlug: profile.slug, citySlug: city.slug, locationSlug: primaryLocation.slug, placementType: 'ORGANIC' as const }
   const seoContract = { stageName: profile.stageName, headline: profile.headline, cityName: city.name, citySlug: city.slug, slug: profile.slug, primaryMediaUrl: null, locale }
   const galleryCount = supportingMedia.length === 1
@@ -124,26 +130,12 @@ export default async function PublicProfilePage({ params }: Props) {
             </div>
           ) : null}
 
-          {information.length ? (
-            <dl className="profile-information" aria-label={t('profile.publicDetails')}>
-              {information.map(([term, value]) => (
-                <div key={term}><dt>{term}</dt><dd>{value}</dd></div>
-              ))}
-            </dl>
-          ) : null}
-
-          <aside className="profile-locations profile-locations--compact" aria-labelledby="profile-locations-title">
-            <p className="profile-kicker">{t('profile.where')}</p>
-            <h2 id="profile-locations-title">{t('profile.serviceAreas')}</h2>
-            <ul>
-              {locations.map((location) => (
-                <li key={location.slug}>
-                  <span>{location.name}</span>
-                  {location.isPrimary ? <b>{t('profile.primaryLocation')}</b> : null}
-                </li>
-              ))}
-            </ul>
-          </aside>
+          <ProfileInformation
+            title={t('profile.information')}
+            facts={information}
+            serviceAreas={serviceAreas}
+            serviceAreasLabel={t('profile.where')}
+          />
         </div>
       </section>
 

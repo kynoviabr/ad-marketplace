@@ -103,7 +103,7 @@ describe('Velvet R4 public profile contracts', () => {
   it('17. uses one H1 and labelled H2 sections for a semantic heading hierarchy', () => {
     expect(route.match(/<h1\b/g)).toHaveLength(1)
     expect(route).toContain('aria-labelledby="profile-about-title"')
-    expect(route).toContain('aria-labelledby="profile-locations-title"')
+    expect(route).toContain("title={t('profile.information')}")
     expect(route).toContain('aria-labelledby="profile-gallery-title"')
   })
 
