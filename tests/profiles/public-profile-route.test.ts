@@ -38,14 +38,16 @@ describe('Velvet public profile route contract', () => {
     expect(route).not.toContain('account_user_id')
     expect(route).not.toContain('provider_session_id')
     expect(route).toContain("t('profile.verifiedProfile')")
-    expect(route).toContain("t('profile.identityConfirmed')")
+    expect(route).toContain("t('profile.verificationBadge')")
+    expect(route).toContain("t('profile.verificationDisclaimer')")
     expect(route).not.toMatch(/background check|fotos reais verificadas|profissional segura/i)
   })
 
   it('uses adaptive unique gallery classes without duplication', () => {
     expect(dal).toContain('new Map')
-    expect(route).toContain('count-${Math.min(media.length, 4)}')
-    expect(route).toContain('media.map')
+    expect(route).toContain('supportingMedia = media.filter')
+    expect(route).toContain('count-${Math.min(supportingMedia.length, 4)}')
+    expect(route).toContain('supportingMedia.map')
   })
 
   it('reuses canonical WhatsApp analytics and reserved PROFILE_VIEWED event', () => {

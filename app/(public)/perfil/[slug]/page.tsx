@@ -1,13 +1,16 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ProfileReturnLink } from '@/components/public/profile-return-link'
 import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
+import { VelvetBadge } from '@/components/ui/velvet-badge'
+import { localizePathname } from '@/lib/i18n/routing'
+import { getTranslations } from '@/lib/i18n/server'
 import { getEligiblePublicProfileBySlug } from '@/modules/profiles/public-detail'
 import { constructProfileMetadata } from '@/modules/seo/metadata'
 import { generateProfileJsonLd } from '@/modules/seo/structured-data'
-import { getRequestLocale, getTranslations } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }> }
@@ -25,6 +28,19 @@ const labelsEn = {
   body: { SLIM: 'Slim', ATHLETIC: 'Athletic', CURVY: 'Curvy', AVERAGE: 'Average', PLUS_SIZE: 'Plus size', OTHER: 'Other' },
 } as const
 
+const HERO_BIO_LIMIT = 300
+
+function createBioPresentation(bio: string | null) {
+  const normalized = bio?.trim() ?? ''
+  if (!normalized) return { excerpt: null, full: null }
+  if (normalized.length <= HERO_BIO_LIMIT) return { excerpt: normalized, full: null }
+
+  const candidate = normalized.slice(0, HERO_BIO_LIMIT)
+  const wordBoundary = candidate.lastIndexOf(' ')
+  const excerpt = `${candidate.slice(0, wordBoundary > 220 ? wordBoundary : HERO_BIO_LIMIT).trim()}…`
+  return { excerpt, full: normalized }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale, t } = await getTranslations()
   const { slug } = await params
@@ -40,11 +56,14 @@ export default async function PublicProfilePage({ params }: Props) {
   const { slug } = await params
   const detail = await getEligiblePublicProfileBySlug(slug)
   if (!detail) notFound()
+
   const { profile, city, locations, media } = detail
   const primary = media.find((item) => item.isPrimary) ?? media[0]
+  const supportingMedia = media.filter((item) => item.url !== primary.url)
   const primaryLocation = locations.find((item) => item.isPrimary) ?? locations[0]
   const whatsappDigits = profile.whatsappPhone?.replace(/\D/g, '') ?? ''
   const whatsappUrl = whatsappDigits ? `https://wa.me/${whatsappDigits}` : null
+  const bio = createBioPresentation(profile.bio)
   const information = [
     profile.publicAge ? [t('profile.age'), t('common.ageYears', { age: profile.publicAge })] : null,
     profile.heightCm ? [t('profile.height'), `${profile.heightCm} cm`] : null,
@@ -54,30 +73,145 @@ export default async function PublicProfilePage({ params }: Props) {
     profile.eyeColor ? [t('profile.eyes'), labels.eye[profile.eyeColor]] : null,
     profile.bodyType ? [t('profile.bodyType'), labels.body[profile.bodyType]] : null,
   ].filter((item): item is string[] => Boolean(item))
+  const analyticsPayload = { profileSlug: profile.slug, citySlug: city.slug, locationSlug: primaryLocation.slug, placementType: 'ORGANIC' as const }
   const seoContract = { stageName: profile.stageName, headline: profile.headline, cityName: city.name, citySlug: city.slug, slug: profile.slug, primaryMediaUrl: null, locale }
+  const galleryCount = supportingMedia.length === 1
+    ? t('profile.galleryCountOne')
+    : t('profile.galleryCountMany', { count: supportingMedia.length })
 
-  return <div className="profile-detail-page">
-    <ProfileViewTracker profileSlug={profile.slug} citySlug={city.slug} locationSlug={primaryLocation.slug} />
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(generateProfileJsonLd(seoContract)).replace(/</g, '\\u003c') }} />
-    <div className="profile-detail-wrap"><ProfileReturnLink fallbackHref={`/${city.slug}`} /></div>
-    <section className="profile-hero profile-detail-wrap">
-      <div className="profile-hero-photo"><Image src={primary.url} alt={t('profile.portrait', { name: profile.stageName })} fill priority sizes="(max-width: 768px) 100vw, 58vw" /></div>
-      <div className="profile-hero-identity">
-        <p className="profile-kicker">{t('profile.kicker')}</p>
-        <h1>{profile.stageName}{profile.publicAge ? <>, <span>{profile.publicAge}</span></> : null}</h1>
-        <p className="profile-location">{primaryLocation.name} · {city.name}</p>
-        <div className="profile-verification"><i>V</i><p><b>{t('profile.verifiedIdentity')}</b><span>{t('profile.adulthoodConfirmed')}</span></p></div>
-        {profile.headline ? <p className="profile-headline">{profile.headline}</p> : null}
-        {profile.bio ? <p className="profile-hero-bio">{profile.bio}</p> : null}
-        {whatsappUrl ? <><WhatsAppCTA whatsappUrl={whatsappUrl} analyticsPayload={{ profileSlug: profile.slug, citySlug: city.slug, locationSlug: primaryLocation.slug, placementType: 'ORGANIC' }} className="profile-whatsapp">{t('profile.whatsapp')} <span aria-hidden="true">↗</span></WhatsAppCTA><small>{t('profile.contactDisclaimer')}</small></> : null}
+  return (
+    <div className="profile-detail-page profile-detail-page--r4">
+      <ProfileViewTracker profileSlug={profile.slug} citySlug={city.slug} locationSlug={primaryLocation.slug} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(generateProfileJsonLd(seoContract)).replace(/</g, '\\u003c') }} />
+
+      <div className="profile-detail-wrap profile-return-row">
+        <ProfileReturnLink fallbackHref={`/${city.slug}`} />
       </div>
-    </section>
 
-    {profile.bio ? <section className="profile-section profile-about"><div className="profile-detail-wrap"><p className="profile-kicker">{t('profile.aboutPerson', { name: profile.stageName.toUpperCase() })}</p><h2>{t('profile.inTheirWords').split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h2><p>{profile.bio}</p></div></section> : null}
-    {information.length ? <section className="profile-section profile-detail-wrap"><p className="profile-kicker">{t('profile.information').toUpperCase()}</p><h2>{t('profile.publicDetails')}</h2><dl className="profile-information">{information.map(([term, value]) => <div key={term}><dt>{term}</dt><dd>{value}</dd></div>)}</dl></section> : null}
-    <section className="profile-section profile-locations"><div className="profile-detail-wrap"><p className="profile-kicker">{t('profile.where')}</p><h2>{t('profile.cityByChoice', { city: city.name }).split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h2><ul>{locations.map((location) => <li key={location.slug}><span>{location.name}</span>{location.isPrimary ? <b>{t('profile.primaryLocation')}</b> : null}</li>)}</ul></div></section>
-    <section className="profile-section profile-gallery profile-detail-wrap"><p className="profile-kicker">{t('profile.photos')}</p><h2>{t('profile.gallery')}.</h2><div className={`profile-gallery-grid count-${Math.min(media.length, 4)}`}>{media.map((item, index) => <figure key={item.url}><Image src={item.url} alt={t('profile.photo', { name: profile.stageName, number: index + 1 })} fill sizes="(max-width: 768px) 100vw, 55vw" /></figure>)}</div></section>
-    <section className="profile-trust"><div className="profile-detail-wrap"><i>V</i><div><p className="profile-kicker">{t('profile.verifiedProfile')}</p><h2>{t('profile.identityConfirmed').split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h2><p>{t('profile.verificationDisclaimer')}</p></div></div></section>
-    {whatsappUrl ? <section className="profile-final-contact"><div className="profile-detail-wrap"><p className="profile-kicker">{t('profile.readyToTalk')}</p><h2>{t('profile.talkDirectly', { name: profile.stageName }).split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h2><WhatsAppCTA whatsappUrl={whatsappUrl} analyticsPayload={{ profileSlug: profile.slug, citySlug: city.slug, locationSlug: primaryLocation.slug, placementType: 'ORGANIC' }} className="profile-whatsapp profile-whatsapp--light">{t('profile.whatsapp')} <span aria-hidden="true">↗</span></WhatsAppCTA><small>{t('profile.contactDisclaimer')}</small></div></section> : null}
-  </div>
+      <section className="profile-hero profile-detail-wrap" aria-labelledby="profile-title">
+        <div className="profile-hero-photo">
+          <Image
+            src={primary.url}
+            alt={t('profile.portrait', { name: profile.stageName })}
+            fill
+            priority
+            sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1023px) 54vw, 58vw"
+          />
+        </div>
+
+        <div className="profile-hero-identity">
+          <VelvetBadge variant="verified" className="profile-verification-badge" icon="✓">
+            {t('profile.verificationBadge')}
+          </VelvetBadge>
+          <h1 id="profile-title">
+            {profile.stageName}{profile.publicAge ? <>, <span>{profile.publicAge}</span></> : null}
+          </h1>
+          <p className="profile-location">{primaryLocation.name} · {city.name}</p>
+          {profile.headline ? <p className="profile-headline">{profile.headline}</p> : null}
+          {bio.excerpt ? <p className="profile-hero-bio">{bio.excerpt}</p> : null}
+
+          {whatsappUrl ? (
+            <div className="profile-contact-block">
+              <WhatsAppCTA
+                whatsappUrl={whatsappUrl}
+                analyticsPayload={analyticsPayload}
+                className="velvet-button velvet-button--primary profile-whatsapp"
+              >
+                {t('profile.whatsapp')} <span aria-hidden="true">↗</span>
+              </WhatsAppCTA>
+              <small>{t('profile.contactDisclaimer')}</small>
+            </div>
+          ) : null}
+
+          {information.length ? (
+            <dl className="profile-information" aria-label={t('profile.publicDetails')}>
+              {information.map(([term, value]) => (
+                <div key={term}><dt>{term}</dt><dd>{value}</dd></div>
+              ))}
+            </dl>
+          ) : null}
+        </div>
+      </section>
+
+      <section className={`profile-overview ${bio.full ? '' : 'profile-overview--areas-only'}`.trim()}>
+        <div className="profile-detail-wrap profile-overview-grid">
+          {bio.full ? (
+            <article className="profile-about" aria-labelledby="profile-about-title">
+              <p className="profile-kicker">{t('profile.about')}</p>
+              <h2 id="profile-about-title">{t('profile.aboutPersonTitle', { name: profile.stageName })}</h2>
+              <p>{bio.full}</p>
+            </article>
+          ) : null}
+
+          <aside className="profile-locations" aria-labelledby="profile-locations-title">
+            <p className="profile-kicker">{t('profile.where')}</p>
+            <h2 id="profile-locations-title">{t('profile.serviceAreas')}</h2>
+            <ul>
+              {locations.map((location) => (
+                <li key={location.slug}>
+                  <span>{location.name}</span>
+                  {location.isPrimary ? <b>{t('profile.primaryLocation')}</b> : null}
+                </li>
+              ))}
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      {supportingMedia.length ? (
+        <section className="profile-section profile-gallery profile-detail-wrap" aria-labelledby="profile-gallery-title">
+          <header className="profile-gallery-heading">
+            <div>
+              <p className="profile-kicker">{t('profile.photos')}</p>
+              <h2 id="profile-gallery-title">{t('profile.gallery')}</h2>
+            </div>
+            <p>{galleryCount}</p>
+          </header>
+          <div className={`profile-gallery-grid count-${Math.min(supportingMedia.length, 4)}`}>
+            {supportingMedia.map((item, index) => (
+              <figure key={item.url}>
+                <Image
+                  src={item.url}
+                  alt={t('profile.photo', { name: profile.stageName, number: index + 2 })}
+                  fill
+                  sizes="(max-width: 767px) calc(50vw - 20px), (max-width: 1023px) 33vw, 440px"
+                />
+              </figure>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <aside className="profile-trust" aria-label={t('profile.verifiedProfile')}>
+        <div className="profile-detail-wrap">
+          <VelvetBadge variant="verified" icon="✓">{t('profile.verificationBadge')}</VelvetBadge>
+          <p>{t('profile.verificationDisclaimer')}</p>
+          <Link href={localizePathname('/seguranca', locale)} className="velvet-link">
+            {t('profile.learnSafety')}
+          </Link>
+        </div>
+      </aside>
+
+      {whatsappUrl ? (
+        <section className="profile-final-contact" aria-labelledby="profile-contact-title">
+          <div className="profile-detail-wrap">
+            <div>
+              <p className="profile-kicker">{t('profile.readyToTalk')}</p>
+              <h2 id="profile-contact-title">{t('profile.talkDirectly', { name: profile.stageName }).replace('\n', ' ')}</h2>
+            </div>
+            <div>
+              <WhatsAppCTA
+                whatsappUrl={whatsappUrl}
+                analyticsPayload={analyticsPayload}
+                className="velvet-button velvet-button--secondary profile-whatsapp profile-whatsapp--light"
+              >
+                {t('profile.whatsapp')} <span aria-hidden="true">↗</span>
+              </WhatsAppCTA>
+              <small>{t('profile.contactDisclaimer')}</small>
+            </div>
+          </div>
+        </section>
+      ) : null}
+    </div>
+  )
 }

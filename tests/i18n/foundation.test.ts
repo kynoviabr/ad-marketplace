@@ -48,7 +48,8 @@ describe('Velvet PT-BR + EN foundation', () => {
 
   it('7. leaves professional-authored content untouched', () => {
     const profile = source('app/(public)/perfil/[slug]/page.tsx')
-    expect(profile).toContain('{profile.bio}')
+    expect(profile).toContain('createBioPresentation(profile.bio)')
+    expect(profile).toContain('{bio.full}')
     expect(profile).not.toContain('translate(profile.bio')
   })
 
