@@ -178,7 +178,16 @@ export default async function PublicProfilePage({ params }: Props) {
         </section>
       ) : null}
 
-      <ProfileReviewsPreview />
+      <ProfileReviewsPreview
+        labels={{
+          eyebrow: t('profile.reviewsEyebrow'),
+          title: t('profile.reviews'),
+          noReviews: t('profile.noReviews'),
+          noReviewsDescription: t('profile.noReviewsDescription'),
+          ratingSummary: '',
+          viewAll: '',
+        }}
+      />
 
       <aside className="profile-trust" aria-label={t('profile.verifiedProfile')}>
         <div className="profile-detail-wrap">

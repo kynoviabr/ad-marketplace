@@ -22,12 +22,19 @@ compact information rows; they must never be inferred from biography prose.
 
 The permanent desktop media preview is capped at eight micro thumbnails and the
 mobile preview at six. Reviews have a presentation-only boundary directly after
-Media and before Trust/Safety. With no approved review source, the real profile
-passes no data and the boundary renders nothing—no placeholder and no vertical
-space.
+Media and before Trust/Safety. R4.6 renders a compact localized empty state when
+there is no approved review source. Five outline stars communicate the unrated
+state without displaying a numeric zero or implying a real rating.
 
 Future reviews remain bounded to at most three inline previews whether the
 collection contains 3, 37 or 500 records. Ratings, review persistence, schema,
-JSON-LD and database work remain explicitly outside this release. Future
-services, audiences and availability continue to fit the compact structured
-information system above Media.
+JSON-LD and database work remain explicitly outside this release.
+
+Before real reviews ship, product policy must define who may review, the star
+range, whether comments are optional, uniqueness rules, moderation and
+reporting, professional responses, reviewer privacy, abuse/spam protection,
+edit/deletion history, and what—if anything—qualifies as a verified
+experience. No verified-review claim is made by the presentation layer.
+
+Future services, audiences and availability continue to fit the compact
+structured information system above Media.

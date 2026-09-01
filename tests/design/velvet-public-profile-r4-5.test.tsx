@@ -17,7 +17,7 @@ const reviews = (count: number): ProfileReviewsPresentation => ({
   totalReviews: count,
   previews: Array.from({ length: count }, (_, index) => ({ id: String(index), body: `Synthetic review ${index + 1}`, authorLabel: `Synthetic customer ${index + 1}` })),
 })
-const labels = { eyebrow: 'AVALIAÇÕES', title: 'Avaliações', ratingSummary: '4,8 · 37 avaliações', viewAll: 'Ver todas as 37 avaliações' }
+const labels = { eyebrow: 'AVALIAÇÕES', title: 'Avaliações', noReviews: 'Ainda sem avaliações', noReviewsDescription: 'Este perfil ainda não recebeu avaliações.', ratingSummary: '4,8 · 37 avaliações', viewAll: 'Ver todas as 37 avaliações' }
 
 describe('Velvet R4.5 future-ready public profile architecture', () => {
   const route = read('app/(public)/perfil/[slug]/page.tsx')
@@ -41,9 +41,10 @@ describe('Velvet R4.5 future-ready public profile architecture', () => {
     expect(gallery).toContain('setActiveIndex(0)')
   })
 
-  it('renders no reviews markup or blank placeholder without approved data', () => {
-    expect(renderToStaticMarkup(<ProfileReviewsPreview />)).toBe('')
-    expect(route).toContain('<ProfileReviewsPreview />')
+  it('renders a compact reviews boundary without approved data', () => {
+    const markup = renderToStaticMarkup(<ProfileReviewsPreview labels={labels} />)
+    expect(markup).toContain('Ainda sem avaliações')
+    expect(route).toContain('<ProfileReviewsPreview')
   })
 
   it.each([3, 37, 500])('bounds a synthetic %i-review collection to three previews', (count) => {
@@ -54,8 +55,8 @@ describe('Velvet R4.5 future-ready public profile architecture', () => {
   })
 
   it('orders the reviews boundary after Media and before Trust/Safety', () => {
-    expect(route.indexOf('<ProfileReviewsPreview />')).toBeGreaterThan(route.indexOf('<ProfileGallery'))
-    expect(route.indexOf('<ProfileReviewsPreview />')).toBeLessThan(route.indexOf('<aside className="profile-trust"'))
+    expect(route.indexOf('<ProfileReviewsPreview')).toBeGreaterThan(route.indexOf('<ProfileGallery'))
+    expect(route.indexOf('<ProfileReviewsPreview')).toBeLessThan(route.indexOf('<aside className="profile-trust"'))
   })
 
   it('cannot leak synthetic reviews or rating schema into the real profile', () => {
