@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ProfileReturnLink } from '@/components/public/profile-return-link'
+import { ProfileGallery } from '@/components/public/profile-gallery'
 import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 import { VelvetBadge } from '@/components/ui/velvet-badge'
@@ -130,20 +131,8 @@ export default async function PublicProfilePage({ params }: Props) {
               ))}
             </dl>
           ) : null}
-        </div>
-      </section>
 
-      <section className={`profile-overview ${bio.full ? '' : 'profile-overview--areas-only'}`.trim()}>
-        <div className="profile-detail-wrap profile-overview-grid">
-          {bio.full ? (
-            <article className="profile-about" aria-labelledby="profile-about-title">
-              <p className="profile-kicker">{t('profile.about')}</p>
-              <h2 id="profile-about-title">{t('profile.aboutPersonTitle', { name: profile.stageName })}</h2>
-              <p>{bio.full}</p>
-            </article>
-          ) : null}
-
-          <aside className="profile-locations" aria-labelledby="profile-locations-title">
+          <aside className="profile-locations profile-locations--compact" aria-labelledby="profile-locations-title">
             <p className="profile-kicker">{t('profile.where')}</p>
             <h2 id="profile-locations-title">{t('profile.serviceAreas')}</h2>
             <ul>
@@ -158,6 +147,18 @@ export default async function PublicProfilePage({ params }: Props) {
         </div>
       </section>
 
+      {bio.full ? (
+        <section className="profile-overview">
+          <div className="profile-detail-wrap profile-overview-grid">
+            <article className="profile-about" aria-labelledby="profile-about-title">
+              <p className="profile-kicker">{t('profile.about')}</p>
+              <h2 id="profile-about-title">{t('profile.aboutPersonTitle', { name: profile.stageName })}</h2>
+              <p>{bio.full}</p>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
       {supportingMedia.length ? (
         <section className="profile-section profile-gallery profile-detail-wrap" aria-labelledby="profile-gallery-title">
           <header className="profile-gallery-heading">
@@ -167,18 +168,19 @@ export default async function PublicProfilePage({ params }: Props) {
             </div>
             <p>{galleryCount}</p>
           </header>
-          <div className={`profile-gallery-grid count-${Math.min(supportingMedia.length, 4)}`}>
-            {supportingMedia.map((item, index) => (
-              <figure key={item.url}>
-                <Image
-                  src={item.url}
-                  alt={t('profile.photo', { name: profile.stageName, number: index + 2 })}
-                  fill
-                  sizes="(max-width: 767px) calc(50vw - 20px), (max-width: 1023px) 33vw, 440px"
-                />
-              </figure>
-            ))}
-          </div>
+          <ProfileGallery
+            images={supportingMedia.map((item, index) => ({
+              url: item.url,
+              alt: t('profile.photo', { name: profile.stageName, number: index + 2 }),
+            }))}
+            labels={{
+              close: t('common.close'),
+              previous: t('common.previous'),
+              next: t('common.next'),
+              open: t('profile.openPhoto'),
+              dialog: t('profile.galleryDialog'),
+            }}
+          />
         </section>
       ) : null}
 

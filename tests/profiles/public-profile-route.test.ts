@@ -43,11 +43,11 @@ describe('Velvet public profile route contract', () => {
     expect(route).not.toMatch(/background check|fotos reais verificadas|profissional segura/i)
   })
 
-  it('uses adaptive unique gallery classes without duplication', () => {
+  it('uses the compact interactive gallery without duplicating the primary image', () => {
     expect(dal).toContain('new Map')
     expect(route).toContain('supportingMedia = media.filter')
-    expect(route).toContain('count-${Math.min(supportingMedia.length, 4)}')
-    expect(route).toContain('supportingMedia.map')
+    expect(route).toContain('<ProfileGallery')
+    expect(route).toContain('images={supportingMedia.map')
   })
 
   it('reuses canonical WhatsApp analytics and reserved PROFILE_VIEWED event', () => {
