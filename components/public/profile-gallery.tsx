@@ -145,7 +145,7 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
               alt={image.alt}
               fill
               loading="lazy"
-              quality={72}
+              quality={75}
               sizes="(max-width: 767px) calc(50vw - 20px), (max-width: 1279px) 231px, 210px"
             />
             <span className="profile-gallery-enlarge" aria-hidden="true">↗</span>

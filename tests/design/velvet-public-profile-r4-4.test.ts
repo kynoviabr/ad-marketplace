@@ -58,7 +58,7 @@ describe('Velvet R4.4 bounded media preview', () => {
   it('requests thumbnail-sized lazy images without eagerly rendering the full collection', () => {
     expect(component).toContain('previewImages.map')
     expect(component).toContain('loading="lazy"')
-    expect(component).toContain('quality={72}')
+    expect(component).toContain('quality={75}')
     expect(component).toContain('210px')
   })
 
