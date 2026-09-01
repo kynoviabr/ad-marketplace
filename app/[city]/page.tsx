@@ -21,6 +21,9 @@ import { JsonLd } from '@/components/seo/json-ld'
 import { PublicHeader } from '@/components/public/public-header'
 import { PublicFooter } from '@/components/public/public-footer'
 import { getRequestLocale, getTranslations } from '@/lib/i18n/server'
+import { localizePathname } from '@/lib/i18n/routing'
+import { buildSearchPageHref } from '@/modules/search/presentation'
+import { VelvetEmptyState } from '@/components/ui/velvet-empty-state'
 
 interface CitySearchPageProps {
   params: Promise<{ city: string }>
@@ -54,7 +57,7 @@ export async function generateMetadata({ params, searchParams }: CitySearchPageP
 }
 
 export default async function CitySearchPage({ params, searchParams }: CitySearchPageProps) {
-  const { t } = await getTranslations()
+  const { t, locale } = await getTranslations()
   const { city: citySlug } = await params
   if (isReservedSlug(citySlug)) {
     notFound()
@@ -133,7 +136,7 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
   return (
     <div className="velvet-public-shell">
       <PublicHeader />
-      <main className="velvet-explore">
+      <main className="velvet-explore velvet-explore--r5">
       <JsonLd data={breadcrumbJsonLd} />
 
       {/* Header and Filters (Desktop + Mobile) */}
@@ -149,7 +152,7 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
 
             {/* Horizontal Desktop Filters / Mobile Filter Trigger */}
             <div>
-              <PublicSearchFilters filterOptions={filterOptions} />
+              <PublicSearchFilters filterOptions={filterOptions} locale={locale} resultCount={searchResponse.totalProfiles} />
             </div>
           </div>
       </header>
@@ -163,11 +166,12 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
         </div>
 
         {profilesWithMedia.length === 0 ? (
-          <div className="velvet-explore-empty">
-            <p>
-              {t('search.empty')}
-            </p>
-          </div>
+          <VelvetEmptyState
+            className="velvet-explore-empty"
+            title={t('search.noResultsTitle')}
+            description={t('search.noResultsDescription')}
+            action={<a className="velvet-button velvet-button--secondary" href={localizePathname(`/${citySlug}`, locale)}>{t('search.viewAll')}</a>}
+          />
         ) : (
           <div className="velvet-explore-grid">
             {profilesWithMedia.map((profile, index) => (
@@ -176,6 +180,9 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
                 profile={profile}
                 mediaUrl={profile.mediaUrl}
                 priority={index < 4}
+                variant="search"
+                cityName={filterOptions.city.name}
+                locale={locale}
               />
             ))}
           </div>
@@ -186,7 +193,7 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
           <div className="velvet-explore-pagination">
             {searchResponse.page > 1 && (
               <a
-                href={`/${citySlug}?page=${searchResponse.page - 1}`}
+                href={buildSearchPageHref(`/${citySlug}`, resolvedSearchParams, searchResponse.page - 1, locale)}
               >
                 {t('common.previous')}
               </a>
@@ -196,7 +203,7 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
             </span>
             {searchResponse.page < searchResponse.totalPages && (
               <a
-                href={`/${citySlug}?page=${searchResponse.page + 1}`}
+                href={buildSearchPageHref(`/${citySlug}`, resolvedSearchParams, searchResponse.page + 1, locale)}
               >
                 {t('common.next')}
               </a>

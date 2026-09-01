@@ -5,17 +5,23 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { SearchResultDTO } from '@/modules/search/types'
 import { useI18n } from '@/components/i18n'
+import { localizePathname } from '@/lib/i18n/routing'
+import type { Locale } from '@/lib/i18n/config'
 
 export interface PublicProfileCardProps {
   profile: SearchResultDTO
   mediaUrl: string | null
   priority?: boolean
+  variant?: 'default' | 'search'
+  cityName?: string
+  locale?: Locale
 }
 
-export function PublicProfileCard({ profile, mediaUrl, priority = false }: PublicProfileCardProps) {
+export function PublicProfileCard({ profile, mediaUrl, priority = false, variant = 'default', cityName = 'São Paulo', locale = 'pt-BR' }: PublicProfileCardProps) {
   const { t } = useI18n()
+  const isSearch = variant === 'search'
   return (
-    <Link href={`/perfil/${profile.slug}`} className="velvet-profile-card">
+    <Link href={localizePathname(`/perfil/${profile.slug}`, locale)} className={`velvet-profile-card${isSearch ? ' velvet-profile-card--search' : ''}`}>
       <div>
         {/* Photo Container - 4:5 Aspect Ratio */}
         <div className="velvet-profile-photo">
@@ -36,7 +42,7 @@ export function PublicProfileCard({ profile, mediaUrl, priority = false }: Publi
 
           {/* Overlays */}
           <div className="velvet-profile-badges">
-            {profile.isVerified && (
+            {!isSearch && profile.isVerified && (
               <div className="velvet-verified-mark"><i>V</i><span>{t('common.verified18')}</span>
               </div>
             )}
@@ -56,13 +62,14 @@ export function PublicProfileCard({ profile, mediaUrl, priority = false }: Publi
             </h3>
           </div>
 
-          <div>
+          <div className="velvet-profile-location">
             {profile.primaryLocation ? (
-              <span>{profile.primaryLocation.name}</span>
+              <span>{isSearch ? `${profile.primaryLocation.name} · ${cityName}` : profile.primaryLocation.name}</span>
             ) : (
-              <span>São Paulo</span>
+              <span>{cityName}</span>
             )}
           </div>
+          {isSearch && profile.isVerified ? <div className="velvet-profile-verification"><i aria-hidden="true">V</i><span>{t('common.verified18')}</span></div> : null}
         </div>
       </div>
     </Link>
