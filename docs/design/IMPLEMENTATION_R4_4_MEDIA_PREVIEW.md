@@ -17,3 +17,17 @@ this release.
 
 Services, audience and availability also remain structured domain data feeding
 compact information rows; they must never be inferred from biography prose.
+
+## R4.5 future-ready boundary
+
+The permanent desktop media preview is capped at eight micro thumbnails and the
+mobile preview at six. Reviews have a presentation-only boundary directly after
+Media and before Trust/Safety. With no approved review source, the real profile
+passes no data and the boundary renders nothing—no placeholder and no vertical
+space.
+
+Future reviews remain bounded to at most three inline previews whether the
+collection contains 3, 37 or 500 records. Ratings, review persistence, schema,
+JSON-LD and database work remain explicitly outside this release. Future
+services, audiences and availability continue to fit the compact structured
+information system above Media.

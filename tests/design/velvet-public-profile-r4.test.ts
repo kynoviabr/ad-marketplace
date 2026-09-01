@@ -201,9 +201,9 @@ describe('Velvet R4 public profile contracts', () => {
     expect(r4Css).toMatch(/\.profile-gallery-heading > p[\s\S]*?font-size: var\(--text-body-s\);[\s\S]*?font-weight: 500;/)
   })
 
-  it('35. reduces only the desktop whitespace between regions and gallery', () => {
+  it('35. uses the compact R4.5 whitespace between regions and gallery', () => {
     expect(r4Css).toMatch(/\.profile-overview \{[\s\S]*?padding-block: var\(--space-6\);/)
-    expect(r4Css).toMatch(/\.profile-overview \+ \.profile-gallery[\s\S]*?padding-top: var\(--space-5\);/)
+    expect(r4Css).toMatch(/\.profile-overview \+ \.profile-gallery[\s\S]*?padding-top: var\(--space-2\);/)
     expect(r4Css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.profile-overview \{ padding-block: var\(--space-7\); \}/)
   })
 

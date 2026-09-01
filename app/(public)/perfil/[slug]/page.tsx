@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { ProfileReturnLink } from '@/components/public/profile-return-link'
 import { ProfileGallery } from '@/components/public/profile-gallery'
 import { ProfileInformation } from '@/components/public/profile-information'
+import { ProfileReviewsPreview } from '@/components/public/profile-reviews-preview'
 import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 import { VelvetBadge } from '@/components/ui/velvet-badge'
@@ -176,6 +177,8 @@ export default async function PublicProfilePage({ params }: Props) {
           />
         </section>
       ) : null}
+
+      <ProfileReviewsPreview />
 
       <aside className="profile-trust" aria-label={t('profile.verifiedProfile')}>
         <div className="profile-detail-wrap">

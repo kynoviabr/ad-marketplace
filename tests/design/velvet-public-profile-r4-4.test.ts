@@ -24,17 +24,17 @@ describe('Velvet R4.4 bounded media preview', () => {
     expect(getProfileMediaPreview(photos(4))).toHaveLength(4)
   })
 
-  it('bounds nine-photo collections to four visible mobile thumbnails', () => {
-    expect(getProfileMediaPreview(photos(9))).toHaveLength(9)
-    expect(MOBILE_MEDIA_PREVIEW_LIMIT).toBe(4)
-    expect(css).toContain('.profile-gallery-thumbnail:nth-child(n + 5) { display: none; }')
+  it('bounds nine-photo collections to six visible mobile thumbnails', () => {
+    expect(getProfileMediaPreview(photos(9))).toHaveLength(8)
+    expect(MOBILE_MEDIA_PREVIEW_LIMIT).toBe(6)
+    expect(css).toContain('.profile-gallery-thumbnail:nth-child(n + 7) { display: none; }')
   })
 
   it('bounds a synthetic thirty-photo collection while preserving full viewer input', () => {
     const collection = photos(30)
-    expect(getProfileMediaPreview(collection)).toHaveLength(10)
+    expect(getProfileMediaPreview(collection)).toHaveLength(8)
     expect(collection).toHaveLength(30)
-    expect(DESKTOP_MEDIA_PREVIEW_LIMIT).toBe(10)
+    expect(DESKTOP_MEDIA_PREVIEW_LIMIT).toBe(8)
     expect(component).toContain('src={images[activeIndex].url}')
     expect(component).toContain('{activeIndex + 1} / {images.length}')
   })
@@ -59,12 +59,12 @@ describe('Velvet R4.4 bounded media preview', () => {
     expect(component).toContain('previewImages.map')
     expect(component).toContain('loading="lazy"')
     expect(component).toContain('quality={75}')
-    expect(component).toContain('210px')
+    expect(component).toContain('136px')
   })
 
-  it('uses six small wide-desktop tiles with a stable square preview frame', () => {
-    expect(css).toMatch(/@media \(min-width: 1280px\)[\s\S]*?repeat\(6,/)
-    expect(css).toMatch(/\.profile-gallery-thumbnail \{[\s\S]*?aspect-ratio: 1;/)
+  it('uses eight micro wide-desktop tiles with a portrait preview frame', () => {
+    expect(css).toMatch(/@media \(min-width: 1320px\)[\s\S]*?repeat\(8, 136px\)/)
+    expect(css).toMatch(/\.profile-gallery-thumbnail \{[\s\S]*?aspect-ratio: 10 \/ 11;/)
   })
 
   it('keeps the hero unique and the approved lightbox behavior', () => {

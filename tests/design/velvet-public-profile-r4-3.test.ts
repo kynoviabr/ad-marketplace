@@ -31,11 +31,11 @@ describe('Velvet R4.3 desktop compaction contracts', () => {
     expect(route).not.toMatch(/servicesOffered|audienceServed|partyAvailability|travelAvailability/)
   })
 
-  it('uses six compact gallery columns at 1280+ and preserves four/three/two responsive steps', () => {
-    expect(css).toMatch(/@media \(min-width: 1280px\)[\s\S]*?repeat\(6,/)
-    expect(css).toMatch(/\.profile-detail-page--r4 \.profile-gallery-grid \{[\s\S]*?repeat\(4,/)
+  it('uses eight micro gallery columns at 1320+ and preserves responsive steps', () => {
+    expect(css).toMatch(/@media \(min-width: 1320px\)[\s\S]*?repeat\(8, 136px\)/)
+    expect(css).toMatch(/\.profile-detail-page--r4 \.profile-gallery-grid \{[\s\S]*?repeat\(6, 132px\)/)
     expect(css).toMatch(/@media \(max-width: 899px\)[\s\S]*?repeat\(3,/)
-    expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?repeat\(2,/)
+    expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?repeat\(3,/)
   })
 
   it('preserves the approved unique-image lightbox behavior', () => {

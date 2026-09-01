@@ -20,8 +20,8 @@ interface ProfileGalleryProps {
   }
 }
 
-export const DESKTOP_MEDIA_PREVIEW_LIMIT = 10
-export const MOBILE_MEDIA_PREVIEW_LIMIT = 4
+export const DESKTOP_MEDIA_PREVIEW_LIMIT = 8
+export const MOBILE_MEDIA_PREVIEW_LIMIT = 6
 
 export function getProfileMediaPreview(images: GalleryImage[]) {
   return images.slice(0, DESKTOP_MEDIA_PREVIEW_LIMIT)
@@ -146,7 +146,7 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
               fill
               loading="lazy"
               quality={75}
-              sizes="(max-width: 767px) calc(50vw - 20px), (max-width: 1279px) 231px, 210px"
+              sizes="(max-width: 767px) calc((100vw - 64px) / 3), (max-width: 1099px) 132px, 136px"
             />
             <span className="profile-gallery-enlarge" aria-hidden="true">↗</span>
           </button>
