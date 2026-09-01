@@ -8,6 +8,7 @@ describe('Velvet public Home regression hotfix — structural contract', () => {
   const layout = read('app/(public)/layout.tsx')
   const home = read('app/(public)/page.tsx')
   const header = read('components/public/public-header.tsx')
+  const desktopNavigation = read('components/public/public-desktop-navigation.tsx')
   const hero = read('components/public/home-hero.tsx')
   const profiles = read('components/public/public-profile-grid.tsx')
   const locations = read('components/public/home-locations.tsx')
@@ -24,9 +25,10 @@ describe('Velvet public Home regression hotfix — structural contract', () => {
   })
 
   it('locks the Velvet identity and editorial navigation contract', () => {
-    expect(header).toContain('velvet<span>.</span>')
-    expect(header).toContain('São Paulo')
-    for (const key of ['navigation.explore', 'navigation.advertise', 'navigation.login']) expect(header).toContain(`t('${key}')`)
+    expect(header).toContain('velvet.')
+    expect(publicCss).toMatch(/\.velvet-public-wordmark,[\s\S]*color:\s*var\(--color-brand\)/)
+    expect(desktopNavigation).toContain('São Paulo')
+    for (const key of ['navigation.explore', 'navigation.advertise', 'navigation.login']) expect(desktopNavigation).toContain(`t('${key}')`)
     expect(header).not.toContain('{brandName}')
   })
 

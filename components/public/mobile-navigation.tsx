@@ -1,275 +1,211 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { LanguageSelector, useI18n } from '@/components/i18n'
+import { usePathname } from 'next/navigation'
+import { LanguageSelector } from '@/components/i18n/language-selector'
+import { useI18n } from '@/components/i18n/i18n-provider'
+import { localizePathname } from '@/lib/i18n/routing'
+import { isPublicNavigationItemActive, type PublicNavigationItem } from './public-navigation-state'
 
 interface MobileNavigationProps {
-  brandName: string
   isAuthenticated: boolean
 }
 
-/**
- * MobileNavigation — slide-in drawer for mobile header.
- *
- * Accessibility requirements (FASE 12.1C):
- * - Keyboard accessible: Escape closes, focus trapped while open
- * - Focus returns to trigger on close
- * - ARIA: role="dialog", aria-modal, aria-label
- * - Body scroll locked while open
- * - Backdrop tap closes drawer
- * - Touch targets >= 44px
- */
-export function MobileNavigation({ brandName, isAuthenticated }: MobileNavigationProps) {
-  const { t } = useI18n()
+const FOCUSABLE_SELECTOR = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
+
+export function MobileNavigation({ isAuthenticated }: MobileNavigationProps) {
+  const { locale, t } = useI18n()
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
   const drawerRef = useRef<HTMLDivElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
+  const localized = (path: string) => localizePathname(path, locale)
+  const accountPath = isAuthenticated ? '/dashboard' : '/login'
+  const closeDrawer = useCallback(() => setIsOpen(false), [])
 
-  // Close on Escape
   useEffect(() => {
     if (!isOpen) return
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false)
-        triggerRef.current?.focus()
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : triggerRef.current
+
+    const previousOverflow = document.body.style.overflow
+    const inertTargets = Array.from(document.querySelectorAll<HTMLElement>([
+      '.velvet-public-shell > main',
+      '.velvet-public-shell > footer',
+      '.velvet-public-header > .velvet-public-wordmark',
+      '.velvet-public-desktop-navigation',
+    ].join(',')))
+    const priorInert = inertTargets.map((element) => element.inert)
+
+    document.body.style.overflow = 'hidden'
+    inertTargets.forEach((element) => { element.inert = true })
+    closeRef.current?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeDrawer()
+        return
+      }
+
+      if (event.key !== 'Tab' || !drawerRef.current) return
+
+      const focusable = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter((element) => !element.hasAttribute('disabled') && element.tabIndex !== -1)
+
+      if (focusable.length === 0) {
+        event.preventDefault()
+        drawerRef.current.focus()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const activeElement = document.activeElement
+
+      if (event.shiftKey && activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && activeElement === last) {
+        event.preventDefault()
+        first.focus()
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen])
 
-  // Lock body scroll when open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
     return () => {
-      document.body.style.overflow = ''
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = previousOverflow
+      inertTargets.forEach((element, index) => { element.inert = priorInert[index] })
+      window.requestAnimationFrame(() => returnFocusRef.current?.focus())
     }
-  }, [isOpen])
+  }, [closeDrawer, isOpen])
 
-  // Focus first focusable element when drawer opens
-  useEffect(() => {
-    if (isOpen && drawerRef.current) {
-      const firstFocusable = drawerRef.current.querySelector<HTMLElement>(
-        'a[href], button:not([disabled])'
-      )
-      firstFocusable?.focus()
-    }
-  }, [isOpen])
-
-  const handleClose = () => {
-    setIsOpen(false)
-    triggerRef.current?.focus()
-  }
+  const current = (item: PublicNavigationItem) => (
+    isPublicNavigationItemActive(pathname, item, isAuthenticated) ? 'page' as const : undefined
+  )
 
   return (
     <>
-      {/* Hamburger trigger */}
       <button
         ref={triggerRef}
         type="button"
+        className="velvet-mobile-menu-trigger"
         aria-label={t('navigation.openMenu')}
         aria-expanded={isOpen}
-        aria-controls="mobile-nav-drawer"
+        aria-controls="velvet-mobile-nav-drawer"
+        tabIndex={isOpen ? -1 : undefined}
         onClick={() => setIsOpen(true)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '44px',
-          height: '44px',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--color-foreground)',
-          padding: '0',
-          borderRadius: 'var(--radius-md)',
-          flexShrink: 0,
-        }}
       >
-        <svg
-          width="22"
-          height="22"
-          viewBox="0 0 22 22"
-          fill="none"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <rect y="3" width="22" height="2" rx="1" fill="currentColor" />
-          <rect y="10" width="22" height="2" rx="1" fill="currentColor" />
-          <rect y="17" width="22" height="2" rx="1" fill="currentColor" />
+        <svg width="22" height="18" viewBox="0 0 22 18" fill="none" aria-hidden="true">
+          <path d="M0 1H22M0 9H22M0 17H22" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </button>
 
-      {/* Backdrop */}
-      {isOpen && (
-        <div
-          aria-hidden="true"
-          onClick={handleClose}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'var(--color-overlay)',
-            zIndex: 'var(--z-overlay)',
-          }}
-        />
-      )}
-
-      {/* Drawer */}
-      {isOpen && <div
-        id="mobile-nav-drawer"
-        ref={drawerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('navigation.menu')}
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: '280px',
-          maxWidth: '85vw',
-          background: 'var(--color-surface)',
-          zIndex: 'var(--z-sheet)',
-          display: 'flex',
-          flexDirection: 'column',
-          transform: 'translateX(0)',
-          transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1)',
-          boxShadow: 'var(--shadow-xl)',
-        }}
-      >
-        {/* Drawer header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 16px',
-            height: '60px',
-            borderBottom: '1px solid var(--color-border)',
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 700,
-              fontSize: '16px',
-              color: 'var(--color-foreground)',
-            }}
-          >
-            {brandName}
-          </span>
+      {isOpen ? (
+        <>
           <button
             type="button"
+            className="velvet-mobile-nav-backdrop"
             aria-label={t('navigation.closeMenu')}
-            onClick={handleClose}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '44px',
-              height: '44px',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--color-foreground-muted)',
-              borderRadius: 'var(--radius-md)',
-            }}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              aria-hidden="true"
-              focusable="false"
-            >
-              <path
-                d="M4 4L16 16M16 4L4 16"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Drawer navigation */}
-        <nav
-          aria-label={t('navigation.main')}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '8px 0',
-            flex: 1,
-          }}
-        >
-          <NavDrawerLink href="/sao-paulo" onClick={handleClose}>
-            {t('navigation.exploreSaoPaulo')}
-          </NavDrawerLink>
-          <NavDrawerLink href="/anuncie" onClick={handleClose}>
-            {t('navigation.advertiseProfile')}
-          </NavDrawerLink>
-          <div
-            style={{
-              height: '1px',
-              background: 'var(--color-border)',
-              margin: '8px 16px',
-            }}
+            tabIndex={-1}
+            onClick={closeDrawer}
           />
-          {isAuthenticated ? (
-            <NavDrawerLink href="/dashboard" onClick={handleClose}>
-              {t('navigation.account')}
-            </NavDrawerLink>
-          ) : (
-            <NavDrawerLink href="/login" onClick={handleClose}>
-              {t('navigation.login')}
-            </NavDrawerLink>
-          )}
-          <div style={{ padding: '12px 20px' }}><LanguageSelector /></div>
-        </nav>
-      </div>}
+          <div
+            id="velvet-mobile-nav-drawer"
+            ref={drawerRef}
+            className="velvet-mobile-nav-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('navigation.menu')}
+            tabIndex={-1}
+          >
+            <div className="velvet-mobile-nav-head">
+              <span className="velvet-mobile-nav-wordmark">velvet.</span>
+              <button
+                ref={closeRef}
+                type="button"
+                className="velvet-mobile-nav-close"
+                aria-label={t('navigation.closeMenu')}
+                onClick={closeDrawer}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M3 3L17 17M17 3L3 17" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+              </button>
+            </div>
+
+            <nav className="velvet-mobile-nav-groups" aria-label={t('navigation.main')}>
+              <DrawerGroup label={t('navigation.sectionExplore')}>
+                <DrawerLink href={localized('/sao-paulo')} current={current('explore')} onClick={closeDrawer}>
+                  {t('navigation.explore')}
+                </DrawerLink>
+                <span className="velvet-mobile-location-context">São Paulo</span>
+              </DrawerGroup>
+
+              <DrawerGroup label={t('navigation.sectionProfessionals')}>
+                <DrawerLink href={localized('/anuncie')} current={current('advertise')} onClick={closeDrawer}>
+                  {t('navigation.advertise')}
+                </DrawerLink>
+              </DrawerGroup>
+
+              <DrawerGroup label={t('navigation.sectionAccount')}>
+                <DrawerLink href={localized(accountPath)} current={current('account')} onClick={closeDrawer}>
+                  {isAuthenticated ? t('navigation.account') : t('navigation.login')}
+                </DrawerLink>
+              </DrawerGroup>
+
+              <DrawerGroup label={t('navigation.sectionLanguage')}>
+                <LanguageSelector expanded />
+              </DrawerGroup>
+            </nav>
+          </div>
+        </>
+      ) : null}
     </>
   )
 }
 
-function NavDrawerLink({
+function DrawerGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="velvet-mobile-nav-group" aria-label={label}>
+      <p>{label}</p>
+      {children}
+    </section>
+  )
+}
+
+function DrawerLink({
   href,
+  current,
   onClick,
   children,
 }: {
   href: string
+  current?: 'page'
   onClick: () => void
   children: React.ReactNode
 }) {
   return (
     <Link
       href={href}
+      className="velvet-link velvet-link--navigation velvet-mobile-nav-link"
+      aria-current={current}
       onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        padding: '0 20px',
-        minHeight: '52px',
-        fontFamily: 'var(--font-body)',
-        fontSize: '15px',
-        fontWeight: 500,
-        color: 'var(--color-foreground)',
-        textDecoration: 'none',
-        transition: 'background 120ms ease-out',
-      }}
-      onMouseEnter={(e) => {
-        ;(e.currentTarget as HTMLElement).style.background = 'var(--color-surface-muted)'
-      }}
-      onMouseLeave={(e) => {
-        ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-      }}
     >
       {children}
     </Link>
