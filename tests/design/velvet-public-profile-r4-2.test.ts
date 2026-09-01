@@ -94,8 +94,9 @@ describe('Velvet R4.2 public profile consolidation contracts', () => {
     expect(gallery).toContain('returnFocusRef.current?.focus()')
   })
 
-  it('uses four desktop columns and two mobile columns', () => {
+  it('uses five wide-desktop columns, four default columns and two mobile columns', () => {
     expect(css).toMatch(/\.profile-detail-page--r4 \.profile-gallery-grid \{[\s\S]*?grid-template-columns: repeat\(4,/)
+    expect(css).toMatch(/@media \(min-width: 1280px\)[\s\S]*?grid-template-columns: repeat\(5,/)
     expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.profile-detail-page--r4 \.profile-gallery-grid \{[\s\S]*?grid-template-columns: repeat\(2,/)
   })
 

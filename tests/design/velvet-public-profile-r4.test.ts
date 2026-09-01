@@ -96,7 +96,8 @@ describe('Velvet R4 public profile contracts', () => {
   })
 
   it('16. bounds primary photography relative to viewport height', () => {
-    expect(r4Css).toContain('height: clamp(560px, 68vh, 680px)')
+    expect(r4Css).toContain('width: min(100%, 416px)')
+    expect(r4Css).toContain('aspect-ratio: 4 / 5')
     expect(r4Css).toContain('max-height: 64vh')
   })
 
@@ -202,7 +203,7 @@ describe('Velvet R4 public profile contracts', () => {
 
   it('35. reduces only the desktop whitespace between regions and gallery', () => {
     expect(r4Css).toMatch(/\.profile-overview \{[\s\S]*?padding-block: var\(--space-6\);/)
-    expect(r4Css).toMatch(/\.profile-overview \+ \.profile-gallery[\s\S]*?padding-top: var\(--space-6\);/)
+    expect(r4Css).toMatch(/\.profile-overview \+ \.profile-gallery[\s\S]*?padding-top: var\(--space-5\);/)
     expect(r4Css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.profile-overview \{ padding-block: var\(--space-7\); \}/)
   })
 
