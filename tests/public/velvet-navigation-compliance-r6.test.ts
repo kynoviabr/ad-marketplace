@@ -58,4 +58,11 @@ describe('Velvet R6 public navigation and compliance', () => {
     }
     expect(read('app/acesso-restrito/page.tsx')).toContain('Acesso restrito')
   })
+
+  it('ships a repeatable PT/EN link audit with the required evidence fields', () => {
+    const audit = read('scripts/audit-public-navigation.mjs')
+    for (const field of ['label', 'source', 'locale', 'href', 'httpStatus', 'finalUrl', 'result']) expect(audit).toContain(field)
+    expect(audit).toContain("'/en/about'")
+    expect(audit).toContain("'/en/cookies'")
+  })
 })
