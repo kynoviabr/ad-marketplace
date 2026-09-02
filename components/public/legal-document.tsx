@@ -28,8 +28,8 @@ export function LegalDocument({
       </header>
 
       {showContents && (
-        <nav className="velvet-legal-contents" aria-label={`Índice de ${title}`}>
-          <p>Índice</p>
+        <nav className="velvet-legal-contents" aria-label={`Contents · ${title}`}>
+          <p>Índice / Contents</p>
           <ol>
             {sections.map((section) => (
               <li key={section.id}><a href={`#${section.id}`}>{section.title}</a></li>

@@ -15,6 +15,7 @@ import {
 } from '@/modules/analytics/schemas'
 import { defaultRateLimiter, ipSourceRateLimiter } from '@/modules/analytics/rate-limiter'
 import { ingestClientEvent } from '@/modules/analytics/write'
+import { CONSENT_COOKIE, parseConsent } from '@/lib/compliance/consent'
 
 /**
  * Derives a rate-limiting key from the request IP address — F11-SEC-007
@@ -64,6 +65,9 @@ function deriveIpKey(req: NextRequest): string | null {
 
 export async function POST(req: NextRequest) {
   try {
+    if (parseConsent(req.cookies.get(CONSENT_COOKIE)?.value)?.analytics !== true) {
+      return NextResponse.json({ success: true, ignored: true }, { status: 200 })
+    }
     // 1. Payload size protection (4KB max)
     const rawText = await req.text()
     if (rawText.length > 4096) {

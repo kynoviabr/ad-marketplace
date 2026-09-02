@@ -5,6 +5,7 @@ import { constructRootMetadata, generateWebsiteJsonLd } from '@/modules/seo'
 import { JsonLd } from '@/components/seo/json-ld'
 import { I18nProvider } from '@/components/i18n'
 import { getRequestLocale } from '@/lib/i18n/server'
+import { PublicComplianceLayer } from '@/components/compliance/public-compliance-layer'
 
 /**
  * Plus Jakarta Sans — display and heading font.
@@ -66,7 +67,7 @@ export default async function RootLayout({
       <head>
         <JsonLd data={websiteJsonLd} />
       </head>
-      <body><I18nProvider locale={locale}>{children}</I18nProvider></body>
+      <body><I18nProvider locale={locale}><div id="velvet-app-content">{children}</div><PublicComplianceLayer /></I18nProvider></body>
     </html>
   )
 }

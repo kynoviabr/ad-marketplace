@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { LegalDocument, type LegalSection } from '@/components/public/legal-document'
 import { getPrivacyContactEmail } from '@/lib/legal'
 import { buildCanonicalUrl } from '@/modules/seo/canonical'
+import { getRequestLocale } from '@/lib/i18n/server'
 
 export const metadata: Metadata = {
   title: { absolute: 'Privacidade | Velvet' },
@@ -9,7 +10,18 @@ export const metadata: Metadata = {
   alternates: { canonical: buildCanonicalUrl('/privacidade') },
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const locale = await getRequestLocale()
+  if (locale === 'en') return <LegalDocument eyebrow="PRIVACY · INITIAL OPERATIONAL VERSION" title="Privacy at Velvet" introduction={<p>This notice explains how Velvet handles personal data, the choices available to adults and the current operational limits. Final controller and privacy-contact details require business and legal confirmation.</p>} sections={[
+    { id: 'scope', title: 'Scope and data categories', content: <p>Velvet may process account, profile, contact, service-area, approved media, verification status, moderation, security and usage data needed to operate the platform. Public profiles exclude legal identity and internal verification details.</p> },
+    { id: 'purposes', title: 'Purposes and legal grounds', content: <p>Data is used to create and secure accounts, verify identity and age, moderate and publish profiles, provide search and direct contact, prevent abuse, measure the service and meet legal obligations. Depending on context, grounds may include contract, legal obligation, legitimate interests, rights protection and consent.</p> },
+    { id: 'providers', title: 'Providers and sharing', content: <p>Supabase supports authentication, database and storage; a specialized provider may perform identity and age verification; hosting suppliers deliver the application. Data may also be disclosed where lawfully required. No payment provider is currently integrated.</p> },
+    { id: 'analytics', title: 'Analytics and cookies', content: <p>Optional first-party analytics runs only after consent and measures searches, impressions, profile views and contact clicks. A random identifier is limited to sessionStorage, Do Not Track is respected and no marketing trackers are installed.</p> },
+    { id: 'retention', title: 'Retention and security', content: <p>Data is retained only while needed for stated purposes, security, legal duties and rights. Access controls, private media delivery and moderation reduce risk, but no system can promise absolute security.</p> },
+    { id: 'rights', title: 'LGPD rights', content: <p>Subject to applicable conditions, individuals may request confirmation, access, correction, information, portability, anonymization, blocking or deletion, object to certain processing, withdraw consent and request review of relevant automated decisions.</p> },
+    { id: 'contact', title: 'Privacy contact and legal inputs', content: <p>The official privacy contact, controller identity, company registration, address and DPO information have not been provided and must be published before final legal release. No identity or address is assumed here.</p> },
+    { id: 'minors', title: 'Children and adolescents', content: <p>Velvet is exclusively for adults aged 18 or over. Registration, publication or participation by minors is prohibited and suspected content may be blocked and escalated.</p> },
+  ]} />
   const privacyEmail = getPrivacyContactEmail()
   const contact = privacyEmail
     ? <p>Envie sua solicitação para <a href={`mailto:${privacyEmail}`}>{privacyEmail}</a>. Poderemos pedir informações razoáveis para confirmar sua identidade e proteger seus dados.</p>

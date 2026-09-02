@@ -151,6 +151,39 @@
   --ratio-thumb: 1 / 1;
 }
 
+/* R6 public institutional and compliance surfaces */
+.velvet-footer-button { appearance: none; border: 0; padding: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.velvet-footer-button:hover, .velvet-footer-button:focus-visible { text-decoration: underline; }
+.velvet-institutional-page { width: min(100% - 40px, 920px); margin: 0 auto; padding: clamp(72px, 10vw, 132px) 0; color: var(--velvet-ink); }
+.velvet-institutional-page header { max-width: 760px; margin-bottom: 72px; }
+.velvet-institutional-page h1 { margin: 16px 0 24px; font-family: var(--font-editorial); font-size: clamp(48px, 8vw, 88px); font-weight: 400; line-height: .94; letter-spacing: -.045em; }
+.velvet-institutional-page header > p:last-child, .velvet-institutional-page section p { max-width: 720px; font-size: clamp(17px, 2vw, 20px); line-height: 1.7; }
+.velvet-institutional-page section { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 36px; padding: 42px 0; border-top: 1px solid var(--velvet-line); }
+.velvet-institutional-page section h2 { margin: 0; font-size: 18px; }
+.velvet-institutional-page section p { margin: 0; }
+.velvet-institutional-actions { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 48px; border-top: 1px solid var(--velvet-line); }
+.velvet-institutional-actions a { min-height: 48px; padding: 14px 20px; border: 1px solid currentColor; }
+.velvet-compliance-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(20,17,15,.78); backdrop-filter: blur(12px); }
+.velvet-compliance-dialog { width: min(100%, 620px); max-height: calc(100dvh - 40px); overflow: auto; padding: clamp(28px, 6vw, 54px); color: #241f1b; background: #f7f3ec; box-shadow: 0 24px 80px rgba(0,0,0,.35); }
+.velvet-compliance-dialog h1 { margin: 12px 0 18px; font-family: var(--font-editorial); font-size: clamp(38px, 7vw, 58px); font-weight: 400; line-height: .98; }
+.velvet-compliance-dialog > p:not(.velvet-overline) { font-size: 17px; line-height: 1.6; }
+.velvet-compliance-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.velvet-compliance-actions button, .velvet-compliance-actions a { min-height: 50px; display: inline-flex; align-items: center; justify-content: center; padding: 13px 18px; border: 1px solid #241f1b; font: inherit; cursor: pointer; }
+.velvet-compliance-primary { color: #fff; background: #241f1b; }
+.velvet-compliance-secondary { color: #241f1b; background: transparent; }
+.velvet-compliance-link { border-color: transparent !important; background: transparent; text-decoration: underline; }
+.velvet-compliance-policy { display: inline-block; margin-top: 22px; text-decoration: underline; }
+.velvet-consent-categories { margin-top: 28px; border-top: 1px solid #cfc6bb; }
+.velvet-consent-categories label { display: flex; justify-content: space-between; gap: 24px; padding: 18px 0; border-bottom: 1px solid #cfc6bb; }
+.velvet-consent-categories span, .velvet-consent-categories small { display: block; }
+.velvet-consent-categories small { margin-top: 5px; line-height: 1.4; }
+.velvet-consent-categories input { width: 22px; height: 22px; accent-color: #241f1b; }
+.velvet-restricted-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; color: #241f1b; background: #f7f3ec; text-align: center; }
+.velvet-restricted-page span { font-family: var(--font-editorial); font-size: 30px; }
+.velvet-restricted-page h1 { margin: 28px 0 12px; font-size: clamp(38px, 8vw, 58px); }
+.velvet-restricted-page a { display: inline-block; margin-top: 24px; text-decoration: underline; }
+@media (max-width: 640px) { .velvet-institutional-page section { display: block; } .velvet-institutional-page section h2 { margin-bottom: 14px; } .velvet-compliance-actions { display: grid; } }
+
 /* ============================================================
    VELVET DESIGN SYSTEM V1 — CANONICAL PRODUCT FOUNDATION
    ============================================================ */

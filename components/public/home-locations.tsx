@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import type { ProfileWithMedia } from './public-profile-grid'
 import { getTranslations } from '@/lib/i18n/server'
+import { localizePathname } from '@/lib/i18n/routing'
 
 interface LocationItem {
   id: string
@@ -16,7 +17,7 @@ interface HomeLocationsProps {
 }
 
 export async function HomeLocations({ locationsByZone, profiles }: HomeLocationsProps) {
-  const { t } = await getTranslations()
+  const { locale, t } = await getTranslations()
   const canonicalZoneOrder = ['Zona Sul', 'Zona Oeste', 'Centro', 'Zona Norte', 'Zona Leste']
 
   const zones = Object.entries(locationsByZone)
@@ -41,7 +42,7 @@ export async function HomeLocations({ locationsByZone, profiles }: HomeLocations
               return (
               <Link
                 key={loc.id}
-                href={`/sao-paulo/${loc.slug}`}
+                href={localizePathname(`/sao-paulo/${loc.slug}`, locale)}
                 className="velvet-home-location"
               >
                 {portrait?.mediaUrl ? <span><Image src={portrait.mediaUrl} alt="" fill sizes="260px" /></span> : <span className="velvet-home-location-placeholder" aria-hidden="true">SP</span>}

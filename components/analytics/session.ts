@@ -24,6 +24,7 @@ export function isDoNotTrackEnabled(): boolean {
  */
 export function getVisitorSessionId(): string | null {
   if (typeof window === 'undefined') return null
+  if (!hasAnalyticsConsent()) return null
 
   // HD-4: Respect Do Not Track
   if (isDoNotTrackEnabled()) {
@@ -47,3 +48,4 @@ export function getVisitorSessionId(): string | null {
     return ephemeralMemoryId
   }
 }
+import { hasAnalyticsConsent } from '@/lib/compliance/consent'
