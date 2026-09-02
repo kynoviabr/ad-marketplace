@@ -1,11 +1,12 @@
-import { getPendingMediaQueue } from '@/modules/moderation/dal'
+import { getCustomerReviewModerationQueue, getPendingMediaQueue } from '@/modules/moderation/dal'
 import { ModerationQueueTable } from '@/components/admin/moderation-queue-table'
+import { ReviewModerationQueue } from '@/components/admin/review-moderation-queue'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminModerationPage({ searchParams }: { searchParams: Promise<{ profile?: string }> }) {
   const { profile } = await searchParams
-  const pendingItems = await getPendingMediaQueue(profile)
+  const [pendingItems, reviewItems] = await Promise.all([getPendingMediaQueue(profile), getCustomerReviewModerationQueue()])
 
   return (
     <div>
@@ -19,6 +20,11 @@ export default async function AdminModerationPage({ searchParams }: { searchPara
       </div>
 
       <ModerationQueueTable initialItems={pendingItems} />
+      <section style={{ marginTop: '3rem' }} aria-labelledby="review-moderation-title">
+        <h2 id="review-moderation-title">Avaliações e respostas</h2>
+        <p style={{ color: '#9ca3af' }}>Pendentes, denunciadas e contexto da resposta profissional. Decisões geram trilha de auditoria.</p>
+        <ReviewModerationQueue initialItems={reviewItems} />
+      </section>
     </div>
   )
 }

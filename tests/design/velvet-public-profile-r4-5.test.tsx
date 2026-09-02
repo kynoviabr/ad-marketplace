@@ -15,7 +15,7 @@ const photos = (count: number) => Array.from({ length: count }, (_, index) => ({
 const reviews = (count: number): ProfileReviewsPresentation => ({
   averageRating: 4.8,
   totalReviews: count,
-  previews: Array.from({ length: count }, (_, index) => ({ id: String(index), body: `Synthetic review ${index + 1}`, authorLabel: `Synthetic customer ${index + 1}` })),
+  previews: Array.from({ length: count }, (_, index) => ({ id: String(index), rating: 5, body: `Synthetic review ${index + 1}`, authorLabel: `Synthetic customer ${index + 1}` })),
 })
 const labels = { eyebrow: 'AVALIAÇÕES', title: 'Avaliações', noReviews: 'Ainda sem avaliações', noReviewsDescription: 'Este perfil ainda não recebeu avaliações.', ratingSummary: '4,8 · 37 avaliações', viewAll: 'Ver todas as 37 avaliações' }
 

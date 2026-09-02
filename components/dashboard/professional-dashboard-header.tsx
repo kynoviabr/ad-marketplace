@@ -7,7 +7,7 @@ export async function ProfessionalDashboardHeader({ activeHref }: { activeHref: 
   const { t } = await getTranslations()
   const nav = [
     [t('dashboard.overview'), '/dashboard'], [t('dashboard.myProfile'), '/onboarding/seu-perfil'], [t('dashboard.photos'), '/dashboard/photos'],
-    [t('dashboard.locations'), '/onboarding/onde-atende'], [t('dashboard.verification'), '/onboarding/verificacao'], ['Analytics', '/dashboard/analytics'],
+    [t('dashboard.locations'), '/onboarding/onde-atende'], [t('dashboard.verification'), '/onboarding/verificacao'], [t('profile.reviews'), '/dashboard/reviews'], ['Analytics', '/dashboard/analytics'],
   ] as const
   return <header className="velvet-dashboard-header">
     <Link href="/dashboard" className="velvet-wordmark" aria-label={`Velvet — ${t('dashboard.overview')}`}>velvet<span>.</span></Link>

@@ -151,6 +151,11 @@
   --ratio-thumb: 1 / 1;
 }
 
+.owner-reviews-list { display: grid; gap: 1rem; }
+.owner-reviews-list > article { padding: 1.25rem; background: #fff; border: 1px solid #e5ddd8; }
+.professional-response-form { display: grid; gap: .75rem; margin-top: 1rem; }
+.professional-response-form button { justify-self: start; }
+
 /* R6 public institutional and compliance surfaces */
 .velvet-footer-button { appearance: none; border: 0; padding: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
 .velvet-footer-button:hover, .velvet-footer-button:focus-visible { text-decoration: underline; }

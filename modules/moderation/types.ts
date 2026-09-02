@@ -1,4 +1,7 @@
 import type { ProfileMedia } from '../media/types'
+import type { ReviewModerationQueueItem } from '../reviews/types'
+
+export type { ReviewModerationQueueItem }
 
 export type ModerationDecision = 'APPROVE' | 'REJECT' | 'QUARANTINE'
 export type ProfileModerationDecision = 'APPROVE' | 'REJECT' | 'FLAG'

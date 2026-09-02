@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 const read = (file: string) => readFileSync(resolve(process.cwd(), file), 'utf8')
 const pt = { eyebrow: 'AVALIAÇÕES', title: 'Avaliações', noReviews: 'Ainda sem avaliações', noReviewsDescription: 'Este perfil ainda não recebeu avaliações.', ratingSummary: '', viewAll: '' }
 const en = { eyebrow: 'REVIEWS', title: 'Reviews', noReviews: 'No reviews yet', noReviewsDescription: 'This profile has not received any reviews yet.', ratingSummary: '', viewAll: '' }
-const fixture = (count: number): ProfileReviewsPresentation => ({ averageRating: 4.8, totalReviews: count, previews: Array.from({ length: count }, (_, index) => ({ id: String(index), body: `Synthetic fixture ${index}`, authorLabel: `Fixture label ${index}` })) })
+const fixture = (count: number): ProfileReviewsPresentation => ({ averageRating: 4.8, totalReviews: count, previews: Array.from({ length: count }, (_, index) => ({ id: String(index), rating: 5, body: `Synthetic fixture ${index}`, authorLabel: `Fixture label ${index}` })) })
 
 describe('Velvet R4.6 reviews empty state', () => {
   const route = read('app/(public)/perfil/[slug]/page.tsx')

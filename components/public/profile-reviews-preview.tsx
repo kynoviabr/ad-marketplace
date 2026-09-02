@@ -1,8 +1,11 @@
+import Link from 'next/link'
+
 export const PROFILE_REVIEW_PREVIEW_LIMIT = 3
 
 export interface ProfileReviewPreviewItem {
   id: string
-  body: string
+  rating: number
+  body: string | null
   authorLabel: string
   dateLabel?: string
   professionalResponse?: string
@@ -17,6 +20,7 @@ export interface ProfileReviewsPresentation {
 
 interface ProfileReviewsPreviewProps {
   data?: ProfileReviewsPresentation | null
+  viewAllHref?: string
   labels: {
     eyebrow: string
     title: string
@@ -31,8 +35,8 @@ export function getBoundedReviewPreviews(data: ProfileReviewsPresentation) {
   return data.previews.slice(0, PROFILE_REVIEW_PREVIEW_LIMIT)
 }
 
-export function ProfileReviewsPreview({ data, labels }: ProfileReviewsPreviewProps) {
-  const hasReviews = Boolean(data && data.totalReviews > 0 && data.previews.length > 0)
+export function ProfileReviewsPreview({ data, labels, viewAllHref }: ProfileReviewsPreviewProps) {
+  const hasReviews = Boolean(data && data.totalReviews > 0)
 
   if (!hasReviews || !data) {
     return (
@@ -63,18 +67,19 @@ export function ProfileReviewsPreview({ data, labels }: ProfileReviewsPreviewPro
           <p className="profile-kicker">{labels.eyebrow}</p>
           <h2 id="profile-reviews-title">{labels.title}</h2>
         </div>
-        <p>{labels.ratingSummary}</p>
+        <p><span aria-hidden="true">★★★★★</span> {labels.ratingSummary}</p>
       </header>
       <div className="profile-reviews-grid">
         {previews.map((review) => (
           <article key={review.id}>
-            <p>{review.body}</p>
+            <div className="profile-review-stars" role="img" aria-label={`${review.rating} / 5`}>{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
+            {review.body ? <p>{review.body}</p> : null}
             <small>{review.authorLabel}{review.dateLabel ? ` · ${review.dateLabel}` : ''}</small>
-            {review.professionalResponse ? <p className="profile-review-response">{review.professionalResponse}</p> : null}
+            {review.professionalResponse ? <blockquote className="profile-review-response">{review.professionalResponse}</blockquote> : null}
           </article>
         ))}
       </div>
-      <span className="profile-reviews-view-all">{labels.viewAll} <span aria-hidden="true">→</span></span>
+      {viewAllHref ? <Link className="profile-reviews-view-all" href={viewAllHref}>{labels.viewAll} <span aria-hidden="true">→</span></Link> : null}
     </section>
   )
 }

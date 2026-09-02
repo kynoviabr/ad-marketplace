@@ -8,6 +8,7 @@ import type { PublicProfileDTO } from './types'
 
 export interface PublicProfileMediaDTO { url: string; width: number | null; height: number | null; isPrimary: boolean }
 export interface PublicProfileDetailDTO {
+  profileId: string
   profile: PublicProfileDTO
   city: { id: string; name: string; slug: string }
   locations: Array<{ name: string; slug: string; isPrimary: boolean }>
@@ -47,5 +48,5 @@ export async function getEligiblePublicProfileBySlug(slug: string): Promise<Publ
   const media = delivered.flatMap(({ item, url }) => url ? [{ url, width: item.width, height: item.height, isPrimary: item.is_primary }] : [])
   if (media.length === 0) return null
 
-  return { profile, city: cityResult.data, locations: canonicalLocations, media, verifiedIdentity: true, verifiedAdult: true }
+  return { profileId: eligible.profile_id, profile, city: cityResult.data, locations: canonicalLocations, media, verifiedIdentity: true, verifiedAdult: true }
 }

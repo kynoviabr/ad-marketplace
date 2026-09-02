@@ -35,3 +35,12 @@ export const ModerateProfileSchema = z.object({
     context.addIssue({ code: 'custom', path: ['reasonCode'], message: 'Informe o motivo da decisão' })
   }
 })
+
+export const ModerateCustomerReviewSchema = z.object({
+  reviewId: z.string().uuid(),
+  target: z.enum(['REVIEW', 'RESPONSE']),
+  decision: z.enum(['APPROVE', 'REJECT']),
+  reason: z.string().trim().max(1000).optional(),
+}).superRefine((value, context) => {
+  if (value.decision === 'REJECT' && !value.reason) context.addIssue({ code: 'custom', path: ['reason'], message: 'Informe o motivo da rejeição' })
+})

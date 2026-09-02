@@ -6,6 +6,7 @@ import { ProfileReturnLink } from '@/components/public/profile-return-link'
 import { ProfileGallery } from '@/components/public/profile-gallery'
 import { ProfileInformation } from '@/components/public/profile-information'
 import { ProfileReviewsPreview } from '@/components/public/profile-reviews-preview'
+import { ReviewForm } from '@/components/reviews/review-form'
 import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 import { VelvetBadge } from '@/components/ui/velvet-badge'
@@ -13,6 +14,8 @@ import { localizePathname } from '@/lib/i18n/routing'
 import { OFFERING_GROUPS } from '@/modules/offerings/types'
 import { getTranslations } from '@/lib/i18n/server'
 import { getEligiblePublicProfileBySlug } from '@/modules/profiles/public-detail'
+import { getAccount } from '@/modules/auth/dal'
+import { getPublicReviews, getReviewAccess, PUBLIC_REVIEW_PREVIEW_LIMIT } from '@/modules/reviews/dal'
 import { constructProfileMetadata } from '@/modules/seo/metadata'
 import { generateProfileJsonLd } from '@/modules/seo/structured-data'
 
@@ -63,6 +66,11 @@ export default async function PublicProfilePage({ params }: Props) {
   if (!detail) notFound()
 
   const { profile, city, locations, media } = detail
+  const [reviews, account] = await Promise.all([
+    getPublicReviews(detail.profileId, 1, PUBLIC_REVIEW_PREVIEW_LIMIT),
+    getAccount(),
+  ])
+  const reviewAccess = await getReviewAccess(account, detail.profileId)
   const primary = media.find((item) => item.isPrimary) ?? media[0]
   const supportingMedia = media.filter((item) => item.url !== primary.url)
   const primaryLocation = locations.find((item) => item.isPrimary) ?? locations[0]
@@ -188,15 +196,29 @@ export default async function PublicProfilePage({ params }: Props) {
       ) : null}
 
       <ProfileReviewsPreview
+        data={{
+          averageRating: reviews.averageRating,
+          totalReviews: reviews.totalReviews,
+          previews: reviews.items.map((review) => ({
+            id: review.id,
+            rating: review.rating,
+            body: review.comment,
+            authorLabel: locale === 'en' ? 'Velvet member' : 'Membro Velvet',
+            dateLabel: new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(new Date(review.createdAt)),
+            professionalResponse: review.professionalResponse ?? undefined,
+          })),
+        }}
+        viewAllHref={localizePathname(`/perfil/${profile.slug}/avaliacoes`, locale)}
         labels={{
           eyebrow: t('profile.reviewsEyebrow'),
           title: t('profile.reviews'),
           noReviews: t('profile.noReviews'),
           noReviewsDescription: t('profile.noReviewsDescription'),
-          ratingSummary: '',
-          viewAll: '',
+          ratingSummary: locale === 'en' ? `${reviews.averageRating.toFixed(1)} · ${reviews.totalReviews} reviews` : `${reviews.averageRating.toFixed(1).replace('.', ',')} · ${reviews.totalReviews} avaliações`,
+          viewAll: locale === 'en' ? `View all ${reviews.totalReviews} reviews` : `Ver todas as ${reviews.totalReviews} avaliações`,
         }}
       />
+      <div className="profile-detail-wrap"><ReviewForm profileId={detail.profileId} access={reviewAccess} locale={locale} /></div>
 
       <aside className="profile-trust" aria-label={t('profile.verifiedProfile')}>
         <div className="profile-detail-wrap">

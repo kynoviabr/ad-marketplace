@@ -5,6 +5,7 @@ import type {
   PendingProfileQueueItem,
   MediaModerationReview,
   ProfileModerationReview,
+  ReviewModerationQueueItem,
 } from './types'
 
 /**
@@ -182,4 +183,24 @@ export async function getProfileReviews(profileId: string): Promise<ProfileModer
 
   if (error || !data) return []
   return data as ProfileModerationReview[]
+}
+
+export async function getCustomerReviewModerationQueue(): Promise<ReviewModerationQueueItem[]> {
+  const admin = createAdminClient()
+  const { data } = await admin.from('professional_reviews').select(`
+    id, professional_profile_id, rating, comment, moderation_status, created_at,
+    profile:professional_profiles(stage_name),
+    response:professional_review_responses(id,response,moderation_status),
+    reports:review_reports(id,status)
+  `).order('created_at', { ascending: true }).limit(200)
+  return (data ?? []).map((row: any) => {
+    const response = Array.isArray(row.response) ? row.response[0] : row.response
+    return {
+      id: row.id, profileId: row.professional_profile_id,
+      profileStageName: row.profile?.stage_name ?? 'Perfil', rating: row.rating,
+      comment: row.comment, status: row.moderation_status, createdAt: row.created_at,
+      response: response ? { id: response.id, body: response.response, status: response.moderation_status } : null,
+      openReports: (row.reports ?? []).filter((report: any) => ['OPEN', 'IN_REVIEW'].includes(report.status)).length,
+    }
+  }).filter((item) => item.status === 'PENDING' || item.response?.status === 'PENDING' || item.openReports > 0)
 }
