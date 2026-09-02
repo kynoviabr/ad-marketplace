@@ -10,7 +10,6 @@ export type ConsentPreferences = {
   marketing: false
   updatedAt: string
 }
-
 export function parseConsent(value?: string | null): ConsentPreferences | null {
   if (!value) return null
   try {
@@ -29,4 +28,3 @@ export function readClientConsent(): ConsentPreferences | null {
 export function hasAnalyticsConsent(): boolean {
   return readClientConsent()?.analytics === true
 }
-

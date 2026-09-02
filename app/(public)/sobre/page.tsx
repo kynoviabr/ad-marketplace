@@ -15,4 +15,3 @@ export default async function AboutPage() {
     <nav className="velvet-institutional-actions"><Link href={href('/como-funciona')}>{en ? 'How it works' : 'Como funciona'}</Link><Link href={href('/sao-paulo')}>{en ? 'Explore São Paulo' : 'Explorar São Paulo'}</Link></nav>
   </article>
 }
-

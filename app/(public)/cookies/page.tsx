@@ -10,4 +10,3 @@ export default async function CookiesPage() {
     <section><h2>{en ? 'Duration and control' : 'Duração e controle'}</h2><p>{en ? 'Age and consent choices are retained for up to 180 days, unless you update them earlier or clear browser data. Authentication duration follows account security settings.' : 'As escolhas de idade e consentimento são mantidas por até 180 dias, salvo atualização anterior ou limpeza dos dados do navegador. A duração da autenticação segue as configurações de segurança da conta.'}</p></section>
   </article>
 }
-
