@@ -36,11 +36,11 @@ describe('FASE 10 — Dynamic sitemap.xml Architecture & Invariants', () => {
 
     const result = await sitemap()
 
-    expect(result).toHaveLength(3)
+    expect(result).toHaveLength(9)
     expect(result[0].url).toBe('https://admarketplace.com.br/')
-    expect(result[1].url).toBe('https://admarketplace.com.br/sao-paulo')
-    expect(result[1].lastModified).toEqual(new Date('2026-08-18T20:00:00.000Z'))
-    expect(result[2].url).toBe('https://admarketplace.com.br/sao-paulo/moema')
+    const city = result.find((entry) => entry.url === 'https://admarketplace.com.br/sao-paulo')
+    expect(city?.lastModified).toEqual(new Date('2026-08-18T20:00:00.000Z'))
+    expect(result.some((entry) => entry.url === 'https://admarketplace.com.br/sao-paulo/moema')).toBe(true)
   })
 
   it('strictly excludes /perfil/[slug] URLs from FASE 10 sitemap (FASE 12 Scope)', async () => {
@@ -67,5 +67,21 @@ describe('FASE 10 — Dynamic sitemap.xml Architecture & Invariants', () => {
     const result = await sitemap()
     const queryParamUrls = result.filter((e) => e.url.includes('?'))
     expect(queryParamUrls).toHaveLength(0)
+  })
+
+  it('publishes institutional PT/EN routes when dynamic data is unavailable', async () => {
+    vi.spyOn(seoDal, 'getSitemapData').mockRejectedValue(new Error('missing preview service role'))
+    const result = await sitemap()
+    expect(result.map((entry) => entry.url)).toEqual(expect.arrayContaining([
+      'https://admarketplace.com.br/',
+      'https://admarketplace.com.br/sobre',
+      'https://admarketplace.com.br/como-funciona',
+      'https://admarketplace.com.br/seguranca',
+      'https://admarketplace.com.br/termos',
+      'https://admarketplace.com.br/privacidade',
+      'https://admarketplace.com.br/cookies',
+    ]))
+    const terms = result.find((entry) => entry.url.endsWith('/termos'))
+    expect(terms?.alternates?.languages?.en).toBe('https://admarketplace.com.br/en/terms')
   })
 })
