@@ -1,5 +1,6 @@
 'use client'
 
+import type { MouseEvent } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { LOCALE_COOKIE, type Locale } from '@/lib/i18n/config'
 import { localizePathname } from '@/lib/i18n/routing'
@@ -20,11 +21,17 @@ export function LanguageSelector({ compact = false, expanded = false }: { compac
     document.cookie = `${LOCALE_COOKIE}=${encodeURIComponent(nextLocale)}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
   }
 
+  const changeLocale = (event: MouseEvent<HTMLAnchorElement>, nextLocale: Locale) => {
+    event.preventDefault()
+    persistLocale(nextLocale)
+    window.location.assign(destinationFor(nextLocale))
+  }
+
   return (
     <div className={`velvet-language-selector${compact ? ' is-compact' : ''}${expanded ? ' is-expanded' : ''}`} role="group" aria-label={t('common.language')}>
-      <a href={destinationFor('pt-BR')} onClick={() => persistLocale('pt-BR')} aria-current={locale === 'pt-BR' ? 'page' : undefined} lang="pt-BR">{expanded ? t('common.portuguese') : 'PT'}</a>
+      <a href={destinationFor('pt-BR')} onClick={(event) => changeLocale(event, 'pt-BR')} aria-current={locale === 'pt-BR' ? 'page' : undefined} lang="pt-BR">{expanded ? t('common.portuguese') : 'PT'}</a>
       {!expanded && <span aria-hidden="true">/</span>}
-      <a href={destinationFor('en')} onClick={() => persistLocale('en')} aria-current={locale === 'en' ? 'page' : undefined} lang="en">{expanded ? t('common.english') : 'EN'}</a>
+      <a href={destinationFor('en')} onClick={(event) => changeLocale(event, 'en')} aria-current={locale === 'en' ? 'page' : undefined} lang="en">{expanded ? t('common.english') : 'EN'}</a>
     </div>
   )
 }
