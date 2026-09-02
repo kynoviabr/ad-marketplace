@@ -32,7 +32,9 @@ export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
   const requestedPathname = url.pathname
   const pathLocale = localeFromPathname(requestedPathname)
-  const locale = pathLocale ?? resolveLocale(request.cookies.get(LOCALE_COOKIE)?.value)
+  const locale = pathLocale ?? (requestedPathname === '/'
+    ? resolveLocale(request.cookies.get(LOCALE_COOKIE)?.value)
+    : DEFAULT_LOCALE)
   const pathname = stripLocalePrefix(requestedPathname)
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(LOCALE_HEADER, locale)

@@ -94,6 +94,12 @@ describe('Velvet PT-BR + EN foundation', () => {
     expect(proxy).toContain("localizePathname('/onboarding', locale)")
   })
 
+  it('15b. treats explicit unprefixed routes as PT regardless of a stale EN cookie', () => {
+    const proxy = source('proxy.ts')
+    expect(proxy).toContain("requestedPathname === '/'")
+    expect(proxy).toContain(': DEFAULT_LOCALE)')
+  })
+
   it('16. excludes the Didit/auth callback contract from locale routing', () => {
     expect(source('lib/i18n/routing.ts')).toContain("pathname.startsWith('/auth/callback')")
     expect(source('modules/verification/actions.ts')).toContain('/onboarding/verificacao')
