@@ -9,7 +9,8 @@ const read = (path: string) => readFileSync(join(ROOT, path), 'utf8')
 describe('Velvet professional onboarding foundation', () => {
   it('routes the professional acquisition entry to canonical signup', () => {
     const entry = read('app/anuncie/page.tsx')
-    expect(entry).toContain("redirect('/signup')")
+    expect(entry).toContain("localizePathname('/signup', locale)")
+    expect(entry).toContain('redirect(localizePathname')
   })
 
   it('sends authenticated auth-page visitors through the onboarding resolver', () => {
