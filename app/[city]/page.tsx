@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { after } from 'next/server'
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { executeSearch, getFilterOptions } from '@/modules/search/dal'
 import { isReservedSlug } from '@/modules/search/schemas'
 import { recordSearchPerformedEvent } from '@/modules/analytics/write'
@@ -24,6 +24,7 @@ import { getRequestLocale, getTranslations } from '@/lib/i18n/server'
 import { localizePathname } from '@/lib/i18n/routing'
 import { buildSearchPageHref } from '@/modules/search/presentation'
 import { VelvetEmptyState } from '@/components/ui/velvet-empty-state'
+import { CONSENT_COOKIE, parseConsent } from '@/lib/compliance/consent'
 
 interface CitySearchPageProps {
   params: Promise<{ city: string }>
@@ -105,10 +106,11 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
   const headersList = await headers()
   const userAgent = headersList.get('user-agent')
   const isCrawler = isSearchCrawler(userAgent)
+  const analyticsAllowed = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value)?.analytics === true
 
   // FASE 09/10: Schedule non-blocking SEARCH_PERFORMED analytics event for human visitors
   after(async () => {
-    if (isCrawler) return
+    if (isCrawler || !analyticsAllowed) return
 
     try {
       await recordSearchPerformedEvent({

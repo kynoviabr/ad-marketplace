@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { LegalDocument, type LegalSection } from '@/components/public/legal-document'
 import { buildCanonicalUrl } from '@/modules/seo/canonical'
+import { getRequestLocale } from '@/lib/i18n/server'
 
 export const metadata: Metadata = {
   title: { absolute: 'Segurança | Velvet' },
@@ -8,7 +9,14 @@ export const metadata: Metadata = {
   alternates: { canonical: buildCanonicalUrl('/seguranca') },
 }
 
-export default function SecurityPage() {
+export default async function SecurityPage() {
+  const en = (await getRequestLocale()) === 'en'
+  if (en) return <LegalDocument eyebrow="TRUST AND PROTECTION" title="Safety at Velvet" introduction={<p>Safety is built in layers: adult access, identity and age verification, controlled access, private media, moderation and responsible use.</p>} showContents={false} sections={[
+    { id: 'verification', title: 'Identity and legal age', content: <p>Professionals must complete identity and age verification through a specialized provider before publication. Verification confirms only the scope and result of that procedure; it does not guarantee services, conduct or meetings.</p> },
+    { id: 'media', title: 'Private media and moderation', content: <p>Media is stored outside public access. Only approved content may be displayed through temporary delivery addresses; pending, rejected or quarantined files are not published.</p> },
+    { id: 'contact', title: 'Direct contact', content: <p>Velvet has no visitor-to-professional chat. Contact occurs through channels chosen by the professional. Never share credentials, identity documents or financial codes with strangers.</p> },
+    { id: 'responsibility', title: 'Responsible use', content: <p>Use unique passwords, verify the domain and report suspicious behavior through official channels. Technology reduces risk but cannot eliminate it.</p> },
+  ]} />
   const sections: LegalSection[] = [
     { id: 'verificacao', title: 'Identidade e maioridade', content: <p>Profissionais precisam concluir verificação de identidade e confirmação de idade por fornecedor especializado antes de avançar para recursos de publicação. A Velvet é exclusivamente 18+.</p> },
     { id: 'midia', title: 'Mídia privada e publicação aprovada', content: <p>As fotos são enviadas a armazenamento não público. Apenas conteúdo aprovado no fluxo de moderação pode ser exibido, e sua entrega usa endereços temporários. Arquivos pendentes, rejeitados ou isolados para análise não são publicados.</p> },

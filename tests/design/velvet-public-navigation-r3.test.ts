@@ -114,15 +114,14 @@ describe('Velvet Design System v1 — R3 public chrome', () => {
   })
 
   it('18. keeps every footer destination on an existing public route', () => {
-    expect(footer).toContain("`${localized('/')}#sobre`")
-    for (const route of ['/sao-paulo', '/anuncie', '/seguranca', '/termos', '/privacidade']) {
+    for (const route of ['/sobre', '/como-funciona', '/sao-paulo', '/anuncie', '/seguranca', '/termos', '/privacidade', '/cookies']) {
       expect(footer).toContain(`localized('${route}')`)
     }
   })
 
   it('19. does not invent routes in the R3 public chrome', () => {
     const pathLiterals = [...publicChrome.matchAll(/['"](\/(?!\/)[a-z][a-z0-9/.-]*)['"]/gi)].map((match) => match[1])
-    const allowed = new Set(['/', '/en', '/sao-paulo', '/anuncie', '/dashboard', '/login', '/seguranca', '/termos', '/privacidade'])
+    const allowed = new Set(['/', '/en', '/sobre', '/como-funciona', '/sao-paulo', '/anuncie', '/dashboard', '/login', '/seguranca', '/termos', '/privacidade', '/cookies'])
     expect(pathLiterals.filter((path) => !allowed.has(path))).toEqual([])
   })
 

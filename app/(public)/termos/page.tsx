@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { LegalDocument, type LegalSection } from '@/components/public/legal-document'
 import { getPrivacyContactEmail } from '@/lib/legal'
 import { buildCanonicalUrl } from '@/modules/seo/canonical'
+import { getRequestLocale } from '@/lib/i18n/server'
+import { localizePathname } from '@/lib/i18n/routing'
 
 export const metadata: Metadata = {
   title: { absolute: 'Termos de Uso | Velvet' },
@@ -10,7 +12,18 @@ export const metadata: Metadata = {
   alternates: { canonical: buildCanonicalUrl('/termos') },
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const locale = await getRequestLocale()
+  if (locale === 'en') return <LegalDocument eyebrow="TERMS · INITIAL OPERATIONAL VERSION" title="Velvet Terms of Use" introduction={<p>These terms govern responsible use by adult visitors and professionals. This operational draft requires specialist legal review before final legal release.</p>} sections={[
+    { id: 'acceptance', title: 'Acceptance and adult access', content: <p>By using Velvet, you agree to these Terms and the Privacy Notice and confirm you are at least 18 years old. Minors may not access, register, appear in or be represented through the platform.</p> },
+    { id: 'role', title: 'Velvet’s role', content: <p>Velvet provides discovery, profile, verification, moderation and direct-contact tools. It is not an agency, employer, representative, guarantor or party to conversations, payments or arrangements made outside the platform.</p> },
+    { id: 'accounts', title: 'Accounts and profiles', content: <p>Professionals must provide accurate information, protect credentials, maintain rights and consent for submitted content and keep public contact and profile details current.</p> },
+    { id: 'verification', title: 'Verification and moderation', content: <p>Publication requires identity and legal-age verification and approved content. Verification confirms the procedure’s result and scope only. Content may be reviewed, restricted, rejected or removed for safety, rule or legal reasons.</p> },
+    { id: 'prohibited', title: 'Prohibited conduct', content: <p>Fraud, coercion, exploitation, content involving minors, non-consensual content, impersonation, harassment, malware, unauthorized scraping, security circumvention and illegal activity are prohibited.</p> },
+    { id: 'availability', title: 'Availability and responsibility', content: <p>Service may be interrupted for maintenance or supplier failures. Velvet does not guarantee user statements, availability, conduct, service quality or external arrangements. Mandatory rights under applicable law remain unaffected.</p> },
+    { id: 'privacy', title: 'Privacy and cookies', content: <p>Personal-data practices are described in the <Link href={localizePathname('/privacidade', locale)}>Privacy Notice</Link> and storage choices in the <Link href={localizePathname('/cookies', locale)}>Cookie Policy</Link>.</p> },
+    { id: 'law', title: 'Applicable law and legal review', content: <p>Brazilian law applies, including data-protection and consumer rules where relevant. Legal entity details, jurisdiction wording and final enforceability require counsel confirmation before final legal release.</p> },
+  ]} />
   const email = getPrivacyContactEmail()
   const contact = email ? <a href={`mailto:${email}`}>{email}</a> : <>o canal oficial que será publicado nesta página antes da entrada em produção</>
   const sections: LegalSection[] = [
@@ -33,7 +46,7 @@ export default function TermsPage() {
     { id: 'suspensao', title: 'Suspensão e encerramento de contas', content: <p>Podemos restringir, suspender ou encerrar acesso quando houver violação destes Termos, risco à segurança, obrigação legal ou perda dos requisitos de publicação, observados os direitos aplicáveis. A aplicação ainda não oferece encerramento integral por autosserviço; solicitações podem ser encaminhadas por contato oficial.</p> },
     { id: 'planos', title: 'Planos e direitos de publicação', content: <p>A arquitetura admite planos, preços, períodos, cancelamento ao fim do ciclo e direitos de publicação. No estado atual, o provedor real de pagamentos ainda não está integrado. Condições comerciais, cobrança, reembolso e cancelamento deverão ser apresentadas antes de uma contratação paga e submetidas a revisão jurídica.</p> },
     { id: 'propriedade', title: 'Propriedade intelectual', content: <p>A marca, identidade visual, software, textos institucionais e demais materiais próprios da Velvet são protegidos. Estes Termos não concedem licença além do uso normal da plataforma. Conteúdo da profissional permanece sujeito à licença operacional limitada descrita acima.</p> },
-    { id: 'privacidade', title: 'Privacidade', content: <p>O tratamento de dados pessoais é explicado no <Link href="/privacidade">Aviso de Privacidade</Link>. Ao tornar informações públicas, a profissional reconhece que elas poderão ser acessadas por visitantes.</p> },
+    { id: 'privacidade', title: 'Privacidade', content: <p>O tratamento de dados pessoais é explicado no <Link href={localizePathname('/privacidade', locale)}>Aviso de Privacidade</Link>. Ao tornar informações públicas, a profissional reconhece que elas poderão ser acessadas por visitantes.</p> },
     { id: 'alteracoes', title: 'Alterações dos Termos', content: <p>Podemos atualizar estes Termos para refletir mudanças no produto, riscos e legislação. A versão vigente será publicada aqui e, quando necessário, solicitaremos nova aceitação.</p> },
     { id: 'responsabilidades', title: 'Responsabilidades e limitações', content: <p>A Velvet não garante a exatidão de toda declaração do usuário, a disponibilidade ou qualidade profissional, a conduta das partes nem a legalidade de arranjos externos. Cada pessoa responde por suas escolhas, conteúdo e conduta. Nada nestes Termos exclui responsabilidade ou direito que não possa ser afastado pela legislação aplicável.</p> },
     { id: 'legislacao', title: 'Legislação aplicável', content: <p>Estes Termos são interpretados conforme a legislação brasileira, inclusive regras de proteção de dados e normas de proteção do consumidor quando aplicáveis. A definição de foro e demais cláusulas processuais depende de revisão jurídica.</p> },

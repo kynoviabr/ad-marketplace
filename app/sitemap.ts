@@ -1,6 +1,8 @@
 import type { MetadataRoute } from 'next'
 import { getSitemapData } from '@/modules/seo/dal'
 import { getSeoConfig } from '@/modules/seo/config'
+import { localizePathname } from '@/lib/i18n/routing'
+import type { SitemapEntryDTO } from '@/modules/seo/types'
 
 export const revalidate = 3600
 
@@ -13,12 +15,24 @@ export const revalidate = 3600
  * - Excludes: Private/admin routes, paginated query params, search filter query params.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const entries = await getSitemapData()
   const { siteUrl } = getSeoConfig()
+  const institutionalPaths = ['/', '/sobre', '/como-funciona', '/seguranca', '/termos', '/privacidade', '/cookies']
+  const staticEntries: SitemapEntryDTO[] = institutionalPaths.map((pathname) => ({
+    url: `${siteUrl}${pathname === '/' ? '/' : pathname}`,
+    changeFrequency: pathname === '/' ? 'daily' : 'monthly',
+    priority: pathname === '/' ? 1 : 0.5,
+  }))
+  let dynamicEntries: SitemapEntryDTO[] = []
+  try {
+    dynamicEntries = await getSitemapData()
+  } catch (error) {
+    console.warn('[seo:sitemap] Dynamic entries unavailable; publishing static public routes only.', error instanceof Error ? error.message : 'Unknown error')
+  }
+  const entries = [...new Map([...staticEntries, ...dynamicEntries].map((entry) => [entry.url, entry])).values()]
 
   return entries.map((e) => {
     const pathname = new URL(e.url).pathname
-    const englishUrl = `${siteUrl}${pathname === '/' ? '/en' : `/en${pathname}`}`
+    const englishUrl = `${siteUrl}${localizePathname(pathname, 'en')}`
     const alternates = { languages: { 'pt-BR': e.url, en: englishUrl, 'x-default': e.url } }
     return {
       url: e.url,

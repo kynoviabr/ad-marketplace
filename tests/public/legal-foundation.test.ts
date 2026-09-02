@@ -34,8 +34,7 @@ describe('Velvet public legal foundation', () => {
   })
 
   it('links the single public footer to all legal pages and preserves Sobre', () => {
-    expect(footer).toContain("href={`${localized('/')}#sobre`}")
-    for (const route of ['/seguranca', '/termos', '/privacidade']) expect(footer).toContain(`localized('${route}')`)
+    for (const route of ['/sobre', '/como-funciona', '/seguranca', '/termos', '/privacidade', '/cookies']) expect(footer).toContain(`localized('${route}')`)
   })
 
   it('uses a configuration-backed privacy contact and fails readiness when absent', async () => {

@@ -3,6 +3,7 @@ import { LanguageSelector } from '@/components/i18n/language-selector'
 import { localizePathname } from '@/lib/i18n/routing'
 import { getTranslations } from '@/lib/i18n/server'
 import { getPublicIsAuthenticated } from './public-auth-state'
+import { CookiePreferencesButton } from '@/components/compliance/cookie-preferences-button'
 
 export async function PublicFooter() {
   const [{ locale, t }, isAuthenticated] = await Promise.all([
@@ -25,7 +26,8 @@ export async function PublicFooter() {
 
         <nav className="velvet-public-footer-group" aria-label={t('footer.discover')}>
           <h2>{t('footer.discover')}</h2>
-          <Link href={`${localized('/')}#sobre`}>{t('footer.about')}</Link>
+          <Link href={localized('/sobre')}>{t('footer.about')}</Link>
+          <Link href={localized('/como-funciona')}>{t('footer.howItWorks')}</Link>
           <Link href={localized('/sao-paulo')}>{t('navigation.explore')}</Link>
           <span>São Paulo</span>
         </nav>
@@ -43,6 +45,8 @@ export async function PublicFooter() {
           <Link href={localized('/seguranca')}>{t('footer.security')}</Link>
           <Link href={localized('/termos')}>{t('footer.terms')}</Link>
           <Link href={localized('/privacidade')}>{t('footer.privacy')}</Link>
+          <Link href={localized('/cookies')}>{t('footer.cookies')}</Link>
+          <CookiePreferencesButton label={t('footer.cookiePreferences')} />
           <LanguageSelector />
         </nav>
       </div>

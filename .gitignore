@@ -51,3 +51,6 @@ coverage/
 # Supabase CLI state (local link, not project config)
 supabase/.temp/
 .vercel
+.env*.local
+.env.*-source
+.artifacts/

@@ -22,6 +22,11 @@ describe('FASE 09 — Privacy & LGPD Invariants', () => {
       writable: true,
       configurable: true,
     })
+    Object.defineProperty(globalThis, 'document', {
+      value: { cookie: `velvet_cookie_consent=${encodeURIComponent(JSON.stringify({ version: 'r6-v1', necessary: true, analytics: true, marketing: false, updatedAt: '2026-09-02T00:00:00.000Z' }))}` },
+      writable: true,
+      configurable: true,
+    })
 
     Object.defineProperty(globalThis.navigator, 'doNotTrack', {
       value: '0',
@@ -64,6 +69,11 @@ describe('FASE 09 — Privacy & LGPD Invariants', () => {
     const sid1 = getVisitorSessionId()
     const sid2 = getVisitorSessionId()
     expect(sid1).toBe(sid2)
+  })
+
+  it('does not create a visitor identifier without analytics consent', () => {
+    document.cookie = ''
+    expect(getVisitorSessionId()).toBeNull()
   })
 
   it('asserts that raw IP is NOT a property of AnalyticsEvent interface', () => {
