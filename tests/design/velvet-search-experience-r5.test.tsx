@@ -54,4 +54,34 @@ describe('Velvet R5 Search / Explore contracts', () => {
   it('38. preserves canonical breadcrumb JSON-LD', () => expect(city + location).toContain('<JsonLd'))
   it('39. preserves responsive next/image sizing', () => expect(card).toContain('sizes="(max-width: 640px) 100vw'))
   it('40. contains no business system changes in R5 presentation files', () => expect(filters + card).not.toMatch(/Didit|billing|entitlement|service_role|supabase/i))
+  it('41. derives visible chips from current URL search params', () => {
+    expect(filters).toContain("const activeHair = searchParams.get('cabelo') || ''")
+    expect(filters).toContain("activeHair ? { key: 'cabelo'")
+  })
+  it('42. clears only the removed appearance control state', () => {
+    expect(filters).toContain("if (key === 'cabelo') setHair('')")
+    expect(filters).toContain("if (key === 'olhos') setEyes('')")
+    expect(filters).toContain("if (key === 'corpo') setBody('')")
+  })
+  it('43. clears each age control independently after chip removal', () => {
+    expect(filters).toContain("if (key === 'idade_min') setMinAge('')")
+    expect(filters).toContain("if (key === 'idade_max') setMaxAge('')")
+  })
+  it('44. keeps individual removal wired to each visible chip button', () => {
+    expect(filters).toContain('onClick={() => remove(chip.key)}')
+    expect(filters).toContain('params.delete(key)')
+  })
+  it('45. keeps remove controls keyboard-accessible and labeled', () => {
+    expect(filters).toContain('type="button" aria-label={t(\'search.removeFilter\', { filter: chip.label })} onClick={() => remove(chip.key)}')
+  })
+  it('46. preserves locale and neighborhood while removing query filters', () => {
+    expect(filters).toContain("router.push(buildUrl(currentNeighborhood || '', params))")
+  })
+  it('47. keeps reset-all state synchronization intact', () => {
+    expect(filters).toContain("setNeighborhood(''); setMinAge(''); setMaxAge(''); setHair(''); setEyes(''); setBody('')")
+  })
+  it('48. contains long active-chip rows inside the mobile viewport', () => {
+    expect(r5Css).toContain('.velvet-active-filters { width: 100%; min-width: 0; max-width: 100%')
+    expect(r5Css).toContain('.velvet-search-filter-row { align-items: flex-start; overflow: hidden; }')
+  })
 })

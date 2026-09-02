@@ -31,6 +31,12 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, locale
   const [eyes, setEyes] = useState(searchParams.get('olhos') || '')
   const [body, setBody] = useState(searchParams.get('corpo') || '')
 
+  const activeMinAge = searchParams.get('idade_min') || ''
+  const activeMaxAge = searchParams.get('idade_max') || ''
+  const activeHair = searchParams.get('cabelo') || ''
+  const activeEyes = searchParams.get('olhos') || ''
+  const activeBody = searchParams.get('corpo') || ''
+
   const close = () => {
     setIsOpen(false)
     window.requestAnimationFrame(() => triggerRef.current?.focus())
@@ -88,8 +94,19 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, locale
 
   const remove = (key: FilterKey | 'neighborhood') => {
     const params = new URLSearchParams(searchParams.toString())
-    if (key === 'neighborhood') router.push(buildUrl('', params))
-    else { params.delete(key); router.push(buildUrl(currentNeighborhood || '', params)) }
+    if (key === 'neighborhood') {
+      setNeighborhood('')
+      router.push(buildUrl('', params))
+      return
+    }
+
+    params.delete(key)
+    if (key === 'idade_min') setMinAge('')
+    if (key === 'idade_max') setMaxAge('')
+    if (key === 'cabelo') setHair('')
+    if (key === 'olhos') setEyes('')
+    if (key === 'corpo') setBody('')
+    router.push(buildUrl(currentNeighborhood || '', params))
   }
 
   const locationName = currentNeighborhood
@@ -102,11 +119,11 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, locale
   }
   const chips = [
     locationName ? { key: 'neighborhood' as const, label: locationName } : null,
-    minAge ? { key: 'idade_min' as const, label: t('search.chip.minAge', { age: minAge }) } : null,
-    maxAge ? { key: 'idade_max' as const, label: t('search.chip.maxAge', { age: maxAge }) } : null,
-    hair ? { key: 'cabelo' as const, label: optionLabels[hair] || hair } : null,
-    eyes ? { key: 'olhos' as const, label: optionLabels[eyes] || eyes } : null,
-    body ? { key: 'corpo' as const, label: optionLabels[body] || body } : null,
+    activeMinAge ? { key: 'idade_min' as const, label: t('search.chip.minAge', { age: activeMinAge }) } : null,
+    activeMaxAge ? { key: 'idade_max' as const, label: t('search.chip.maxAge', { age: activeMaxAge }) } : null,
+    activeHair ? { key: 'cabelo' as const, label: optionLabels[activeHair] || activeHair } : null,
+    activeEyes ? { key: 'olhos' as const, label: optionLabels[activeEyes] || activeEyes } : null,
+    activeBody ? { key: 'corpo' as const, label: optionLabels[activeBody] || activeBody } : null,
   ].filter(Boolean) as Array<{ key: FilterKey | 'neighborhood'; label: string }>
 
   return <div className="velvet-search-filters">
@@ -115,7 +132,7 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, locale
         <span aria-hidden="true">☰</span>{t('search.filters')}{chips.length ? ` (${chips.length})` : ''}
       </button>
       {chips.length ? <div className="velvet-active-filters" aria-label={t('search.activeFilters')}>
-        {chips.map((chip) => <button key={chip.key} type="button" onClick={() => remove(chip.key)}>{chip.label}<span aria-hidden="true">×</span><span className="sr-only">{t('search.removeFilter', { filter: chip.label })}</span></button>)}
+        {chips.map((chip) => <button key={chip.key} type="button" aria-label={t('search.removeFilter', { filter: chip.label })} onClick={() => remove(chip.key)}>{chip.label}<span aria-hidden="true">×</span></button>)}
         <button type="button" className="velvet-clear-filters" onClick={clear}>{t('search.clear')}</button>
       </div> : null}
     </div>
