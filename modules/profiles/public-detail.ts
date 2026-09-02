@@ -5,6 +5,7 @@ import type { ProfileMedia } from '@/modules/media/types'
 import type { ProfileLocation } from '@/modules/locations/types'
 import { getPublicProfileDTO } from './dal'
 import type { PublicProfileDTO } from './types'
+import { getApprovedPublicVideos } from '@/modules/videos/dal'
 
 export interface PublicProfileMediaDTO { url: string; width: number | null; height: number | null; isPrimary: boolean }
 export interface PublicProfileDetailDTO {
@@ -13,6 +14,7 @@ export interface PublicProfileDetailDTO {
   city: { id: string; name: string; slug: string }
   locations: Array<{ name: string; slug: string; isPrimary: boolean }>
   media: PublicProfileMediaDTO[]
+  videos: Array<{id:string;posterUrl:string|null;durationSeconds:number|null}>
   verifiedIdentity: true
   verifiedAdult: true
 }
@@ -30,11 +32,12 @@ export async function getEligiblePublicProfileBySlug(slug: string): Promise<Publ
     .maybeSingle()
   if (eligibilityError || !eligible) return null
 
-  const [profile, cityResult, locationsResult, mediaResult] = await Promise.all([
+  const [profile, cityResult, locationsResult, mediaResult, videos] = await Promise.all([
     getPublicProfileDTO(normalizedSlug),
     admin.from('cities').select('id, name, slug').eq('id', eligible.city_id).eq('active', true).maybeSingle(),
     admin.from('professional_profile_locations').select('*, location:marketplace_locations(*)').eq('profile_id', eligible.profile_id).order('is_primary', { ascending: false }),
     admin.from('profile_media').select('*').eq('profile_id', eligible.profile_id).eq('status', 'APPROVED').is('deleted_at', null).order('position', { ascending: true }),
+    getApprovedPublicVideos(eligible.profile_id),
   ])
   if (!profile || cityResult.error || !cityResult.data || locationsResult.error || mediaResult.error) return null
 
@@ -48,5 +51,5 @@ export async function getEligiblePublicProfileBySlug(slug: string): Promise<Publ
   const media = delivered.flatMap(({ item, url }) => url ? [{ url, width: item.width, height: item.height, isPrimary: item.is_primary }] : [])
   if (media.length === 0) return null
 
-  return { profileId: eligible.profile_id, profile, city: cityResult.data, locations: canonicalLocations, media, verifiedIdentity: true, verifiedAdult: true }
+  return { profileId: eligible.profile_id, profile, city: cityResult.data, locations: canonicalLocations, media, videos: videos.filter(v=>v.posterUrl), verifiedIdentity: true, verifiedAdult: true }
 }

@@ -6,6 +6,7 @@ import type {
   MediaModerationReview,
   ProfileModerationReview,
   ReviewModerationQueueItem,
+  PendingVideoQueueItem,
 } from './types'
 
 /**
@@ -31,6 +32,7 @@ async function getSafeVerificationByAccount(accountIds: string[]) {
   }
   return result
 }
+export async function getPendingVideoQueue(profileId?:string):Promise<PendingVideoQueueItem[]>{const admin=createAdminClient();let q=admin.from('profile_videos').select('id,profile_id,storage_path,poster_storage_path,duration_seconds,file_size_bytes,created_at,profile:professional_profiles(stage_name)').eq('status','PENDING_MODERATION').is('deleted_at',null).order('created_at');if(profileId)q=q.eq('profile_id',profileId);const {data}=await q;return Promise.all((data??[]).map(async(row:any)=>{const [poster,video]=await Promise.all([admin.storage.from('profile-videos').createSignedUrl(row.poster_storage_path,900),admin.storage.from('profile-videos').createSignedUrl(row.storage_path,900)]);return {id:row.id,profile_id:row.profile_id,stage_name:row.profile?.stage_name??'Perfil',poster_url:poster.data?.signedUrl??null,preview_url:video.data?.signedUrl??null,duration_seconds:Number(row.duration_seconds),file_size_bytes:Number(row.file_size_bytes),created_at:row.created_at}}))}
 
 export async function getPendingMediaQueue(profileId?: string): Promise<PendingMediaQueueItem[]> {
   const admin = createAdminClient()

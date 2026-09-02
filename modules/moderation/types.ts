@@ -52,6 +52,7 @@ export interface PendingMediaQueueItem {
   identity_verified: boolean
   age_verified: boolean
 }
+export interface PendingVideoQueueItem {id:string;profile_id:string;stage_name:string;poster_url:string|null;preview_url:string|null;duration_seconds:number;file_size_bytes:number;created_at:string}
 
 export interface PendingProfileQueueItem {
   id: string

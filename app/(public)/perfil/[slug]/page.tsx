@@ -65,7 +65,7 @@ export default async function PublicProfilePage({ params }: Props) {
   const detail = await getEligiblePublicProfileBySlug(slug)
   if (!detail) notFound()
 
-  const { profile, city, locations, media } = detail
+  const { profile, city, locations, media, videos } = detail
   const [reviews, account] = await Promise.all([
     getPublicReviews(detail.profileId, 1, PUBLIC_REVIEW_PREVIEW_LIMIT),
     getAccount(),
@@ -100,7 +100,7 @@ export default async function PublicProfilePage({ params }: Props) {
   }))
   const analyticsPayload = { profileSlug: profile.slug, citySlug: city.slug, locationSlug: primaryLocation.slug, placementType: 'ORGANIC' as const }
   const seoContract = { stageName: profile.stageName, headline: profile.headline, cityName: city.name, citySlug: city.slug, slug: profile.slug, primaryMediaUrl: null, locale }
-  const galleryCount = supportingMedia.length === 1
+  const galleryCount = videos.length ? (locale === 'en' ? `${supportingMedia.length + videos.length} media items` : `${supportingMedia.length + videos.length} mídias`) : supportingMedia.length === 1
     ? t('profile.mediaCountOne')
     : t('profile.mediaCountMany', { count: supportingMedia.length })
 
@@ -169,7 +169,7 @@ export default async function PublicProfilePage({ params }: Props) {
         </section>
       ) : null}
 
-      {supportingMedia.length ? (
+      {supportingMedia.length || videos.length ? (
         <section className="profile-section profile-gallery profile-detail-wrap" aria-labelledby="profile-gallery-title">
           <header className="profile-gallery-heading">
             <div>
@@ -179,18 +179,16 @@ export default async function PublicProfilePage({ params }: Props) {
             <p>{galleryCount}</p>
           </header>
           <ProfileGallery
-            images={supportingMedia.map((item, index) => ({
-              url: item.url,
-              alt: t('profile.photo', { name: profile.stageName, number: index + 2 }),
-            }))}
             labels={{
               close: t('common.close'),
               previous: t('common.previous'),
               next: t('common.next'),
               open: t('profile.openPhoto'),
               dialog: t('profile.galleryDialog'),
-              viewAll: t('profile.viewAllPhotos', { count: supportingMedia.length }),
+              viewAll: videos.length ? (locale === 'en' ? `View all ${supportingMedia.length + videos.length} media items` : `Ver todas as ${supportingMedia.length + videos.length} mídias`) : t('profile.viewAllPhotos', { count: supportingMedia.length }),
             }}
+            images={supportingMedia.map((item, index) => ({url:item.url,alt:t('profile.photo',{name:profile.stageName,number:index+2})}))}
+            videos={videos.map((item,index)=>({url:item.posterUrl!,alt:locale==='en'?`Video ${index+1} by ${profile.stageName}`:`Vídeo ${index+1} de ${profile.stageName}`,videoId:item.id}))}
           />
         </section>
       ) : null}

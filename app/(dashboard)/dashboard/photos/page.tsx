@@ -6,6 +6,8 @@ import { getManageableProfileMedia, reconcileStaleUploadingMedia } from '@/modul
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
 import { getPublicationReviewState } from '@/modules/publication/dal'
 import { requireVerifiedAdvertiser } from '@/modules/verification/dal'
+import { VideoManager } from '@/components/media/video-manager'
+import { getManageableProfileVideos } from '@/modules/videos/dal'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Fotos | Velvet', robots: 'noindex, nofollow' }
@@ -16,8 +18,9 @@ export default async function DashboardPhotosPage() {
   if (!profile) redirect('/onboarding/seu-perfil')
 
   await reconcileStaleUploadingMedia(profile.id)
-  const [media, publication] = await Promise.all([
+  const [media, videos, publication] = await Promise.all([
     getManageableProfileMedia(profile.id),
+    getManageableProfileVideos(profile.id),
     getPublicationReviewState(account),
   ])
 
@@ -29,6 +32,7 @@ export default async function DashboardPhotosPage() {
         <div><p>Escolha as imagens que melhor representam seu perfil.</p>{publication.isPublic && publication.slug ? <Link href={`/perfil/${publication.slug}`}>Ver meu perfil <span aria-hidden="true">↗</span></Link> : <Link href="/dashboard">Voltar à visão geral <span aria-hidden="true">→</span></Link>}</div>
       </header>
       <MediaGalleryManager initialMedia={media} mode="dashboard" />
+      <VideoManager initialVideos={videos} />
     </main>
   </div>
 }

@@ -10,6 +10,7 @@ export interface ModerationActionResult {
   success: boolean
   error?: string
 }
+export async function moderateVideoAction(input:{videoId:string;decision:'APPROVE'|'REJECT';reason?:string}):Promise<ModerationActionResult>{try{const moderator=await requireAdmin();if(!/^[0-9a-f-]{36}$/i.test(input.videoId)||!['APPROVE','REJECT'].includes(input.decision)||(input.reason?.length??0)>1000)return {success:false,error:'Dados inválidos'};if(input.decision==='REJECT'&&!input.reason?.trim())return {success:false,error:'Informe o motivo'};const admin=createAdminClient(),status=input.decision==='APPROVE'?'APPROVED':'REJECTED',now=new Date().toISOString();const {data,error}=await admin.from('profile_videos').update({status,moderated_by:moderator.id,moderation_reason:input.reason?.trim()||null,moderated_at:now,approved_at:status==='APPROVED'?now:null}).eq('id',input.videoId).eq('status','PENDING_MODERATION').select('id').single();if(error||!data)return {success:false,error:'Vídeo não está pendente'};await admin.from('profile_video_moderation_events').insert({video_id:input.videoId,moderator_account_user_id:moderator.id,decision:input.decision,reason:input.reason?.trim()||null});revalidatePath('/admin/moderation');return {success:true}}catch{return {success:false,error:'Falha ao moderar vídeo'}}}
 
 export async function moderateCustomerReviewAction(input: { reviewId: string; target: 'REVIEW' | 'RESPONSE'; decision: 'APPROVE' | 'REJECT'; reason?: string }): Promise<ModerationActionResult> {
   try {

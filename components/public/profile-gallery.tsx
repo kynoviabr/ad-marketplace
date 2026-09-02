@@ -2,14 +2,17 @@
 
 import Image from 'next/image'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getVideoPlaybackUrlAction } from '@/modules/videos/actions'
 
 interface GalleryImage {
   url: string
   alt: string
+  videoId?: string
 }
 
 interface ProfileGalleryProps {
   images: GalleryImage[]
+  videos?: GalleryImage[]
   labels: {
     close: string
     previous: string
@@ -33,23 +36,29 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(',')
 
-export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
+export function ProfileGallery({ images, videos = [], labels }: ProfileGalleryProps) {
+  const allMedia = [...images, ...videos]
+  const mediaLength = images.length + videos.length
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [videoUrl,setVideoUrl]=useState<string|null>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const triggerRefs = useRef<Array<HTMLButtonElement | null>>([])
   const returnFocusRef = useRef<HTMLButtonElement | null>(null)
   const viewAllRef = useRef<HTMLButtonElement>(null)
   const isOpen = activeIndex !== null
-  const previewImages = getProfileMediaPreview(images)
+  const previewImages = getProfileMediaPreview(allMedia)
+  const activeVideoId = activeIndex === null ? null : allMedia[activeIndex]?.videoId
 
-  const close = useCallback(() => setActiveIndex(null), [])
+  const close = useCallback(() => {setActiveIndex(null);setVideoUrl(null)}, [])
   const showPrevious = useCallback(() => {
-    setActiveIndex((current) => current === null ? null : (current - 1 + images.length) % images.length)
-  }, [images.length])
+    setVideoUrl(null)
+    setActiveIndex((current) => current === null ? null : (current - 1 + mediaLength) % mediaLength)
+  }, [mediaLength])
   const showNext = useCallback(() => {
-    setActiveIndex((current) => current === null ? null : (current + 1) % images.length)
-  }, [images.length])
+    setVideoUrl(null)
+    setActiveIndex((current) => current === null ? null : (current + 1) % mediaLength)
+  }, [mediaLength])
 
   useEffect(() => {
     if (!isOpen) return
@@ -118,8 +127,20 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
     }
   }, [close, isOpen, showNext, showPrevious])
 
+  useEffect(() => {
+    if (activeIndex === null) return
+    const videoId = activeVideoId
+    if (!videoId) return
+    let current = true
+    void getVideoPlaybackUrlAction({ video_id: videoId }).then((result) => {
+      if (current && result.success) setVideoUrl(result.data)
+    })
+    return () => { current = false }
+  }, [activeIndex, activeVideoId])
+
   const open = (index: number) => {
     returnFocusRef.current = triggerRefs.current[index]
+    setVideoUrl(null)
     setActiveIndex(index)
   }
 
@@ -149,15 +170,16 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
               sizes="(max-width: 767px) calc((100vw - 64px) / 3), (max-width: 1099px) 132px, 136px"
             />
             <span className="profile-gallery-enlarge" aria-hidden="true">↗</span>
+            {image.videoId ? <span className="profile-gallery-play" aria-hidden="true">▶</span> : null}
           </button>
         ))}
       </div>
 
-      {images.length > MOBILE_MEDIA_PREVIEW_LIMIT ? (
+      {allMedia.length > MOBILE_MEDIA_PREVIEW_LIMIT ? (
         <button
           ref={viewAllRef}
           type="button"
-          className={`profile-gallery-view-all${images.length <= DESKTOP_MEDIA_PREVIEW_LIMIT ? ' profile-gallery-view-all--mobile' : ''}`}
+          className={`profile-gallery-view-all${allMedia.length <= DESKTOP_MEDIA_PREVIEW_LIMIT ? ' profile-gallery-view-all--mobile' : ''}`}
           onClick={openAll}
         >
           {labels.viewAll} <span aria-hidden="true">→</span>
@@ -181,22 +203,22 @@ export function ProfileGallery({ images, labels }: ProfileGalleryProps) {
             onClick={close}
           />
           <div className="profile-lightbox-stage">
-            <Image
+            {allMedia[activeIndex].videoId ? (videoUrl ? <video src={videoUrl} poster={allMedia[activeIndex].url} controls preload="none" playsInline /> : <Image src={allMedia[activeIndex].url} alt={allMedia[activeIndex].alt} fill sizes="100vw" />) : <Image
               src={images[activeIndex].url}
               alt={images[activeIndex].alt}
               fill
               sizes="100vw"
               priority
-            />
+            />}
           </div>
           <button ref={closeRef} type="button" className="profile-lightbox-close" aria-label={labels.close} onClick={close}>×</button>
-          {images.length > 1 ? (
+          {allMedia.length > 1 ? (
             <>
               <button type="button" className="profile-lightbox-previous" aria-label={labels.previous} onClick={showPrevious}>←</button>
               <button type="button" className="profile-lightbox-next" aria-label={labels.next} onClick={showNext}>→</button>
             </>
           ) : null}
-          <p className="profile-lightbox-counter" aria-live="polite">{activeIndex + 1} / {images.length}</p>
+          <p className="profile-lightbox-counter" aria-live="polite">{videos.length ? <>{activeIndex + 1} / {allMedia.length}</> : <>{activeIndex + 1} / {images.length}</>}</p>
         </div>
       ) : null}
     </>

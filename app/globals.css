@@ -1349,6 +1349,16 @@ h1 {
 
 .onboarding-main--photos { min-height: auto; grid-template-columns: .72fr 1.28fr; gap: clamp(52px, 8vw, 130px); }
 .photo-manager { width: 100%; max-width: 820px; }
+.video-manager { margin-top: 72px; padding-top: 32px; border-top: 1px solid var(--velvet-line); }
+.video-manager > header { display:flex; justify-content:space-between; align-items:end; gap:24px; }
+.video-manager h2 { color:var(--velvet-espresso); font:400 38px/1 var(--velvet-serif); }
+.video-manager > p { max-width:680px; margin:18px 0; color:var(--velvet-muted); }
+.video-manager-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:32px; padding:0; list-style:none; }
+.video-manager-grid li { position:relative; display:grid; gap:8px; }
+.video-manager-grid img,.video-poster-placeholder { width:100%; aspect-ratio:4/3; object-fit:cover; background:#ddd; }
+.video-manager-grid .photo-status { position:absolute; top:8px; right:8px; }
+.video-manager-grid button { margin-right:8px; }
+@media(max-width:700px){.video-manager-grid{grid-template-columns:1fr}.video-manager{margin-top:48px}}
 .photo-manager-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--velvet-line); }
 .photo-manager-head h2 { margin-top: 8px; color: var(--velvet-espresso); font: 400 38px/1 var(--velvet-serif); letter-spacing: -.035em; }
 .photo-manager-head > span { color: var(--velvet-aubergine-deep); font-size: 10px; letter-spacing: .08em; }
