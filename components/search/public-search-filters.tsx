@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { FilterOptions } from '@/modules/search/types'
 import { useI18n } from '@/components/i18n'
-import { localizePathname } from '@/lib/i18n/routing'
+import { localeFromPathname, localizePathname } from '@/lib/i18n/routing'
 
 interface PublicSearchFiltersProps {
   filterOptions: FilterOptions
@@ -16,7 +16,7 @@ const FILTER_KEYS = ['idade_min', 'idade_max', 'cabelo', 'olhos', 'corpo'] as co
 type FilterKey = (typeof FILTER_KEYS)[number]
 
 export function PublicSearchFilters({ filterOptions, currentNeighborhood, resultCount }: PublicSearchFiltersProps) {
-  const { locale, t } = useI18n()
+  const { t } = useI18n()
   const router = useRouter()
   const searchParams = useSearchParams()
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -72,7 +72,8 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
     params.delete('page')
     const path = location ? `/${filterOptions.city.slug}/${location}` : `/${filterOptions.city.slug}`
     const query = params.toString()
-    return `${localizePathname(path, locale)}${query ? `?${query}` : ''}`
+    const routeLocale = localeFromPathname(window.location.pathname) ?? 'pt-BR'
+    return `${localizePathname(path, routeLocale)}${query ? `?${query}` : ''}`
   }
 
   const apply = () => {
