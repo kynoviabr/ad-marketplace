@@ -13,28 +13,16 @@ function setCookie(name: string, value: string) {
   document.cookie = `${name}=${value}; Path=/; Max-Age=${COOKIE_AGE}; SameSite=Lax${location.protocol === 'https:' ? '; Secure' : ''}`
 }
 
-export function PublicComplianceLayer() {
+export function PublicComplianceLayer({ initialAgeAccepted, initialAnalyticsConsent }: { initialAgeAccepted: boolean; initialAnalyticsConsent: boolean | null }) {
   const { locale } = useI18n()
   const pathname = usePathname()
   const en = locale === 'en'
   const isExcluded = excluded.some((path) => pathname === path || pathname.startsWith(`${path}/`) || pathname === `/en/access-restricted`)
-  const [ageOpen, setAgeOpen] = useState(false)
-  const [consentOpen, setConsentOpen] = useState(false)
+  const [ageOpen, setAgeOpen] = useState(!initialAgeAccepted)
+  const [consentOpen, setConsentOpen] = useState(initialAgeAccepted && initialAnalyticsConsent === null)
   const [preferences, setPreferences] = useState(false)
-  const [analytics, setAnalytics] = useState(false)
+  const [analytics, setAnalytics] = useState(initialAnalyticsConsent ?? false)
   const dialogRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (isExcluded) return
-    const ageAccepted = document.cookie.split('; ').some((value) => value === `${AGE_COOKIE}=confirmed-v1`)
-    const consent = readClientConsent()
-    const initialize = window.setTimeout(() => {
-      setAnalytics(consent?.analytics ?? false)
-      setAgeOpen(!ageAccepted)
-      setConsentOpen(ageAccepted && !consent)
-    }, 0)
-    return () => window.clearTimeout(initialize)
-  }, [isExcluded])
 
   useEffect(() => {
     const open = () => { setPreferences(true); setConsentOpen(true) }
@@ -46,6 +34,9 @@ export function PublicComplianceLayer() {
   useEffect(() => {
     if (!modalOpen) return
     const previous = document.activeElement as HTMLElement | null
+    const app = document.getElementById('velvet-app-content')
+    app?.setAttribute('inert', '')
+    app?.setAttribute('aria-hidden', 'true')
     document.body.style.overflow = 'hidden'
     dialogRef.current?.querySelector<HTMLElement>('button')?.focus()
     const onKey = (event: KeyboardEvent) => {
@@ -57,7 +48,7 @@ export function PublicComplianceLayer() {
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
     }
     document.addEventListener('keydown', onKey)
-    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); previous?.focus() }
+    return () => { document.body.style.overflow = ''; app?.removeAttribute('inert'); app?.removeAttribute('aria-hidden'); document.removeEventListener('keydown', onKey); previous?.focus() }
   }, [modalOpen, preferences])
 
   if (isExcluded || !modalOpen) return null

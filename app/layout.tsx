@@ -6,6 +6,8 @@ import { JsonLd } from '@/components/seo/json-ld'
 import { I18nProvider } from '@/components/i18n'
 import { getRequestLocale } from '@/lib/i18n/server'
 import { PublicComplianceLayer } from '@/components/compliance/public-compliance-layer'
+import { cookies } from 'next/headers'
+import { AGE_COOKIE, CONSENT_COOKIE, parseConsent } from '@/lib/compliance/consent'
 
 /**
  * Plus Jakarta Sans — display and heading font.
@@ -58,6 +60,9 @@ export default async function RootLayout({
 }>) {
   const locale = await getRequestLocale()
   const websiteJsonLd = generateWebsiteJsonLd(locale)
+  const cookieStore = await cookies()
+  const ageAccepted = cookieStore.get(AGE_COOKIE)?.value === 'confirmed-v1'
+  const initialConsent = parseConsent(cookieStore.get(CONSENT_COOKIE)?.value)
 
   return (
     <html
@@ -67,7 +72,7 @@ export default async function RootLayout({
       <head>
         <JsonLd data={websiteJsonLd} />
       </head>
-      <body><I18nProvider locale={locale}><div id="velvet-app-content">{children}</div><PublicComplianceLayer /></I18nProvider></body>
+      <body><I18nProvider locale={locale}><div id="velvet-app-content">{children}</div><PublicComplianceLayer initialAgeAccepted={ageAccepted} initialAnalyticsConsent={initialConsent?.analytics ?? null} /></I18nProvider></body>
     </html>
   )
 }

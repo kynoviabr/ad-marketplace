@@ -35,6 +35,8 @@ describe('Velvet R6 public navigation and compliance', () => {
     expect(layer).toContain('Necessary only')
     expect(layer).toContain('Not currently used.')
     expect(layer).toContain('velvet:open-cookie-preferences')
+    expect(layer).toContain("setAttribute('inert', '')")
+    expect(layer).toContain("setAttribute('aria-hidden', 'true')")
   })
 
   it('parses only the current consent version and pins necessary/marketing invariants', () => {
