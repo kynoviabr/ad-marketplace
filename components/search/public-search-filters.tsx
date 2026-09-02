@@ -95,7 +95,7 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
     const params = new URLSearchParams(searchParams.toString())
     if (key === 'neighborhood') {
       setNeighborhood('')
-      router.push(buildUrl('', params))
+      window.location.assign(buildUrl('', params))
       return
     }
 
@@ -105,7 +105,7 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
     if (key === 'cabelo') setHair('')
     if (key === 'olhos') setEyes('')
     if (key === 'corpo') setBody('')
-    router.push(buildUrl(currentNeighborhood || '', params))
+    window.location.assign(buildUrl(currentNeighborhood || '', params))
   }
 
   const locationName = currentNeighborhood
