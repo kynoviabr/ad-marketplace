@@ -3,6 +3,7 @@
  */
 
 import type { EyeColor, HairColor, HairLength, BodyType } from '@/modules/profiles/types'
+import type { OfferingCode } from '@/modules/offerings/types'
 
 export type PlacementType = 'ORGANIC' | 'SPONSORED'
 
@@ -22,6 +23,7 @@ export interface SearchParams {
   hasTattoos?: boolean
   hasPiercings?: boolean
   languages?: string[]
+  offeringCodes?: OfferingCode[]
   sort?: 'recommended' | 'newest'
   page?: number
   limit?: number
@@ -99,4 +101,5 @@ export interface FilterOptions {
   hairColors: HairColor[]
   hairLengths: HairLength[]
   bodyTypes: BodyType[]
+  offeringCodes: OfferingCode[]
 }

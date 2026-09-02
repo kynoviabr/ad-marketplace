@@ -68,12 +68,12 @@ describe('Velvet R5 Search / Explore contracts', () => {
     expect(filters).toContain("if (key === 'idade_max') setMaxAge('')")
   })
   it('44. keeps individual removal wired to each visible chip button', () => {
-    expect(filters).toContain('onClick={() => remove(chip.key)}')
+    expect(filters).toContain('onClick={() => remove(chip.key, chip.value)}')
     expect(filters).toContain('params.delete(key)')
     expect(filters).toContain("window.location.assign(buildUrl(currentNeighborhood || '', params))")
   })
   it('45. keeps remove controls keyboard-accessible and labeled', () => {
-    expect(filters).toContain('type="button" aria-label={t(\'search.removeFilter\', { filter: chip.label })} onClick={() => remove(chip.key)}')
+    expect(filters).toContain('type="button" aria-label={t(\'search.removeFilter\', { filter: chip.label })} onClick={() => remove(chip.key, chip.value)}')
   })
   it('46. preserves locale and neighborhood while removing query filters', () => {
     expect(filters).toContain("window.location.assign(buildUrl(currentNeighborhood || '', params))")

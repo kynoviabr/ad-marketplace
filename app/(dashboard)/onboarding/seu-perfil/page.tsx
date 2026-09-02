@@ -4,6 +4,7 @@ import { getProfileByAccountUserId } from '@/modules/profiles/dal'
 import { OnboardingShell } from '@/components/onboarding/onboarding-shell'
 import { PublicPresentationForm } from '@/components/onboarding/public-presentation-form'
 import { getTranslations } from '@/lib/i18n/server'
+import { getProfileOfferingStatuses } from '@/modules/offerings/dal'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +19,7 @@ export default async function PublicPresentationOnboardingPage() {
   const profile = await getProfileByAccountUserId(account.id)
 
   if (!profile) redirect('/onboarding/voce')
+  const offerings = await getProfileOfferingStatuses(profile.id)
 
   return (
     <OnboardingShell currentStep={2}>
@@ -40,7 +42,7 @@ export default async function PublicPresentationOnboardingPage() {
           showAge: profile.show_age,
           showHeight: profile.show_height,
           showWeight: profile.show_weight,
-        }} />
+        }} initialOfferings={offerings} />
       </main>
       <aside className="onboarding-privacy">
         <span>{t('onboarding.optionalPrivacy')}</span>

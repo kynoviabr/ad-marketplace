@@ -62,6 +62,7 @@ describe('Profile Security & Privacy Invariants', () => {
       whatsappPhone: rawProfile.show_whatsapp ? rawProfile.whatsapp_phone : null,
       directPhone: rawProfile.show_phone ? rawProfile.direct_phone : null,
       telegramUsername: rawProfile.show_telegram ? rawProfile.telegram_username : null,
+      offerings: {},
       status: rawProfile.status,
       contentModerationStatus: rawProfile.content_moderation_status,
     }

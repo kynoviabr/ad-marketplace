@@ -10,6 +10,7 @@ import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 import { VelvetBadge } from '@/components/ui/velvet-badge'
 import { localizePathname } from '@/lib/i18n/routing'
+import { OFFERING_GROUPS } from '@/modules/offerings/types'
 import { getTranslations } from '@/lib/i18n/server'
 import { getEligiblePublicProfileBySlug } from '@/modules/profiles/public-detail'
 import { constructProfileMetadata } from '@/modules/seo/metadata'
@@ -55,6 +56,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PublicProfilePage({ params }: Props) {
   const { locale, t } = await getTranslations()
+  const offeringText = (key: string) => t(key as Parameters<typeof t>[0])
   const labels = locale === 'en' ? labelsEn : labelsPtBR
   const { slug } = await params
   const detail = await getEligiblePublicProfileBySlug(slug)
@@ -67,6 +69,13 @@ export default async function PublicProfilePage({ params }: Props) {
   const whatsappDigits = profile.whatsappPhone?.replace(/\D/g, '') ?? ''
   const whatsappUrl = whatsappDigits ? `https://wa.me/${whatsappDigits}` : null
   const bio = createBioPresentation(profile.bio)
+  const offeringInformation = OFFERING_GROUPS.flatMap((group) => {
+    const codes = profile.offerings[group] ?? []
+    return codes.length ? [{
+      label: offeringText(`offering.group.${group.toLowerCase()}`),
+      value: codes.map((code) => offeringText(`offering.option.${code}`)).join(' · '),
+    }] : []
+  })
   const information = [
     profile.publicAge ? { label: t('profile.age'), value: t('common.ageYears', { age: profile.publicAge }) } : null,
     profile.heightCm ? { label: t('profile.height'), value: `${profile.heightCm} cm` } : null,
@@ -75,7 +84,7 @@ export default async function PublicProfilePage({ params }: Props) {
     profile.hairLength ? { label: t('profile.hairLength'), value: labels.length[profile.hairLength] } : null,
     profile.eyeColor ? { label: t('profile.eyes'), value: labels.eye[profile.eyeColor] } : null,
     profile.bodyType ? { label: t('profile.bodyType'), value: labels.body[profile.bodyType] } : null,
-  ].filter((item): item is { label: string; value: string } => Boolean(item))
+  ].filter((item): item is { label: string; value: string } => Boolean(item)).concat(offeringInformation)
   const serviceAreas = locations.map((location) => ({
     id: location.slug,
     label: location.name,

@@ -112,7 +112,8 @@ export async function getPendingProfileQueue(profileId?: string): Promise<Pendin
       content_moderation_status,
       completed_at,
       account_user_id,
-      photos:profile_media(id, status, deleted_at)
+      photos:profile_media(id, status, deleted_at),
+      offerings:professional_profile_offerings(option_code, status)
     `)
     .eq('content_moderation_status', 'PENDING')
     .in('status', ['READY_FOR_REVIEW', 'ACTIVE'])
@@ -148,6 +149,7 @@ export async function getPendingProfileQueue(profileId?: string): Promise<Pendin
       identity_verified: verificationByAccount.get(p.account_user_id)?.identity_verified ?? false,
       age_verified: verificationByAccount.get(p.account_user_id)?.age_verified ?? false,
       approved_photos_count: approvedCount,
+      offerings: p.offerings ?? [],
     }
   })
 }

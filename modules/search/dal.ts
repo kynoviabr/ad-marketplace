@@ -5,6 +5,25 @@ import { MAX_SPONSORED_SLOTS_PER_PAGE } from '@/modules/promotions/constants'
 import { resolveActiveSponsoredCandidates } from '@/modules/promotions/dal'
 import { sortCandidatesByFairRotation } from '@/modules/promotions/rotation'
 import type { SearchParams, SearchResponse, SearchResultDTO, FilterOptions } from './types'
+import { OFFERING_OPTIONS, type OfferingCode, type OfferingGroup } from '@/modules/offerings/types'
+
+async function filterEligibleIdsByOfferings(admin: ReturnType<typeof createAdminClient>, eligibleIds: string[], codes: OfferingCode[] | undefined): Promise<string[]> {
+  if (!codes?.length) return eligibleIds
+  const byGroup = new Map<OfferingGroup, OfferingCode[]>()
+  for (const code of codes) {
+    const option = OFFERING_OPTIONS.find((item) => item.code === code)
+    if (option) byGroup.set(option.group, [...(byGroup.get(option.group) ?? []), code])
+  }
+  let matching = new Set(eligibleIds)
+  for (const groupCodes of byGroup.values()) {
+    const { data, error } = await admin.from('professional_profile_offerings').select('profile_id').eq('status', 'OFFERED').in('option_code', groupCodes).in('profile_id', [...matching])
+    if (error) throw new Error(`Unable to filter offerings: ${error.message}`)
+    const groupMatches = new Set((data ?? []).map((row: { profile_id: string }) => row.profile_id))
+    matching = new Set([...matching].filter((id) => groupMatches.has(id)))
+    if (!matching.size) break
+  }
+  return [...matching]
+}
 
 /**
  * Builds the base Supabase query applying all visibility-aware and structured filters.
@@ -242,7 +261,11 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
     console.error('[search:executeSearch] Error fetching eligible profile IDs from view:', eligibleError.message)
   }
 
-  const eligibleProfileIds: string[] = (eligibleData || []).map((r: any) => r.profile_id)
+  const eligibleProfileIds = await filterEligibleIdsByOfferings(
+    admin,
+    (eligibleData || []).map((r: any) => r.profile_id),
+    params.offeringCodes
+  )
 
   if (eligibleProfileIds.length === 0) {
     return {
@@ -500,5 +523,6 @@ export async function getFilterOptions(citySlug: string): Promise<FilterOptions 
     hairColors: ['BLACK', 'BRUNETTE', 'BLONDE', 'REDHEAD', 'OTHER'],
     hairLengths: ['SHORT', 'MEDIUM', 'LONG', 'VERY_LONG', 'BALD'],
     bodyTypes: ['SLIM', 'ATHLETIC', 'CURVY', 'AVERAGE', 'PLUS_SIZE', 'OTHER'],
+    offeringCodes: OFFERING_OPTIONS.map(({ code }) => code),
   }
 }

@@ -16,6 +16,7 @@ import { generateUniqueSlug } from './slug'
 import { isProfileDataComplete } from './completeness'
 import { getProfileByAccountUserId, checkSlugExists } from './dal'
 import type { ProfessionalProfile, ProfileActionResult } from './types'
+import { parseOfferingFormData } from '@/modules/offerings/schema'
 
 export type InitialProfileActionState = ProfileActionResult<{
   stageName: string
@@ -44,6 +45,12 @@ export async function savePublicPresentationProfileAction(
     show_height: formData.get('show_height') === 'on',
     show_weight: formData.get('show_weight') === 'on',
   })
+  let offerings
+  try {
+    offerings = parseOfferingFormData(formData)
+  } catch {
+    return { success: false, error: 'Revise as opções profissionais indicadas.' }
+  }
 
   if (!parsed.success) {
     return {
@@ -80,6 +87,15 @@ export async function savePublicPresentationProfileAction(
     if (error || !data) {
       console.error('[onboarding:profile] Profile update failed:', error?.message)
       return { success: false, error: 'Não foi possível salvar agora. Tente novamente.' }
+    }
+
+    const { error: offeringError } = await admin.rpc('save_professional_profile_offerings', {
+      p_profile_id: data.id,
+      p_offerings: offerings,
+    })
+    if (offeringError) {
+      console.error('[onboarding:profile] Offering update failed:', offeringError.message)
+      return { success: false, error: 'O perfil foi salvo, mas não foi possível salvar as opções profissionais.' }
     }
 
     await admin

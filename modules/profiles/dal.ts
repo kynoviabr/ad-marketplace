@@ -1,6 +1,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ProfessionalProfile, PublicProfileDTO } from './types'
+import { getOfferedOfferingGroups } from '@/modules/offerings/dal'
 
 /**
  * Retrieves the professional profile record by account_user_id.
@@ -55,6 +56,7 @@ export async function checkSlugExists(slug: string): Promise<boolean> {
 export async function getPublicProfileDTO(slug: string): Promise<PublicProfileDTO | null> {
   const profile = await getProfileBySlug(slug)
   if (!profile) return null
+  const offerings = await getOfferedOfferingGroups(profile.id)
 
   return {
     stageName: profile.stage_name,
@@ -77,6 +79,7 @@ export async function getPublicProfileDTO(slug: string): Promise<PublicProfileDT
     whatsappPhone: profile.show_whatsapp ? profile.whatsapp_phone : null,
     directPhone: profile.show_phone ? profile.direct_phone : null,
     telegramUsername: profile.show_telegram ? profile.telegram_username : null,
+    offerings,
     status: profile.status,
     contentModerationStatus: profile.content_moderation_status || 'PENDING',
   }

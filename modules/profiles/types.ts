@@ -1,3 +1,5 @@
+import type { OfferedOfferingGroups } from '@/modules/offerings/types'
+
 /**
  * Professional Profile domain types — FASE 03 / FASE 06
  *
@@ -129,6 +131,7 @@ export interface PublicProfileDTO {
   whatsappPhone: string | null
   directPhone: string | null
   telegramUsername: string | null
+  offerings: OfferedOfferingGroups
   status: ProfileStatus
   contentModerationStatus: ContentModerationStatus
 }

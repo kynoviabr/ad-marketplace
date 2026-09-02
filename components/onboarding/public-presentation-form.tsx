@@ -10,6 +10,7 @@ import {
 } from '@/modules/profiles/actions'
 import type { BodyType, EyeColor, HairColor, HairLength } from '@/modules/profiles/types'
 import { useI18n } from '@/components/i18n'
+import { OFFERING_GROUPS, OFFERING_OPTIONS, type OfferingGroup, type OfferingStatusMap } from '@/modules/offerings/types'
 
 const initialState: PublicPresentationActionState = { success: false, error: '' }
 
@@ -33,7 +34,10 @@ interface PublicPresentationFormProps {
     showHeight: boolean
     showWeight: boolean
   }
+  initialOfferings: OfferingStatusMap
 }
+
+const groupTranslation: Record<OfferingGroup, string> = { AUDIENCE: 'offering.group.audience', SERVICES: 'offering.group.services', LOCATIONS: 'offering.group.locations', AVAILABILITY: 'offering.group.availability' }
 
 function ProfileSelect({ id, label, value, options, error }: { id: string; label: string; value: string | null; options: Array<[string, string]>; error?: string }) {
   const { t } = useI18n()
@@ -49,8 +53,9 @@ function ProfileSelect({ id, label, value, options, error }: { id: string; label
   )
 }
 
-export function PublicPresentationForm({ initial }: PublicPresentationFormProps) {
+export function PublicPresentationForm({ initial, initialOfferings }: PublicPresentationFormProps) {
   const { locale, t } = useI18n()
+  const offeringText = (key: string) => t(key as Parameters<typeof t>[0])
   const localizedEyeColors = locale === 'en' ? [['BLACK', 'Black'], ['BROWN', 'Brown'], ['GREEN', 'Green'], ['BLUE', 'Blue'], ['HAZEL', 'Hazel'], ['OTHER', 'Other']] : eyeColors
   const localizedHairColors = locale === 'en' ? [['BLACK', 'Black'], ['BRUNETTE', 'Brown'], ['BLONDE', 'Blonde'], ['REDHEAD', 'Red'], ['OTHER', 'Other']] : hairColors
   const localizedHairLengths = locale === 'en' ? [['SHORT', 'Short'], ['MEDIUM', 'Medium'], ['LONG', 'Long'], ['VERY_LONG', 'Very long'], ['BALD', 'Shaved / no hair']] : hairLengths
@@ -96,6 +101,28 @@ export function PublicPresentationForm({ initial }: PublicPresentationFormProps)
           </div>
         </div>
         <p className="field-note">{t('profileForm.optionalNote')}</p>
+      </fieldset>
+
+      <fieldset className="onboarding-fieldset offering-editor">
+        <legend>{t('offering.editor.title')}</legend>
+        <p className="field-note">{t('offering.editor.help')}</p>
+        {OFFERING_GROUPS.map((group, index) => (
+          <details key={group} className="offering-editor-group" open={index === 0}>
+            <summary>{offeringText(groupTranslation[group])}</summary>
+            <div className="offering-editor-options">
+              {OFFERING_OPTIONS.filter((option) => option.group === group).map((option) => (
+                <label key={option.code} className="offering-editor-option">
+                  <span>{offeringText(`offering.option.${option.code}`)}</span>
+                  <select name={`offering_${option.code}`} defaultValue={initialOfferings[option.code]} aria-label={`${offeringText(`offering.option.${option.code}`)} — ${t('offering.editor.status')}`}>
+                    <option value="UNSPECIFIED">{t('offering.status.unspecified')}</option>
+                    <option value="OFFERED">{t('offering.status.offered')}</option>
+                    <option value="NOT_OFFERED">{t('offering.status.notOffered')}</option>
+                  </select>
+                </label>
+              ))}
+            </div>
+          </details>
+        ))}
       </fieldset>
 
       <fieldset className="onboarding-fieldset">

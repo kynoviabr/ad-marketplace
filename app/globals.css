@@ -1890,3 +1890,21 @@ body:has(.profile-detail-page) { overflow-x: clip; }
   .profile-trust h2 { font-size: 43px; }
   .profile-final-contact { padding-block: 86px; }
 }
+/* VELVET R7 — compact structured professional offering */
+.offering-editor { display: grid; gap: var(--space-3); }
+.offering-editor > .field-note { margin: 0; }
+.offering-editor-group { border: 1px solid var(--color-border, #ddd5ce); border-radius: 10px; overflow: clip; }
+.offering-editor-group summary { cursor: pointer; padding: 14px 16px; font-weight: 600; list-style-position: inside; }
+.offering-editor-options { display: grid; gap: 1px; background: var(--color-border, #ddd5ce); border-top: 1px solid var(--color-border, #ddd5ce); }
+.offering-editor-option { display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 190px); align-items: center; gap: 12px; padding: 10px 14px; background: var(--color-surface, #fff); }
+.offering-editor-option select { min-height: 40px; border: 1px solid var(--color-border, #cfc5bd); border-radius: 8px; padding-inline: 10px; background: #fff; }
+.velvet-offering-filters { display: grid; gap: 8px; }
+.velvet-offering-filters details { border: 1px solid var(--velvet-line); border-radius: 8px; }
+.velvet-offering-filters summary { cursor: pointer; padding: 10px 12px; font-weight: 600; }
+.velvet-offering-filters details > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; padding: 4px 12px 12px; }
+.velvet-offering-filters label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
+.velvet-offering-filters input { margin-top: 2px; accent-color: var(--velvet-ink); }
+@media (max-width: 640px) {
+  .offering-editor-option { grid-template-columns: 1fr; }
+  .velvet-offering-filters details > div { grid-template-columns: 1fr; }
+}

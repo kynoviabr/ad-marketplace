@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import type { FilterOptions } from '@/modules/search/types'
 import { useI18n } from '@/components/i18n'
 import { localizePathname } from '@/lib/i18n/routing'
+import { OFFERING_GROUPS, OFFERING_OPTIONS, type OfferingCode, type OfferingGroup } from '@/modules/offerings/types'
 
 interface PublicSearchFiltersProps {
   filterOptions: FilterOptions
@@ -12,11 +13,13 @@ interface PublicSearchFiltersProps {
   resultCount: number
 }
 
-const FILTER_KEYS = ['idade_min', 'idade_max', 'cabelo', 'olhos', 'corpo'] as const
+const OFFERING_QUERY_KEYS: Record<OfferingGroup, 'atende' | 'servicos' | 'local' | 'disponibilidade'> = { AUDIENCE: 'atende', SERVICES: 'servicos', LOCATIONS: 'local', AVAILABILITY: 'disponibilidade' }
+const FILTER_KEYS = ['idade_min', 'idade_max', 'cabelo', 'olhos', 'corpo', 'atende', 'servicos', 'local', 'disponibilidade'] as const
 type FilterKey = (typeof FILTER_KEYS)[number]
 
 export function PublicSearchFilters({ filterOptions, currentNeighborhood, resultCount }: PublicSearchFiltersProps) {
   const { locale, t } = useI18n()
+  const offeringText = (key: string) => t(key as Parameters<typeof t>[0])
   const router = useRouter()
   const searchParams = useSearchParams()
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -28,12 +31,14 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
   const [hair, setHair] = useState(searchParams.get('cabelo') || '')
   const [eyes, setEyes] = useState(searchParams.get('olhos') || '')
   const [body, setBody] = useState(searchParams.get('corpo') || '')
+  const [offerings, setOfferings] = useState<Record<OfferingGroup, OfferingCode[]>>(() => Object.fromEntries(OFFERING_GROUPS.map((group) => [group, searchParams.getAll(OFFERING_QUERY_KEYS[group])])) as Record<OfferingGroup, OfferingCode[]>)
 
   const activeMinAge = searchParams.get('idade_min') || ''
   const activeMaxAge = searchParams.get('idade_max') || ''
   const activeHair = searchParams.get('cabelo') || ''
   const activeEyes = searchParams.get('olhos') || ''
   const activeBody = searchParams.get('corpo') || ''
+  const activeOfferings = OFFERING_GROUPS.flatMap((group) => searchParams.getAll(OFFERING_QUERY_KEYS[group]).map((code) => ({ group, code: code as OfferingCode })))
 
   const close = () => {
     setIsOpen(false)
@@ -79,6 +84,11 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
     const params = new URLSearchParams(searchParams.toString())
     const values = { idade_min: minAge, idade_max: maxAge, cabelo: hair, olhos: eyes, corpo: body }
     Object.entries(values).forEach(([key, value]) => value ? params.set(key, value) : params.delete(key))
+    OFFERING_GROUPS.forEach((group) => {
+      const key = OFFERING_QUERY_KEYS[group]
+      params.delete(key)
+      offerings[group].forEach((code) => params.append(key, code))
+    })
     setIsOpen(false)
     router.push(buildUrl(neighborhood, params))
   }
@@ -86,11 +96,11 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
   const clear = () => {
     const params = new URLSearchParams(searchParams.toString())
     FILTER_KEYS.forEach((key) => params.delete(key))
-    setNeighborhood(''); setMinAge(''); setMaxAge(''); setHair(''); setEyes(''); setBody(''); setIsOpen(false)
+    setNeighborhood(''); setMinAge(''); setMaxAge(''); setHair(''); setEyes(''); setBody(''); setOfferings(Object.fromEntries(OFFERING_GROUPS.map((group) => [group, []])) as unknown as Record<OfferingGroup, OfferingCode[]>); setIsOpen(false)
     router.push(buildUrl('', params))
   }
 
-  const remove = (key: FilterKey | 'neighborhood') => {
+  const remove = (key: FilterKey | 'neighborhood', value?: string) => {
     const params = new URLSearchParams(searchParams.toString())
     if (key === 'neighborhood') {
       setNeighborhood('')
@@ -98,7 +108,12 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
       return
     }
 
-    params.delete(key)
+    if (value && ['atende', 'servicos', 'local', 'disponibilidade'].includes(key)) {
+      const remaining = params.getAll(key).filter((item) => item !== value)
+      params.delete(key); remaining.forEach((item) => params.append(key, item))
+      const group = OFFERING_GROUPS.find((item) => OFFERING_QUERY_KEYS[item] === key)
+      if (group) setOfferings((current) => ({ ...current, [group]: current[group].filter((code) => code !== value) }))
+    } else params.delete(key)
     if (key === 'idade_min') setMinAge('')
     if (key === 'idade_max') setMaxAge('')
     if (key === 'cabelo') setHair('')
@@ -115,6 +130,7 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
     BROWN: t('search.option.eyes.brown'), GREEN: t('search.option.eyes.green'), BLUE: t('search.option.eyes.blue'),
     SLIM: t('search.option.body.slim'), CURVY: t('search.option.body.curvy'), ATHLETIC: t('search.option.body.athletic'),
   }
+  OFFERING_OPTIONS.forEach(({ code }) => { optionLabels[code] = offeringText(`offering.option.${code}`) })
   const chips = [
     locationName ? { key: 'neighborhood' as const, label: locationName } : null,
     activeMinAge ? { key: 'idade_min' as const, label: t('search.chip.minAge', { age: activeMinAge }) } : null,
@@ -122,7 +138,8 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
     activeHair ? { key: 'cabelo' as const, label: optionLabels[activeHair] || activeHair } : null,
     activeEyes ? { key: 'olhos' as const, label: optionLabels[activeEyes] || activeEyes } : null,
     activeBody ? { key: 'corpo' as const, label: optionLabels[activeBody] || activeBody } : null,
-  ].filter(Boolean) as Array<{ key: FilterKey | 'neighborhood'; label: string }>
+    ...activeOfferings.map(({ group, code }) => ({ key: OFFERING_QUERY_KEYS[group], value: code, label: optionLabels[code] })),
+  ].filter(Boolean) as Array<{ key: FilterKey | 'neighborhood'; value?: string; label: string }>
 
   return <div className="velvet-search-filters">
     <div className="velvet-search-filter-row">
@@ -130,7 +147,7 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
         <span aria-hidden="true">☰</span>{t('search.filters')}{chips.length ? ` (${chips.length})` : ''}
       </button>
       {chips.length ? <div className="velvet-active-filters" aria-label={t('search.activeFilters')}>
-        {chips.map((chip) => <button key={chip.key} type="button" aria-label={t('search.removeFilter', { filter: chip.label })} onClick={() => remove(chip.key)}>{chip.label}<span aria-hidden="true">×</span></button>)}
+        {chips.map((chip) => <button key={`${chip.key}:${chip.value ?? ''}`} type="button" aria-label={t('search.removeFilter', { filter: chip.label })} onClick={() => remove(chip.key, chip.value)}>{chip.label}<span aria-hidden="true">×</span></button>)}
         <button type="button" className="velvet-clear-filters" onClick={clear}>{t('search.clear')}</button>
       </div> : null}
     </div>
@@ -146,6 +163,11 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, result
             <label><span>{t('search.eyeColor')}</span><select value={eyes} onChange={(event) => setEyes(event.target.value)} className="velvet-filter-select"><option value="">{t('search.any')}</option><option value="BROWN">{optionLabels.BROWN}</option><option value="GREEN">{optionLabels.GREEN}</option><option value="BLUE">{optionLabels.BLUE}</option></select></label>
             <label><span>{t('search.body')}</span><select value={body} onChange={(event) => setBody(event.target.value)} className="velvet-filter-select"><option value="">{t('search.any')}</option><option value="SLIM">{optionLabels.SLIM}</option><option value="CURVY">{optionLabels.CURVY}</option><option value="ATHLETIC">{optionLabels.ATHLETIC}</option></select></label>
           </div></fieldset>
+          <fieldset className="velvet-filter-group velvet-offering-filters"><legend>{t('search.offeringFilters')}</legend>
+            {OFFERING_GROUPS.map((group) => <details key={group} open={group === 'AUDIENCE'}><summary>{offeringText(`offering.group.${group.toLowerCase()}`)}</summary><div>
+              {OFFERING_OPTIONS.filter((option) => option.group === group).map((option) => <label key={option.code}><input type="checkbox" checked={offerings[group].includes(option.code)} onChange={(event) => setOfferings((current) => ({ ...current, [group]: event.target.checked ? [...current[group], option.code] : current[group].filter((code) => code !== option.code) }))} /><span>{optionLabels[option.code]}</span></label>)}
+            </div></details>)}
+          </fieldset>
         </div>
         <div className="velvet-filter-actions"><button type="button" onClick={clear}>{t('search.clear')}</button><button type="button" onClick={apply}>{t(resultCount === 1 ? 'search.showOne' : 'search.showCount', { count: resultCount })}</button></div>
       </div>

@@ -65,4 +65,5 @@ export interface PendingProfileQueueItem {
   identity_verified: boolean
   age_verified: boolean
   approved_photos_count: number
+  offerings: Array<{ option_code: string; status: 'OFFERED' | 'NOT_OFFERED' | 'UNSPECIFIED' }>
 }

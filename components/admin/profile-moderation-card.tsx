@@ -82,6 +82,12 @@ export function ProfileModerationCard({ initialProfiles }: ProfileModerationCard
                 WhatsApp: {profile.whatsapp_phone || 'N/A'} • Fone: {profile.direct_phone || 'N/A'} • Telegram: {profile.telegram_username || 'N/A'}
               </p>
             </div>
+            <div style={{ marginTop: '0.75rem' }}>
+              <strong style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase' }}>Oferta estruturada</strong>
+              <p style={{ fontSize: '0.8rem', color: '#d1d5db', lineHeight: 1.7 }}>
+                {profile.offerings.length ? profile.offerings.map((item) => `${item.option_code}: ${item.status}`).join(' · ') : 'Todos os itens: UNSPECIFIED'}
+              </p>
+            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>

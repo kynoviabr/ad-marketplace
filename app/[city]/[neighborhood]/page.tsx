@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { after } from 'next/server'
 import { cookies, headers } from 'next/headers'
 import { executeSearch, getFilterOptions } from '@/modules/search/dal'
-import { isReservedSlug } from '@/modules/search/schemas'
+import { isReservedSlug, SearchQuerySchema } from '@/modules/search/schemas'
 import { recordSearchPerformedEvent } from '@/modules/analytics/write'
 import { PublicSearchFilters } from '@/components/search/public-search-filters'
 import { PublicProfileCard } from '@/components/public/public-profile-card'
@@ -87,13 +87,18 @@ export default async function NeighborhoodSearchPage({
   const hairColor = resolvedSearchParams.cabelo as any
   const eyeColor = resolvedSearchParams.olhos as any
   const bodyType = resolvedSearchParams.corpo as any
+  const offeringQuery = SearchQuerySchema.safeParse(resolvedSearchParams)
+  const offeringCodes = offeringQuery.success
+    ? [...(offeringQuery.data.atende ?? []), ...(offeringQuery.data.servicos ?? []), ...(offeringQuery.data.local ?? []), ...(offeringQuery.data.disponibilidade ?? [])]
+    : []
 
   const hasFilters = Boolean(
     minAge !== undefined ||
     maxAge !== undefined ||
     hairColor ||
     eyeColor ||
-    bodyType
+    bodyType ||
+    offeringCodes.length > 0
   )
 
   const page = parsePageNumber(resolvedSearchParams.page)
@@ -107,6 +112,7 @@ export default async function NeighborhoodSearchPage({
     hairColor: hairColor ? [hairColor] : undefined,
     eyeColor: eyeColor ? [eyeColor] : undefined,
     bodyType: bodyType ? [bodyType] : undefined,
+    offeringCodes: offeringCodes as any,
     includePreview: true,
   })
 
