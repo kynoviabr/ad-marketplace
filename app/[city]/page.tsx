@@ -152,7 +152,7 @@ export default async function CitySearchPage({ params, searchParams }: CitySearc
 
             {/* Horizontal Desktop Filters / Mobile Filter Trigger */}
             <div>
-              <PublicSearchFilters filterOptions={filterOptions} locale={locale} resultCount={searchResponse.totalProfiles} />
+              <PublicSearchFilters filterOptions={filterOptions} resultCount={searchResponse.totalProfiles} />
             </div>
           </div>
       </header>

@@ -1,25 +1,25 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import type { FilterOptions } from '@/modules/search/types'
 import { useI18n } from '@/components/i18n'
-import { localizePathname } from '@/lib/i18n/routing'
-import type { Locale } from '@/lib/i18n/config'
+import { DEFAULT_LOCALE } from '@/lib/i18n/config'
+import { localeFromPathname, localizePathname } from '@/lib/i18n/routing'
 
 interface PublicSearchFiltersProps {
   filterOptions: FilterOptions
   currentNeighborhood?: string
-  locale: Locale
   resultCount: number
 }
 
 const FILTER_KEYS = ['idade_min', 'idade_max', 'cabelo', 'olhos', 'corpo'] as const
 type FilterKey = (typeof FILTER_KEYS)[number]
 
-export function PublicSearchFilters({ filterOptions, currentNeighborhood, locale, resultCount }: PublicSearchFiltersProps) {
+export function PublicSearchFilters({ filterOptions, currentNeighborhood, resultCount }: PublicSearchFiltersProps) {
   const { t } = useI18n()
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -74,7 +74,8 @@ export function PublicSearchFilters({ filterOptions, currentNeighborhood, locale
     params.delete('page')
     const path = location ? `/${filterOptions.city.slug}/${location}` : `/${filterOptions.city.slug}`
     const query = params.toString()
-    return `${localizePathname(path, locale)}${query ? `?${query}` : ''}`
+    const routeLocale = localeFromPathname(pathname) ?? DEFAULT_LOCALE
+    return `${localizePathname(path, routeLocale)}${query ? `?${query}` : ''}`
   }
 
   const apply = () => {

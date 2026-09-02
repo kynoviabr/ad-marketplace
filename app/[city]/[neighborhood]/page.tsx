@@ -165,7 +165,6 @@ export default async function NeighborhoodSearchPage({
               <PublicSearchFilters
                 filterOptions={filterOptions}
                 currentNeighborhood={neighborhoodSlug}
-                locale={locale}
                 resultCount={searchResponse.totalProfiles}
               />
             </div>

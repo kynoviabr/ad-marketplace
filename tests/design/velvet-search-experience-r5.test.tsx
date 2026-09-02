@@ -24,7 +24,7 @@ describe('Velvet R5 Search / Explore contracts', () => {
   it('8. preserves all existing query params when applying filters', () => expect(filters).toContain('searchParams.toString()'))
   it('9. removes page when filters change', () => expect(filters).toContain("params.delete('page')"))
   it('10. keeps neighborhood in the route contract', () => expect(filters).toContain('city.slug}/${location}'))
-  it('11. preserves locale-aware filter navigation', () => expect(filters).toContain('localizePathname(path, locale)'))
+  it('11. preserves locale-aware filter navigation from the active pathname', () => expect(filters).toContain('localizePathname(path, routeLocale)'))
   it('12. preserves active filters in pagination', () => expect(city + location).toContain('buildSearchPageHref'))
   it('13. omits page=1 from presentation URLs', () => expect(buildSearchPageHref('/sao-paulo', { cabelo: 'BLONDE', page: '2' }, 1, 'pt-BR')).toBe('/sao-paulo?cabelo=BLONDE'))
   it('14. builds locale-aware English pagination', () => expect(buildSearchPageHref('/sao-paulo', { idade_min: '25' }, 2, 'en')).toBe('/en/sao-paulo?idade_min=25&page=2'))
@@ -76,6 +76,7 @@ describe('Velvet R5 Search / Explore contracts', () => {
   })
   it('46. preserves locale and neighborhood while removing query filters', () => {
     expect(filters).toContain("router.push(buildUrl(currentNeighborhood || '', params))")
+    expect(filters).toContain('const routeLocale = localeFromPathname(pathname) ?? DEFAULT_LOCALE')
   })
   it('47. keeps reset-all state synchronization intact', () => {
     expect(filters).toContain("setNeighborhood(''); setMinAge(''); setMaxAge(''); setHair(''); setEyes(''); setBody('')")
