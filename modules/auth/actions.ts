@@ -208,7 +208,12 @@ export async function loginAction(
   const account = authData.user
     ? (await createAdminClient().from('account_users').select('role').eq('auth_user_id', authData.user.id).maybeSingle()).data
     : null
-  redirect(account?.role === 'CLIENT' ? '/cliente' : '/onboarding')
+
+  const destination = account?.role === 'CLIENT' ? '/cliente' : '/onboarding'
+  if (destination === '/cliente') {
+    redirect('/cliente')
+  }
+  redirect('/onboarding')
 }
 
 // ---------------------------------------------------------------------------
