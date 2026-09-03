@@ -9,7 +9,7 @@ describe('Profile Security & Privacy Invariants', () => {
       account_user_id: 'account-uuid-1',
       stage_name: 'Juliana Castro',
       slug: 'juliana-castro-4f9a',
-      headline: 'Modelo',
+      audience_setting: "PUBLIC", headline: 'Modelo',
       bio: 'Atendimento exclusivo',
       public_age: 23,
       height_cm: 170,
@@ -44,6 +44,7 @@ describe('Profile Security & Privacy Invariants', () => {
     const publicDTO: PublicProfileDTO = {
       stageName: rawProfile.stage_name,
       slug: rawProfile.slug,
+      audienceSetting: 'PUBLIC',
       headline: rawProfile.headline,
       bio: rawProfile.bio,
       publicAge: rawProfile.show_age ? rawProfile.public_age : null,

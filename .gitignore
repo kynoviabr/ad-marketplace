@@ -55,3 +55,4 @@ supabase/.temp/
 .env*.local
 .env.*-source
 .artifacts/
+scratch/

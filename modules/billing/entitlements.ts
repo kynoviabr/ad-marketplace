@@ -140,7 +140,7 @@ export async function resolveEntitlements(accountUserId: string): Promise<Effect
     maxVideos: integer(values, 'MAX_VIDEOS', MVP_QUOTA_DEFAULTS.MAX_VIDEOS),
     maxServiceAreas: integer(values, 'MAX_SERVICE_AREAS', MVP_QUOTA_DEFAULTS.MAX_SERVICE_AREAS),
     reviewsAccess: boolean(values, 'REVIEWS_ACCESS'), premiumFeatures: boolean(values, 'PREMIUM_FEATURES'),
-    whatsappAi: boolean(values, 'WHATSAPP_AI'), values: Object.freeze(values),
+    whatsappAi: boolean(values, 'WHATSAPP_AI'), canAccessVipProfiles: boolean(values, 'CAN_ACCESS_VIP_PROFILES'), canAccessVipMedia: boolean(values, 'CAN_ACCESS_VIP_MEDIA'), values: Object.freeze(values),
   })
 }
 

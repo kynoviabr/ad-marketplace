@@ -62,6 +62,7 @@ export async function getPublicProfileDTO(slug: string): Promise<PublicProfileDT
     stageName: profile.stage_name,
     slug: profile.slug,
     headline: profile.headline,
+    audienceSetting: profile.audience_setting,
     bio: profile.bio,
     publicAge: profile.show_age ? profile.public_age : null,
     heightCm: profile.show_height ? profile.height_cm : null,

@@ -8,7 +8,11 @@ import { resolveProfilesWithMedia } from '@/modules/media/delivery'
 import { constructRootMetadata } from '@/modules/seo/metadata'
 import { getSeoConfig } from '@/modules/seo/config'
 import { JsonLd } from '@/components/seo/json-ld'
-import { getRequestLocale } from '@/lib/i18n/server'
+import { getRequestLocale, getTranslations } from '@/lib/i18n/server'
+import { HomeNewProfessionals } from '@/components/public/home-new-professionals'
+import { HomeNewContent } from '@/components/public/home-new-content'
+import { getNewProfessionals, getNewContent } from '@/modules/search/home-sections'
+import { getAccount } from '@/modules/auth/dal'
 
 export async function generateMetadata(): Promise<Metadata> {
   return constructRootMetadata(await getRequestLocale())
@@ -43,6 +47,14 @@ export default async function HomePage() {
   // 3. Resolve approved primary media for profiles via batch
   const profilesWithMedia = await resolveProfilesWithMedia(homeProfiles)
 
+  // 4. Fetch R10 new bounded sections
+  const account = await getAccount()
+  const { t } = await getTranslations()
+  const [newProfessionals, newContent] = await Promise.all([
+    getNewProfessionals(account?.id ?? null, 4),
+    getNewContent(account?.id ?? null, 4)
+  ])
+
   return (
     <>
       {/* We use WebSite JSON-LD for the Home page. */}
@@ -58,6 +70,8 @@ export default async function HomePage() {
 
       <HomeHero profiles={profilesWithMedia.slice(0, 2)} />
       <PublicProfileGrid profiles={profilesWithMedia} />
+      <HomeNewProfessionals profiles={newProfessionals} title={locale === 'en' ? 'New Professionals' : 'Novas Modelos'} overline={locale === 'en' ? 'UPDATES' : 'NOVIDADES'} />
+      <HomeNewContent content={newContent} title={locale === 'en' ? 'New Content' : 'Novos Conteúdos'} overline={locale === 'en' ? 'NEW CONTENT' : 'NOVOS CONTEÚDOS'} />
       <HomeLocations locationsByZone={locationsByZone} profiles={profilesWithMedia.slice(0, 5)} />
       <HomeTrustSection />
       <HomeAcquisition />

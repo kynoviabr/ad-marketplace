@@ -6,7 +6,7 @@
  */
 
 /** Account roles. ADVERTISER is the only role assignable at public signup. */
-export type UserRole = 'ADVERTISER' | 'ADMIN'
+export type UserRole = 'ADVERTISER' | 'ADMIN' | 'CLIENT'
 
 /** Account status. Admin-managed only — users cannot self-modify. */
 export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'DELETED'

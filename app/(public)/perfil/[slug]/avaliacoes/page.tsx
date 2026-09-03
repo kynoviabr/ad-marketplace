@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { getTranslations } from '@/lib/i18n/server'
 import { localizePathname } from '@/lib/i18n/routing'
 import { getEligiblePublicProfileBySlug } from '@/modules/profiles/public-detail'
+import { getAccount } from '@/modules/auth/dal'
 import { getPublicReviews } from '@/modules/reviews/dal'
 import { ReviewReportButton } from '@/components/reviews/review-report-button'
 
@@ -10,8 +11,8 @@ export const dynamic = 'force-dynamic'
 export const metadata = { robots: { index: false, follow: true } }
 
 export default async function AllReviewsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ page?: string }> }) {
-  const [{ slug }, query, { locale }] = await Promise.all([params, searchParams, getTranslations()])
-  const detail = await getEligiblePublicProfileBySlug(slug)
+  const [{ slug }, query, { locale }, account] = await Promise.all([params, searchParams, getTranslations(), getAccount()])
+  const detail = await getEligiblePublicProfileBySlug(slug, account?.id)
   if (!detail) notFound()
   const requestedPage = Number.parseInt(query.page ?? '1', 10)
   const reviews = await getPublicReviews(detail.profileId, Number.isFinite(requestedPage) ? requestedPage : 1)

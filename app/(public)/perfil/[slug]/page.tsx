@@ -58,18 +58,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PublicProfilePage({ params }: Props) {
-  const { locale, t } = await getTranslations()
+  const [{ locale, t }, { slug }, account] = await Promise.all([getTranslations(), params, getAccount()])
   const offeringText = (key: string) => t(key as Parameters<typeof t>[0])
   const labels = locale === 'en' ? labelsEn : labelsPtBR
-  const { slug } = await params
-  const detail = await getEligiblePublicProfileBySlug(slug)
+  const detail = await getEligiblePublicProfileBySlug(slug, account?.id)
   if (!detail) notFound()
 
   const { profile, city, locations, media, videos } = detail
-  const [reviews, account] = await Promise.all([
-    getPublicReviews(detail.profileId, 1, PUBLIC_REVIEW_PREVIEW_LIMIT),
-    getAccount(),
-  ])
+  const reviews = await getPublicReviews(detail.profileId, 1, PUBLIC_REVIEW_PREVIEW_LIMIT)
   const reviewAccess = await getReviewAccess(account, detail.profileId)
   const primary = media.find((item) => item.isPrimary) ?? media[0]
   const supportingMedia = media.filter((item) => item.url !== primary.url)

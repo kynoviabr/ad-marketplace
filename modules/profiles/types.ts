@@ -56,6 +56,7 @@ export type BodyType =
 export interface ProfessionalProfile {
   id: string
   account_user_id: string
+  audience_setting: 'PUBLIC' | 'VIP_ONLY'
 
   // Public Identity
   stage_name: string
@@ -104,6 +105,7 @@ export interface ProfessionalProfile {
   completed_at: string | null
   created_at: string
   updated_at: string
+  published_at?: string | null
 }
 
 /**
@@ -114,6 +116,7 @@ export interface PublicProfileDTO {
   stageName: string
   slug: string
   headline: string | null
+  audienceSetting: 'PUBLIC' | 'VIP_ONLY'
   bio: string | null
   publicAge: number | null
   heightCm: number | null

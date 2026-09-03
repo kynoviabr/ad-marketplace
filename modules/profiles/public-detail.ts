@@ -19,8 +19,10 @@ export interface PublicProfileDetailDTO {
   verifiedAdult: true
 }
 
+import { resolveCanAccessVipProfiles } from '@/modules/clients/dal'
+
 /** Anonymous public-detail lookup. Absence from the canonical view always means unavailable. */
-export async function getEligiblePublicProfileBySlug(slug: string): Promise<PublicProfileDetailDTO | null> {
+export async function getEligiblePublicProfileBySlug(slug: string, accountId: string | null = null): Promise<PublicProfileDetailDTO | null> {
   const normalizedSlug = slug.trim().toLowerCase()
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalizedSlug)) return null
   const admin = createAdminClient()
@@ -32,14 +34,19 @@ export async function getEligiblePublicProfileBySlug(slug: string): Promise<Publ
     .maybeSingle()
   if (eligibilityError || !eligible) return null
 
-  const [profile, cityResult, locationsResult, mediaResult, videos] = await Promise.all([
+  const [profile, cityResult, locationsResult, mediaResult, videos, isVip] = await Promise.all([
     getPublicProfileDTO(normalizedSlug),
     admin.from('cities').select('id, name, slug').eq('id', eligible.city_id).eq('active', true).maybeSingle(),
     admin.from('professional_profile_locations').select('*, location:marketplace_locations(*)').eq('profile_id', eligible.profile_id).order('is_primary', { ascending: false }),
     admin.from('profile_media').select('*').eq('profile_id', eligible.profile_id).eq('status', 'APPROVED').is('deleted_at', null).order('position', { ascending: true }),
     getApprovedPublicVideos(eligible.profile_id),
+    resolveCanAccessVipProfiles(accountId)
   ])
   if (!profile || cityResult.error || !cityResult.data || locationsResult.error || mediaResult.error) return null
+
+  if (profile.audienceSetting === 'VIP_ONLY' && !isVip) {
+    return null // Deny anonymous and free
+  }
 
   const canonicalLocations = ((locationsResult.data ?? []) as ProfileLocation[])
     .filter((item) => item.location?.active && item.location.city_id === eligible.city_id)

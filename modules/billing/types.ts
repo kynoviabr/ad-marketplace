@@ -27,6 +27,8 @@ export type EntitlementCode =
   | 'PREMIUM_FEATURES'
   | 'WHATSAPP_AI'
   | 'FOUNDER_STATUS'
+  | 'CAN_ACCESS_VIP_PROFILES'
+  | 'CAN_ACCESS_VIP_MEDIA'
 
 export type BillingInterval = 'MONTH' | 'YEAR'
 
@@ -112,6 +114,8 @@ export interface EffectiveEntitlements {
   reviewsAccess: boolean
   premiumFeatures: boolean
   whatsappAi: boolean
+  canAccessVipProfiles: boolean
+  canAccessVipMedia: boolean
   values: Readonly<Record<string, EntitlementValue>>
 }
 

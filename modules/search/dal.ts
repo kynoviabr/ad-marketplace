@@ -1,5 +1,6 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveClientVipEntitlement } from '@/modules/clients/dal'
 import { getCityBySlug, getLocationBySlug, getLocationsByCityId } from '@/modules/locations/dal'
 import { MAX_SPONSORED_SLOTS_PER_PAGE } from '@/modules/promotions/constants'
 import { resolveActiveSponsoredCandidates } from '@/modules/promotions/dal'
@@ -218,7 +219,7 @@ const SELECT_PROFILE_SEARCH_FIELDS = `
  *   VIEW v_publication_eligible_profiles. The subsequent queries on professional_profiles
  *   use .in('id', eligibleProfileIds) to restrict results to that pre-vetted set.
  */
-export async function executeSearch(params: SearchParams): Promise<SearchResponse> {
+export async function executeSearch(params: SearchParams, callerAccountId?: string | null): Promise<SearchResponse> {
   const admin = createAdminClient()
 
   // 1. Resolve City
@@ -261,11 +262,18 @@ export async function executeSearch(params: SearchParams): Promise<SearchRespons
     console.error('[search:executeSearch] Error fetching eligible profile IDs from view:', eligibleError.message)
   }
 
-  const eligibleProfileIds = await filterEligibleIdsByOfferings(
+  let eligibleProfileIds = await filterEligibleIdsByOfferings(
     admin,
     (eligibleData || []).map((r: any) => r.profile_id),
     params.offeringCodes
   )
+
+  const { canAccessVipProfiles } = await resolveClientVipEntitlement(callerAccountId ?? null)
+  if (!canAccessVipProfiles) {
+    const { data: vipOnlyRows } = await admin.from('professional_profiles').select('id').in('id', eligibleProfileIds).eq('audience_setting', 'VIP_ONLY')
+    const vipOnlyIds = new Set((vipOnlyRows ?? []).map((p: any) => p.id))
+    eligibleProfileIds = eligibleProfileIds.filter((id: string) => !vipOnlyIds.has(id))
+  }
 
   if (eligibleProfileIds.length === 0) {
     return {
