@@ -114,6 +114,7 @@ export async function applySubscriptionTransition(
 
   const updatePayload: Record<string, unknown> = {
     status: newStatus,
+    subscription_state: newStatus === 'INCOMPLETE' ? 'TRIAL' : newStatus === 'GRACE_PERIOD' ? 'PAST_DUE' : newStatus,
     updated_at: new Date().toISOString(),
   }
 

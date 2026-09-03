@@ -11,8 +11,9 @@ import {
   RevokeOverrideSchema,
   CreateFreeLaunchSchema,
   GrantFounderBenefitSchema,
+  RevokeFounderBenefitSchema,
 } from './schemas'
-import type { InitiateCheckoutInput, CancelSubscriptionInput, GrantOverrideInput, RevokeOverrideInput, CreateFreeLaunchInput, GrantFounderBenefitInput } from './schemas'
+import type { InitiateCheckoutInput, CancelSubscriptionInput, GrantOverrideInput, RevokeOverrideInput, CreateFreeLaunchInput, GrantFounderBenefitInput, RevokeFounderBenefitInput } from './schemas'
 import type { BillingActionResult, Subscription, BillingDTO } from './types'
 import { getActiveSubscription, getPriceById, getSubscriptionWithPlan } from './dal'
 import { getPaymentProvider } from './providers/registry'
@@ -66,6 +67,7 @@ async function createFounderFreeLaunch(input: {
     provider_customer_id: null,
     provider_subscription_id: null,
     status: 'ACTIVE',
+    subscription_state: 'ACTIVE',
     current_period_start: now,
     current_period_end: input.periodEnd,
     cancel_at_period_end: false,
@@ -130,11 +132,37 @@ export async function grantFounderBenefitAction(
     const periodEnd = new Date()
     periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 3)
     const result = await createFounderFreeLaunch({ accountUserId: target.account_user_id, grantedBy: adminAccount.id, periodEnd: periodEnd.toISOString() })
-    if (result.success) revalidatePath('/admin/billing')
+    if (result.success) {
+      await admin.from('billing_admin_audit_logs').insert({ actor_account_user_id: adminAccount.id, target_account_user_id: target.account_user_id, action: 'FOUNDER_GRANTED', subject_id: result.data.id, metadata: { profile_id: target.id } })
+      revalidatePath('/admin/billing')
+    }
     return result
   } catch (err) {
     console.error('[billing:founderGrant] Error:', err instanceof Error ? err.message : err)
     return { success: false, error: 'Ocorreu um erro ao conceder o benefício Founder.' }
+  }
+}
+
+export async function revokeFounderBenefitAction(input: RevokeFounderBenefitInput): Promise<BillingActionResult<void>> {
+  try {
+    const adminAccount = await requireAdmin()
+    const validated = RevokeFounderBenefitSchema.safeParse(input)
+    if (!validated.success) return { success: false, error: 'Perfil inválido.' }
+    const admin = createAdminClient()
+    const { data: profile } = await admin.from('professional_profiles').select('id, account_user_id').eq('id', validated.data.profileId).maybeSingle()
+    if (!profile) return { success: false, error: 'Perfil profissional não encontrado.' }
+    const { data: subscriptions } = await admin.from('subscriptions').select('id, plan:subscription_plans!inner(code)').eq('account_user_id', profile.account_user_id).in('status', ['ACTIVE', 'PAST_DUE', 'GRACE_PERIOD', 'INCOMPLETE'])
+    const founder = (subscriptions ?? []).find((item: any) => (Array.isArray(item.plan) ? item.plan[0] : item.plan)?.code === 'FOUNDER')
+    if (!founder) return { success: false, error: 'Benefício Founder ativo não encontrado.' }
+    const now = new Date().toISOString()
+    const { error } = await admin.from('subscriptions').update({ status: 'EXPIRED', subscription_state: 'EXPIRED', canceled_at: now, cancellation_reason: 'ADMIN_FOUNDER_REVOKED', updated_at: now }).eq('id', founder.id)
+    if (error) return { success: false, error: 'Não foi possível revogar o benefício Founder.' }
+    await admin.from('billing_admin_audit_logs').insert({ actor_account_user_id: adminAccount.id, target_account_user_id: profile.account_user_id, action: 'FOUNDER_REVOKED', subject_id: founder.id, metadata: { profile_id: profile.id } })
+    revalidatePath('/admin/billing')
+    return { success: true, data: undefined }
+  } catch (err) {
+    console.error('[billing:founderRevoke] Error:', err instanceof Error ? err.message : err)
+    return { success: false, error: 'Ocorreu um erro ao revogar o benefício Founder.' }
   }
 }
 
@@ -220,6 +248,7 @@ export async function initiateCheckoutAction(
         provider_customer_id: customer.providerCustomerId,
         provider_subscription_id: checkout.providerSubscriptionId,
         status: 'INCOMPLETE',
+        subscription_state: 'TRIAL',
       })
 
     return { success: true, data: { checkoutUrl: checkout.checkoutUrl } }
@@ -274,6 +303,7 @@ export async function cancelSubscriptionAction(
         cancel_at_period_end: true,
         canceled_at: new Date().toISOString(),
         cancellation_reason: 'USER_REQUESTED',
+        subscription_state: 'CANCELED',
         updated_at: new Date().toISOString(),
       })
       .eq('id', subscription.id)

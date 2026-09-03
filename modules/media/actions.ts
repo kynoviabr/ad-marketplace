@@ -16,12 +16,12 @@ import {
   type SetPrimaryMediaInput,
   type DeleteMediaInput,
   type RetryUploadInput,
-  MAX_PHOTOS_PER_PROFILE,
 } from './schemas'
 import { getActivePhotoCount, getMediaById, getProfileMedia } from './dal'
 import { submitOwnedProfileForReview } from '@/modules/profiles/submission'
 import type { MediaActionResult, ProfileMedia, SignedUploadUrlResponse } from './types'
 import { redirect } from 'next/navigation'
+import { resolveEntitlements } from '@/modules/billing/entitlements'
 
 const SIGNED_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000
 
@@ -50,10 +50,11 @@ export async function requestMediaUploadUrlAction(
     }
 
     const currentCount = await getActivePhotoCount(profile.id)
-    if (currentCount >= MAX_PHOTOS_PER_PROFILE) {
+    const { maxPhotos } = await resolveEntitlements(account.id)
+    if (currentCount >= maxPhotos) {
       return {
         success: false,
-        error: `Limite de fotos atingido (${MAX_PHOTOS_PER_PROFILE} fotos no plano atual).`,
+        error: `Limite de fotos atingido (${maxPhotos} fotos no plano atual).`,
       }
     }
 

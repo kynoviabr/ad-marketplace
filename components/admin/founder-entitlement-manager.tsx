@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { grantFounderBenefitAction } from '@/modules/billing/actions'
+import { grantFounderBenefitAction, revokeFounderBenefitAction } from '@/modules/billing/actions'
 import type { AdminFounderEntitlementSummary } from '@/modules/billing/types'
 import { useI18n } from '@/components/i18n'
 import { formatDate as formatLocalizedDate } from '@/lib/i18n/format'
@@ -28,6 +28,15 @@ export function FounderEntitlementManager({ items }: { items: AdminFounderEntitl
     router.refresh()
   }
 
+  async function revoke(profileId: string) {
+    if (pendingProfile) return
+    setPendingProfile(profileId)
+    const result = await revokeFounderBenefitAction({ profileId })
+    setPendingProfile(null)
+    setFeedback((current) => ({ ...current, [profileId]: result.success ? t('admin.revokeSuccess') : result.error }))
+    if (result.success) router.refresh()
+  }
+
   return <section style={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '0.75rem', padding: '1.5rem', marginBottom: '2.5rem' }} aria-labelledby="founder-title">
     <h2 id="founder-title" style={{ color: '#fff', fontSize: '1.125rem', margin: 0 }}>{t('admin.founderAccess')}</h2>
     <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>{t('admin.founderDescription')}</p>
@@ -48,7 +57,7 @@ export function FounderEntitlementManager({ items }: { items: AdminFounderEntitl
           </div>
           {item.founderFreePeriod === 'NOT_GRANTED' && !item.subscriptionStatus ? <button type="button" onClick={() => grant(item.profileId)} disabled={pendingProfile !== null} style={{ alignSelf: 'flex-start', minHeight: '44px', padding: '.65rem 1rem', borderRadius: '.375rem', border: 0, background: '#a16207', color: '#fff', fontWeight: 700, cursor: pendingProfile ? 'not-allowed' : 'pointer', opacity: pendingProfile ? .65 : 1 }}>
             {pendingProfile === item.profileId ? t('admin.granting') : t('admin.grantThreeMonths')}
-          </button> : null}
+          </button> : item.founderFreePeriod === 'ACTIVE' ? <button type="button" onClick={() => revoke(item.profileId)} disabled={pendingProfile !== null} style={{ alignSelf: 'flex-start', minHeight: '44px', padding: '.65rem 1rem', border: '1px solid #b91c1c', background: 'transparent', color: '#fca5a5', fontWeight: 700 }}>{t('admin.revokeFounder')}</button> : null}
         </div>
         {feedback[item.profileId] ? <p role="status" style={{ color: feedback[item.profileId] === t('admin.grantSuccess') ? '#86efac' : '#fca5a5', marginBottom: 0 }}>{feedback[item.profileId]}</p> : null}
       </article>)}

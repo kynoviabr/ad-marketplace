@@ -16,6 +16,18 @@ export type SubscriptionStatus =
   | 'INCOMPLETE'
   | 'EXPIRED'
 
+export type SubscriptionState = 'FREE' | 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'EXPIRED'
+export type EntitlementValue = number | boolean | string
+export type EntitlementCode =
+  | 'PROFILE_PUBLICATION'
+  | 'MAX_PHOTOS'
+  | 'MAX_VIDEOS'
+  | 'MAX_SERVICE_AREAS'
+  | 'REVIEWS_ACCESS'
+  | 'PREMIUM_FEATURES'
+  | 'WHATSAPP_AI'
+  | 'FOUNDER_STATUS'
+
 export type BillingInterval = 'MONTH' | 'YEAR'
 
 export type WebhookProcessingStatus = 'RECEIVED' | 'PROCESSED' | 'IGNORED' | 'FAILED'
@@ -33,6 +45,7 @@ export interface SubscriptionPlan {
   sort_order: number
   created_at: string
   updated_at: string
+  display_metadata?: Record<string, unknown>
 }
 
 export interface PlanPrice {
@@ -56,6 +69,7 @@ export interface PlanEntitlement {
   code: string
   value_int: number | null
   value_bool: boolean | null
+  value_text?: string | null
   created_at: string
 }
 
@@ -82,6 +96,23 @@ export interface Subscription {
   updated_at: string
   granted_by?: string | null
   grant_source?: string | null
+  subscription_state?: SubscriptionState | null
+}
+
+export interface EffectiveEntitlements {
+  accountUserId: string
+  planCode: string
+  planName: string
+  subscriptionState: SubscriptionState
+  founder: boolean
+  canPublishProfile: boolean
+  maxPhotos: number
+  maxVideos: number
+  maxServiceAreas: number
+  reviewsAccess: boolean
+  premiumFeatures: boolean
+  whatsappAi: boolean
+  values: Readonly<Record<string, EntitlementValue>>
 }
 
 export interface AdminFounderEntitlementSummary {

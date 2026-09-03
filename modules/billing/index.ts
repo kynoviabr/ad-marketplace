@@ -17,6 +17,8 @@ export {
   hasPublicationEntitlement,
   isSubscriptionPublicationEligible,
   getPlanEntitlement,
+  resolveEntitlements,
+  normalizeSubscriptionState,
 } from './entitlements'
 
 export type {
@@ -33,6 +35,10 @@ export type {
   PlanPriceDTO,
   BillingActionResult,
   AdminFounderEntitlementSummary,
+  EffectiveEntitlements,
+  EntitlementCode,
+  EntitlementValue,
+  SubscriptionState,
 } from './types'
 
 export {

@@ -60,6 +60,8 @@ export const adminPtBR = {
   'admin.granting': 'Concedendo…',
   'admin.grantThreeMonths': 'Conceder benefício Founder — 3 meses',
   'admin.grantSuccess': 'Benefício Founder concedido com sucesso.',
+  'admin.revokeFounder': 'Revogar Founder',
+  'admin.revokeSuccess': 'Benefício Founder revogado com sucesso.',
 } as const
 
 export const adminEn = {
@@ -124,4 +126,6 @@ export const adminEn = {
   'admin.granting': 'Granting…',
   'admin.grantThreeMonths': 'Grant Founder benefit — 3 months',
   'admin.grantSuccess': 'Founder benefit granted successfully.',
+  'admin.revokeFounder': 'Revoke Founder',
+  'admin.revokeSuccess': 'Founder benefit revoked successfully.',
 } as const

@@ -45,3 +45,8 @@ export const GrantFounderBenefitSchema = z.object({
   profileId: z.string().uuid('Profile ID inválido.'),
 })
 export type GrantFounderBenefitInput = z.infer<typeof GrantFounderBenefitSchema>
+
+export const RevokeFounderBenefitSchema = z.object({
+  profileId: z.string().uuid('Profile ID inválido.'),
+})
+export type RevokeFounderBenefitInput = z.infer<typeof RevokeFounderBenefitSchema>
