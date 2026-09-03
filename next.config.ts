@@ -27,6 +27,7 @@ const nextConfig: NextConfig = {
    * FASE 12.2A: Prepared for profile photo rendering in FASE 12.2C/D.
    */
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
