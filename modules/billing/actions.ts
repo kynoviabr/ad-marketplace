@@ -67,6 +67,7 @@ async function createFounderFreeLaunch(input: {
     provider_customer_id: null,
     provider_subscription_id: null,
     status: 'ACTIVE',
+    subscription_state: 'ACTIVE',
     current_period_start: now,
     current_period_end: input.periodEnd,
     cancel_at_period_end: false,
@@ -247,6 +248,7 @@ export async function initiateCheckoutAction(
         provider_customer_id: customer.providerCustomerId,
         provider_subscription_id: checkout.providerSubscriptionId,
         status: 'INCOMPLETE',
+        subscription_state: 'TRIAL',
       })
 
     return { success: true, data: { checkoutUrl: checkout.checkoutUrl } }
@@ -301,6 +303,7 @@ export async function cancelSubscriptionAction(
         cancel_at_period_end: true,
         canceled_at: new Date().toISOString(),
         cancellation_reason: 'USER_REQUESTED',
+        subscription_state: 'CANCELED',
         updated_at: new Date().toISOString(),
       })
       .eq('id', subscription.id)
