@@ -17,7 +17,7 @@ export default async function ClientAreaPage() {
 
   return (
     <div className="velvet-dashboard">
-      <main>
+      <div>
         <section className="velvet-dashboard-intro">
           <p className="dashboard-eyebrow">{t('client.areaTitle')}</p>
           <h1>{t('client.membershipStatus')}</h1>
@@ -50,7 +50,7 @@ export default async function ClientAreaPage() {
             </button>
           </section>
         )}
-      </main>
+      </div>
     </div>
   )
 }

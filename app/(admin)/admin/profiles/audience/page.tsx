@@ -1,13 +1,15 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/modules/moderation/guards'
+import { getTranslations } from '@/lib/i18n/server'
 
 export default async function AdminAudiencePage() {
   await requireAdmin()
+  const { locale } = await getTranslations()
   const admin = createAdminClient()
   const { data: profiles } = await admin
     .from('professional_profiles')
-    .select('id, stage_name, audience_setting, account_id')
+    .select('id, stage_name, audience_setting, account_user_id')
     .limit(50)
 
   async function toggleAudience(formData: FormData) {
@@ -19,7 +21,7 @@ export default async function AdminAudiencePage() {
 
     const { data: currentProfile } = await adminClient
       .from('professional_profiles')
-      .select('audience_setting, account_id')
+      .select('audience_setting, account_user_id')
       .eq('id', profileId)
       .single()
     
@@ -31,10 +33,9 @@ export default async function AdminAudiencePage() {
     
     // Audit admin changes
     await adminClient.from('billing_admin_audit_logs').insert({
-      admin_id: adminAccount.id,
-      account_user_id: currentProfile.account_id,
-      action: newType === 'VIP_ONLY' ? 'AUDIENCE_SET_VIP_ONLY' : 'AUDIENCE_SET_PUBLIC',
-      reason: 'Admin Panel Toggle',
+      actor_account_user_id: adminAccount.id,
+      target_account_user_id: currentProfile.account_user_id,
+      action: newType === 'VIP_ONLY' ? 'ENTITLEMENT_OVERRIDE_GRANTED' : 'ENTITLEMENT_OVERRIDE_REVOKED',
       metadata: { profile_id: profileId, old_audience_setting: currentProfile.audience_setting, new_audience_setting: newType }
     })
     revalidatePath('/admin/profiles/audience')
@@ -42,14 +43,14 @@ export default async function AdminAudiencePage() {
 
   return (
     <div>
-      <h1>Audience Control Management (Admin)</h1>
+      <h1>{locale === 'en' ? 'Audience Control (Admin)' : 'Controle de audiência (Admin)'}</h1>
       <table style={{ width: '100%', textAlign: 'left', marginTop: '2rem' }}>
         <thead>
           <tr>
             <th>Profile ID</th>
-            <th>Stage Name</th>
-            <th>Audience Setting</th>
-            <th>Action</th>
+            <th>{locale === 'en' ? 'Stage name' : 'Nome artístico'}</th>
+            <th>{locale === 'en' ? 'Audience' : 'Audiência'}</th>
+            <th>{locale === 'en' ? 'Action' : 'Ação'}</th>
           </tr>
         </thead>
         <tbody>
@@ -61,7 +62,7 @@ export default async function AdminAudiencePage() {
               <td>
                 <form action={toggleAudience}>
                   <input type="hidden" name="profileId" value={p.id} />
-                  <button type="submit">Toggle to {p.audience_setting === 'VIP_ONLY' ? 'PUBLIC' : 'VIP_ONLY'}</button>
+                  <button type="submit">{locale === 'en' ? 'Set' : 'Definir'} {p.audience_setting === 'VIP_ONLY' ? 'PUBLIC' : 'VIP_ONLY'}</button>
                 </form>
               </td>
             </tr>

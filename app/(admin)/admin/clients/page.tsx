@@ -1,9 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/modules/moderation/guards'
+import { getTranslations } from '@/lib/i18n/server'
 
 export default async function AdminClientsPage() {
   await requireAdmin()
+  const { locale } = await getTranslations()
   const admin = createAdminClient()
   const { data: clients } = await admin
     .from('account_users')
@@ -45,10 +47,9 @@ export default async function AdminClientsPage() {
     
     // Audit admin changes
     await adminClient.from('billing_admin_audit_logs').insert({
-      admin_id: adminAccount.id,
-      account_user_id: accountId,
+      actor_account_user_id: adminAccount.id,
+      target_account_user_id: accountId,
       action: newType === 'VIP' ? 'ENTITLEMENT_OVERRIDE_GRANTED' : 'ENTITLEMENT_OVERRIDE_REVOKED',
-      reason: 'Admin Panel Toggle',
       metadata: { override_type: 'VIP_MEMBERSHIP' }
     })
     revalidatePath('/admin/clients')
@@ -56,13 +57,13 @@ export default async function AdminClientsPage() {
 
   return (
     <div>
-      <h1>Client VIP Management (Admin)</h1>
+      <h1>{locale === 'en' ? 'VIP client management (Admin)' : 'Gestão de clientes VIP (Admin)'}</h1>
       <table style={{ width: '100%', textAlign: 'left', marginTop: '2rem' }}>
         <thead>
           <tr>
             <th>Account ID</th>
-            <th>Membership</th>
-            <th>Action</th>
+            <th>{locale === 'en' ? 'Membership' : 'Assinatura'}</th>
+            <th>{locale === 'en' ? 'Action' : 'Ação'}</th>
           </tr>
         </thead>
         <tbody>
@@ -75,7 +76,7 @@ export default async function AdminClientsPage() {
                 <td>
                   <form action={toggleVip}>
                     <input type="hidden" name="accountId" value={client.id} />
-                    <button type="submit">{memType === 'VIP' ? 'Revoke VIP' : 'Grant VIP'}</button>
+                    <button type="submit">{memType === 'VIP' ? (locale === 'en' ? 'Revoke VIP' : 'Revogar VIP') : (locale === 'en' ? 'Grant VIP' : 'Conceder VIP')}</button>
                   </form>
                 </td>
               </tr>

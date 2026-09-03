@@ -51,10 +51,8 @@ describe('Signup Domain', () => {
 
     it('signUp options.data does not pass role field', () => {
       const content = readFileSync(join(ROOT, 'modules/auth/actions.ts'), 'utf-8')
-      // The data object passed to signUp should not contain role
-      // Verify by checking the structure: there should be no role: ... in options.data
-      expect(content).not.toContain("'role'")
-      expect(content).not.toContain('"role"')
+      expect(content).not.toMatch(/options\s*:\s*\{[\s\S]*?data\s*:\s*\{[\s\S]*?role\s*:/)
+      expect(content).not.toContain("formData.get('role')")
     })
 
     it('trigger hardcodes ADVERTISER (never from metadata) in migration', () => {

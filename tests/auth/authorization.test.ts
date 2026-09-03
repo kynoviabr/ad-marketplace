@@ -160,8 +160,8 @@ describe('Authorization', () => {
   describe('E. Admin role cannot be set via signup payload', () => {
     it('signupAction does not pass role to supabase.auth.signUp', () => {
       const actions = readFileSync(join(ROOT, 'modules/auth/actions.ts'), 'utf-8')
-      expect(actions).not.toContain("'role'")
-      expect(actions).not.toContain('"role"')
+      expect(actions).not.toMatch(/auth\.signUp\([\s\S]*?options\s*:\s*\{[\s\S]*?role\s*:/)
+      expect(actions).not.toContain("formData.get('role')")
     })
 
     it('trigger insert hardcodes ADVERTISER (no metadata read for role)', () => {

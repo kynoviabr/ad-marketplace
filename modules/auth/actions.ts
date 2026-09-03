@@ -39,6 +39,7 @@
 
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
+import { createHash, randomUUID } from 'node:crypto'
 import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SignupSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema } from './schemas'
@@ -197,14 +198,17 @@ export async function loginAction(
   const { email, password } = parsed.data
   const supabase = await createServerClient()
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
     // Generic message — never reveal whether email exists or password is wrong
     return { success: false, error: 'E-mail ou senha incorretos.' }
   }
 
-  redirect('/onboarding')
+  const account = authData.user
+    ? (await createAdminClient().from('account_users').select('role').eq('auth_user_id', authData.user.id).maybeSingle()).data
+    : null
+  redirect(account?.role === 'CLIENT' ? '/cliente' : '/onboarding')
 }
 
 // ---------------------------------------------------------------------------
@@ -340,9 +344,8 @@ export async function startOnboardingFormAction(): Promise<void> {
  *
  * Security invariants:
  * - Role is NOT sourced from form data.
- * - The trigger fires and sets role = ADVERTISER (hardcoded).
- * - This action immediately overwrites the role to CLIENT using the admin
- *   client (service_role), which is allowed by the trigger guard.
+ * - A short-lived one-time intent is created only by this server action.
+ * - The trigger consumes it and creates CLIENT + FREE membership atomically.
  * - Terms/privacy versions are written from server constants, not user input.
  * - Client accounts do NOT go through professional onboarding.
  */
@@ -362,15 +365,6 @@ export async function clientSignupAction(
     acceptedTerms: formData.get('acceptedTerms'),
   }
 
-  const parsed = SignupSchema.omit({ acceptedAge: true })
-    .extend({ acceptedTerms: raw.acceptedTerms === 'on' ? undefined : undefined })
-    .safeParse({
-      ...raw,
-      // acceptedAge not required for clients — inject a pass-through
-      acceptedAge: undefined,
-    })
-
-  // Simpler manual validation for client signup
   const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : ''
   const password = typeof raw.password === 'string' ? raw.password : ''
   const confirmPassword = typeof raw.confirmPassword === 'string' ? raw.confirmPassword : ''
@@ -390,41 +384,58 @@ export async function clientSignupAction(
   }
 
   const now = new Date().toISOString()
-  const supabase = await createServerClient()
-
-  const { data: authData, error: signUpError } = await supabase.auth.signUp({
+  const adminClient = createAdminClient()
+  const signupToken = randomUUID()
+  const signupTokenHash = createHash('sha256').update(signupToken).digest('hex')
+  const { error: intentError } = await adminClient.from('client_signup_intents').insert({ token_hash: signupTokenHash })
+  if (intentError) {
+    return { success: false, error: 'Não foi possível criar sua conta. Tente novamente.' }
+  }
+  const { data: authData, error: signUpError } = await adminClient.auth.admin.createUser({
     email,
     password,
-    options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-      // DO NOT pass role here — see security comment above
-    },
+    email_confirm: false,
+    user_metadata: { velvet_client_signup_token: signupToken },
   })
 
   if (signUpError || !authData.user) {
+    await adminClient.from('client_signup_intents').delete().eq('token_hash', signupTokenHash)
     return { success: false, error: 'Não foi possível criar sua conta. Tente novamente.' }
   }
 
-  const adminClient = createAdminClient()
-
-  // Update role to CLIENT using admin client (service_role bypasses the
-  // authenticated/anon trigger guard, as documented in the trigger migration).
-  const { error: roleError } = await adminClient
+  const { data: account, error: accountError } = await adminClient
     .from('account_users')
     .update({
-      role: 'CLIENT',
       terms_version: CURRENT_TERMS_VERSION,
       terms_accepted_at: now,
       privacy_version: CURRENT_PRIVACY_VERSION,
       privacy_accepted_at: now,
     })
     .eq('auth_user_id', authData.user.id)
+    .eq('role', 'CLIENT')
+    .select('id, role')
+    .single()
 
-  if (roleError) {
-    console.error('[clientSignup] Failed to set CLIENT role for user', authData.user.id, roleError.message)
-    // Account remains in safe incomplete state (terms NULL); DAL blocks access
+  if (accountError || !account) {
+    await adminClient.auth.admin.deleteUser(authData.user.id)
+    await adminClient.from('client_signup_intents').delete().eq('token_hash', signupTokenHash)
+    return { success: false, error: 'Não foi possível criar sua conta. Tente novamente.' }
+  }
+
+  await adminClient.auth.admin.updateUserById(authData.user.id, { user_metadata: {} })
+  await adminClient.from('client_signup_intents').delete().eq('token_hash', signupTokenHash)
+
+  const supabase = await createServerClient()
+  const { error: resendError } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/cliente` },
+  })
+  if (resendError) {
+    await adminClient.auth.admin.deleteUser(authData.user.id)
+    await adminClient.from('client_signup_intents').delete().eq('token_hash', signupTokenHash)
+    return { success: false, error: 'Não foi possível enviar a confirmação. Tente novamente.' }
   }
 
   redirect('/verify-email')
 }
-

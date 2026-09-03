@@ -2,6 +2,7 @@ import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveClientVipEntitlement } from '@/modules/clients/dal'
 import { getApprovedMediaDeliveryUrl } from '@/modules/media/delivery'
+import { getApprovedVideoPosterDeliveryUrl } from '@/modules/videos/dal'
 
 export async function getNewProfessionals(accountId: string | null, limit = 8) {
   const admin = createAdminClient()
@@ -11,26 +12,24 @@ export async function getNewProfessionals(accountId: string | null, limit = 8) {
   // Eligible profiles (view enforces status=ACTIVE and gates)
   const { data: eligible } = await admin
     .from('v_publication_eligible_profiles')
-    .select('profile_id, updated_at')
-    .order('updated_at', { ascending: false })
+    .select('profile_id')
 
   if (!eligible?.length) return []
   const ids = eligible.map(e => e.profile_id)
 
   const { data } = await admin
     .from('professional_profiles')
-    .select('id, slug, stage_name, headline, public_age, show_age, audience_setting, updated_at')
+    .select('id, slug, stage_name, headline, public_age, show_age, audience_setting, published_at')
     .in('id', ids)
     .in('audience_setting', audienceSettingFilter)
+    .not('published_at', 'is', null)
+    .order('published_at', { ascending: false })
+    .limit(limit)
   
   if (!data?.length) return []
   
-  // Sort data based on the view's updated_at (which is the authoritative publication recency)
-  const sortedData = data.sort((a, b) => {
-    const aDate = eligible.find(e => e.profile_id === a.id)?.updated_at || ''
-    const bDate = eligible.find(e => e.profile_id === b.id)?.updated_at || ''
-    return new Date(bDate).getTime() - new Date(aDate).getTime()
-  }).slice(0, limit)
+  // Database ordering above uses the immutable first-publication timestamp.
+  const sortedData = data
 
   if (!sortedData.length) return []
   
@@ -52,7 +51,7 @@ export async function getNewProfessionals(accountId: string | null, limit = 8) {
 export async function getNewContent(accountId: string | null, limit = 8) {
   const admin = createAdminClient()
   const { canAccessVipMedia, canAccessVipProfiles } = await resolveClientVipEntitlement(accountId)
-  const audienceSettingFilter = canAccessVipProfiles ? ['PUBLIC', 'VIP_ONLY'] : ['PUBLIC']
+  const audienceSettingFilter = canAccessVipProfiles && canAccessVipMedia ? ['PUBLIC', 'VIP_ONLY'] : ['PUBLIC']
 
   // Get eligible profile IDs first
   const { data: eligible } = await admin.from('v_publication_eligible_profiles').select('profile_id, profile_slug')
@@ -69,18 +68,21 @@ export async function getNewContent(accountId: string | null, limit = 8) {
   const allowedProfileIds = profiles.map(p => p.id)
 
   const { data: media } = await admin.from('profile_media')
-    .select('id, profile_id, storage_path, status, width, height, is_primary, updated_at')
+    .select('id, profile_id, storage_path, status, width, height, is_primary, approved_at')
     .eq('status', 'APPROVED')
     .is('deleted_at', null)
     .in('profile_id', allowedProfileIds)
-    .order('updated_at', { ascending: false })
+    .not('approved_at', 'is', null)
+    .order('approved_at', { ascending: false })
     .limit(limit)
 
   const { data: videos } = await admin.from('profile_videos')
-    .select('id, profile_id, storage_path, poster_path, status, updated_at')
+    .select('id, profile_id, storage_path, poster_storage_path, status, approved_at')
     .eq('status', 'APPROVED')
+    .is('deleted_at', null)
     .in('profile_id', allowedProfileIds)
-    .order('updated_at', { ascending: false })
+    .not('approved_at', 'is', null)
+    .order('approved_at', { ascending: false })
     .limit(limit)
 
   let combined = [
@@ -88,17 +90,14 @@ export async function getNewContent(accountId: string | null, limit = 8) {
     ...(videos?.map(v => ({ type: 'VIDEO', ...v })) ?? [])
   ]
 
-  // Apply VIP media filter if there's any logic. 
-  // Wait, the instructions didn't specify a VIP flag on media itself, only VIP profiles.
-  // Actually, wait, maybe the content can just be returned as is.
-  combined = combined.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, limit)
+  combined = combined.sort((a, b) => new Date(b.approved_at!).getTime() - new Date(a.approved_at!).getTime()).slice(0, limit)
 
   return Promise.all(combined.map(async item => {
     let url = null
     if (item.type === 'PHOTO') {
       url = await getApprovedMediaDeliveryUrl({ status: 'APPROVED', storage_path: item.storage_path })
-    } else if (item.type === 'VIDEO' && 'poster_path' in item && item.poster_path) {
-      url = await getApprovedMediaDeliveryUrl({ status: 'APPROVED', storage_path: item.poster_path as string })
+    } else if (item.type === 'VIDEO' && 'poster_storage_path' in item) {
+      url = await getApprovedVideoPosterDeliveryUrl(item.poster_storage_path)
     }
     return { ...item, mediaUrl: url, profileSlug: eligibleMap.get(item.profile_id) }
   }))
