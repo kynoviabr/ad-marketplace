@@ -194,6 +194,7 @@ export const UpdateProfileSchema = z.object({
   show_whatsapp: z.boolean().default(true),
   show_phone: z.boolean().default(false),
   show_telegram: z.boolean().default(false),
+  audience_setting: z.enum(['PUBLIC', 'VIP_ONLY']).default('PUBLIC'),
 })
 
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>

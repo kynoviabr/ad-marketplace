@@ -42,6 +42,7 @@ export default async function PublicPresentationOnboardingPage() {
           showAge: profile.show_age,
           showHeight: profile.show_height,
           showWeight: profile.show_weight,
+          audienceSetting: profile.audience_setting ?? 'PUBLIC',
         }} initialOfferings={offerings} />
       </main>
       <aside className="onboarding-privacy">

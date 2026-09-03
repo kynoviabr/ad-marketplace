@@ -330,3 +330,101 @@ export async function startOnboardingFormAction(): Promise<void> {
   const result = await startOnboardingAction()
   if (result.success) redirect('/onboarding/voce')
 }
+
+// ---------------------------------------------------------------------------
+// CLIENT SIGNUP
+// ---------------------------------------------------------------------------
+
+/**
+ * Creates a FREE CLIENT account.
+ *
+ * Security invariants:
+ * - Role is NOT sourced from form data.
+ * - The trigger fires and sets role = ADVERTISER (hardcoded).
+ * - This action immediately overwrites the role to CLIENT using the admin
+ *   client (service_role), which is allowed by the trigger guard.
+ * - Terms/privacy versions are written from server constants, not user input.
+ * - Client accounts do NOT go through professional onboarding.
+ */
+export async function clientSignupAction(
+  _prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const rlKey = await getAuthRateLimitKey()
+  if (rlKey && isAuthRateLimited(rlKey, 'SIGNUP')) {
+    return { success: false, error: 'Dados inválidos.' }
+  }
+
+  const raw = {
+    email: formData.get('email'),
+    password: formData.get('password'),
+    confirmPassword: formData.get('confirmPassword'),
+    acceptedTerms: formData.get('acceptedTerms'),
+  }
+
+  const parsed = SignupSchema.omit({ acceptedAge: true })
+    .extend({ acceptedTerms: raw.acceptedTerms === 'on' ? undefined : undefined })
+    .safeParse({
+      ...raw,
+      // acceptedAge not required for clients — inject a pass-through
+      acceptedAge: undefined,
+    })
+
+  // Simpler manual validation for client signup
+  const email = typeof raw.email === 'string' ? raw.email.trim().toLowerCase() : ''
+  const password = typeof raw.password === 'string' ? raw.password : ''
+  const confirmPassword = typeof raw.confirmPassword === 'string' ? raw.confirmPassword : ''
+  const acceptedTerms = raw.acceptedTerms === 'on'
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { success: false, error: 'Informe um e-mail válido.', fieldErrors: { email: ['Informe um e-mail válido.'] } }
+  }
+  if (password.length < 8) {
+    return { success: false, error: 'A senha deve ter pelo menos 8 caracteres.', fieldErrors: { password: ['Mínimo 8 caracteres.'] } }
+  }
+  if (password !== confirmPassword) {
+    return { success: false, error: 'As senhas não coincidem.', fieldErrors: { confirmPassword: ['As senhas não coincidem.'] } }
+  }
+  if (!acceptedTerms) {
+    return { success: false, error: 'Você deve aceitar os Termos de Uso e a Política de Privacidade.', fieldErrors: { acceptedTerms: ['Obrigatório.'] } }
+  }
+
+  const now = new Date().toISOString()
+  const supabase = await createServerClient()
+
+  const { data: authData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      // DO NOT pass role here — see security comment above
+    },
+  })
+
+  if (signUpError || !authData.user) {
+    return { success: false, error: 'Não foi possível criar sua conta. Tente novamente.' }
+  }
+
+  const adminClient = createAdminClient()
+
+  // Update role to CLIENT using admin client (service_role bypasses the
+  // authenticated/anon trigger guard, as documented in the trigger migration).
+  const { error: roleError } = await adminClient
+    .from('account_users')
+    .update({
+      role: 'CLIENT',
+      terms_version: CURRENT_TERMS_VERSION,
+      terms_accepted_at: now,
+      privacy_version: CURRENT_PRIVACY_VERSION,
+      privacy_accepted_at: now,
+    })
+    .eq('auth_user_id', authData.user.id)
+
+  if (roleError) {
+    console.error('[clientSignup] Failed to set CLIENT role for user', authData.user.id, roleError.message)
+    // Account remains in safe incomplete state (terms NULL); DAL blocks access
+  }
+
+  redirect('/verify-email')
+}
+

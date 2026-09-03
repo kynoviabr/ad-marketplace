@@ -33,6 +33,7 @@ interface PublicPresentationFormProps {
     showAge: boolean
     showHeight: boolean
     showWeight: boolean
+    audienceSetting: 'PUBLIC' | 'VIP_ONLY'
   }
   initialOfferings: OfferingStatusMap
 }
@@ -132,6 +133,31 @@ export function PublicPresentationForm({ initial, initialOfferings }: PublicPres
           <ProfileSelect id="hair_length" label={t('profileForm.hairLength')} value={initial.hairLength} options={localizedHairLengths as Array<[string, string]>} error={fieldErrors?.hair_length?.[0]} />
           <ProfileSelect id="eye_color" label={t('profileForm.eyeColor')} value={initial.eyeColor} options={localizedEyeColors as Array<[string, string]>} error={fieldErrors?.eye_color?.[0]} />
           <ProfileSelect id="body_type" label={t('profileForm.bodyType')} value={initial.bodyType} options={localizedBodyTypes as Array<[string, string]>} error={fieldErrors?.body_type?.[0]} />
+        </div>
+      </fieldset>
+
+      <fieldset className="onboarding-fieldset">
+        <legend>{t('profileForm.audienceSetting')}</legend>
+        <p className="onboarding-field-note">{t('profileForm.audienceNote')}</p>
+        <div className="onboarding-field-grid">
+          <label className="onboarding-privacy-toggle">
+            <input
+              type="radio"
+              name="audience_setting"
+              value="PUBLIC"
+              defaultChecked={initial.audienceSetting !== 'VIP_ONLY'}
+            />
+            {t('profileForm.audiencePublic')}
+          </label>
+          <label className="onboarding-privacy-toggle">
+            <input
+              type="radio"
+              name="audience_setting"
+              value="VIP_ONLY"
+              defaultChecked={initial.audienceSetting === 'VIP_ONLY'}
+            />
+            {t('profileForm.audienceVipOnly')}
+          </label>
         </div>
       </fieldset>
 

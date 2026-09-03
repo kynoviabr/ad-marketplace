@@ -59,6 +59,7 @@ export function ProfileEditorForm({
     show_whatsapp: initialProfile?.show_whatsapp ?? true,
     show_phone: initialProfile?.show_phone ?? false,
     show_telegram: initialProfile?.show_telegram ?? false,
+    audience_setting: (initialProfile?.audience_setting ?? 'PUBLIC') as 'PUBLIC' | 'VIP_ONLY',
   })
 
   const completeness = evaluateProfileCompleteness(profile ? { ...profile, ...formData } : null)

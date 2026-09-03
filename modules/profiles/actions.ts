@@ -358,6 +358,7 @@ export async function updateProfileDraftAction(
         show_whatsapp: payload.show_whatsapp,
         show_phone: payload.show_phone,
         show_telegram: payload.show_telegram,
+        audience_setting: payload.audience_setting,
         status: newStatus,
         content_moderation_status: contentModerationStatus,
         completed_at: completedAt,

@@ -10,6 +10,7 @@ export const metadata = { title: 'Seu estúdio | Velvet', robots: 'noindex, nofo
 
 export default async function DashboardPage() {
   const account = await requireAccount()
+  if (account.role === 'CLIENT') redirect('/cliente')
   if (account.onboarding_status !== 'COMPLETED') redirect('/onboarding')
   const { review, status, billing, metrics } = await getProfessionalDashboardOverview(account)
   const profile = review.preview
