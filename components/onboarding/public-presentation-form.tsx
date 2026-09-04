@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -138,7 +139,15 @@ export function PublicPresentationForm({ initial, initialOfferings }: PublicPres
 
       <fieldset className="onboarding-fieldset">
         <legend>{t('profileForm.audienceSetting')}</legend>
-        <p className="onboarding-field-note">{t('profileForm.audienceNote')}</p>
+        <p className="onboarding-field-note">
+          {t('profileForm.audienceNote')}{' '}
+          <Link
+            href={locale === 'en' ? '/en/ajuda/perfil-publico-vs-vip' : '/ajuda/perfil-publico-vs-vip'}
+            className="onboarding-inline-help-link"
+          >
+            {locale === 'en' ? 'Need help? Learn more →' : 'Precisa de ajuda? Saiba mais →'}
+          </Link>
+        </p>
         <div className="onboarding-field-grid">
           <label className="onboarding-privacy-toggle">
             <input

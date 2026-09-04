@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireAccount } from '@/modules/auth/dal'
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
@@ -14,12 +15,17 @@ export const metadata = {
 }
 
 export default async function PublicPresentationOnboardingPage() {
-  const { t } = await getTranslations()
+  const { locale, t } = await getTranslations()
   const account = await requireAccount()
   const profile = await getProfileByAccountUserId(account.id)
 
   if (!profile) redirect('/onboarding/voce')
   const offerings = await getProfileOfferingStatuses(profile.id)
+
+  const isPt = locale === 'pt-BR'
+  const privacyHelpHref = isPt
+    ? '/ajuda/o-que-fica-publico-e-o-que-fica-privado'
+    : '/en/ajuda/o-que-fica-publico-e-o-que-fica-privado'
 
   return (
     <OnboardingShell currentStep={2}>
@@ -47,7 +53,12 @@ export default async function PublicPresentationOnboardingPage() {
       </main>
       <aside className="onboarding-privacy">
         <span>{t('onboarding.optionalPrivacy')}</span>
-        <p>{t('onboarding.optionalPrivacyText')}</p>
+        <p>
+          {t('onboarding.optionalPrivacyText')}{' '}
+          <Link href={privacyHelpHref} className="onboarding-inline-help-link">
+            {isPt ? 'Precisa de ajuda? Saiba mais →' : 'Need help? Learn more →'}
+          </Link>
+        </p>
       </aside>
     </OnboardingShell>
   )

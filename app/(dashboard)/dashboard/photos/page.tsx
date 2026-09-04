@@ -9,10 +9,18 @@ import { requireVerifiedAdvertiser } from '@/modules/verification/dal'
 import { VideoManager } from '@/components/media/video-manager'
 import { getManageableProfileVideos } from '@/modules/videos/dal'
 
+import { getRequestLocale } from '@/lib/i18n/server'
+
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Fotos | Velvet', robots: 'noindex, nofollow' }
 
 export default async function DashboardPhotosPage() {
+  const locale = await getRequestLocale()
+  const isPt = locale === 'pt-BR'
+  const helpHref = isPt
+    ? '/ajuda/fotos-e-videos-envio-aprovacao-e-limites'
+    : '/en/ajuda/fotos-e-videos-envio-aprovacao-e-limites'
+
   const { account } = await requireVerifiedAdvertiser()
   const profile = await getProfileByAccountUserId(account.id)
   if (!profile) redirect('/onboarding/seu-perfil')
@@ -29,7 +37,15 @@ export default async function DashboardPhotosPage() {
     <main>
       <header className="photo-studio-intro">
         <div><p className="dashboard-eyebrow">FOTOS</p><h1>Construa sua<br />galeria.</h1></div>
-        <div><p>Escolha as imagens que melhor representam seu perfil.</p>{publication.isPublic && publication.slug ? <Link href={`/perfil/${publication.slug}`}>Ver meu perfil <span aria-hidden="true">↗</span></Link> : <Link href="/dashboard">Voltar à visão geral <span aria-hidden="true">→</span></Link>}</div>
+        <div>
+          <p>
+            Escolha as imagens que melhor representam seu perfil.{' '}
+            <Link href={helpHref} className="dashboard-inline-help-link">
+              {isPt ? 'Precisa de ajuda? Saiba mais →' : 'Need help? Learn more →'}
+            </Link>
+          </p>
+          {publication.isPublic && publication.slug ? <Link href={`/perfil/${publication.slug}`}>Ver meu perfil <span aria-hidden="true">↗</span></Link> : <Link href="/dashboard">Voltar à visão geral <span aria-hidden="true">→</span></Link>}
+        </div>
       </header>
       <MediaGalleryManager initialMedia={media} mode="dashboard" />
       <VideoManager initialVideos={videos} />

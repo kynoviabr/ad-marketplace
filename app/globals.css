@@ -1950,3 +1950,34 @@ body:has(.profile-detail-page) { overflow-x: clip; }
   .offering-editor-option { grid-template-columns: 1fr; }
   .velvet-offering-filters details > div { grid-template-columns: 1fr; }
 }
+
+/* R11.4 Contextual Help Links */
+.onboarding-inline-help-link,
+.dashboard-inline-help-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-body-loaded, sans-serif);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--velvet-aubergine-deep);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.onboarding-inline-help-link:hover,
+.dashboard-inline-help-link:hover {
+  opacity: 0.75;
+}
+
+.dashboard-help-wrapper {
+  margin-top: 6px;
+}
+
+.dashboard-heading-help {
+  margin: 0;
+  display: flex;
+  align-items: center;
+}

@@ -64,11 +64,32 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
           {review.isPublic && review.slug ? <div className="review-live-actions">
             <Link className="onboarding-primary" href={`/perfil/${review.slug}`}><span>{t('review.viewProfile')}</span><span aria-hidden="true">→</span></Link>
             <Link className="onboarding-secondary" href="/dashboard">{t('review.goPanel')}</Link>
-          </div> : <><PublicationAction enabled={review.isCanonicallyEligible && !review.hasDataError} />{!review.isCanonicallyEligible ? <p className="review-blocked-summary" role="status">{t('review.blocked')}</p> : null}</>}
+          </div> : <><PublicationAction enabled={review.isCanonicallyEligible && !review.hasDataError} />{!review.isCanonicallyEligible ? (
+            <p className="review-blocked-summary" role="status">
+              {t('review.blocked')}{' '}
+              <Link
+                href={locale === 'en' ? '/en/ajuda/como-publicar-meu-perfil' : '/ajuda/como-publicar-meu-perfil'}
+                className="onboarding-inline-help-link"
+              >
+                {locale === 'en' ? 'Need help? Learn more →' : 'Precisa de ajuda? Saiba mais →'}
+              </Link>
+            </p>
+          ) : null}</>}
         </section>
       </section>
       <OnboardingProgressSummary review={review} locale={locale} />
     </main>
-    <aside className="onboarding-privacy"><span>{t('review.safePublication')}</span><p>{t('review.safePublicationText')}</p></aside>
+    <aside className="onboarding-privacy">
+      <span>{t('review.safePublication')}</span>
+      <p>
+        {t('review.safePublicationText')}{' '}
+        <Link
+          href={locale === 'en' ? '/en/ajuda/como-publicar-meu-perfil' : '/ajuda/como-publicar-meu-perfil'}
+          className="onboarding-inline-help-link"
+        >
+          {locale === 'en' ? 'Need help? Learn more →' : 'Precisa de ajuda? Saiba mais →'}
+        </Link>
+      </p>
+    </aside>
   </OnboardingShell>
 }

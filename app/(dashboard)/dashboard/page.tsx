@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ProfessionalDashboardHeader } from '@/components/dashboard/professional-dashboard-header'
 import { requireAccount } from '@/modules/auth/dal'
 import { getProfessionalDashboardOverview } from '@/modules/dashboard/dal'
+import { getRequestLocale } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Seu estúdio | Velvet', robots: 'noindex, nofollow' }
@@ -12,6 +13,8 @@ export default async function DashboardPage() {
   const account = await requireAccount()
   if (account.role === 'CLIENT') redirect('/cliente')
   if (account.onboarding_status !== 'COMPLETED') redirect('/onboarding')
+  const locale = await getRequestLocale()
+  const isPt = locale === 'pt-BR'
   const { review, status, billing, metrics } = await getProfessionalDashboardOverview(account)
   const profile = review.preview
   const name = profile?.stageName ?? 'profissional'
@@ -23,7 +26,19 @@ export default async function DashboardPage() {
     <main>
       <section className="velvet-dashboard-intro"><p className="dashboard-eyebrow">SEU ESTÚDIO</p><h1>Olá, {name}.</h1><p>Acompanhe sua presença na Velvet e cuide do que está público.</p></section>
       <section className={`dashboard-status dashboard-status--${status.tone}`} aria-labelledby="profile-status-title">
-        <div><p className="dashboard-eyebrow">STATUS DO PERFIL</p><h2 id="profile-status-title">{status.label}</h2></div><p>{status.summary}</p><Link href={actionHref}>{actionLabel}<span aria-hidden="true">↗</span></Link>
+        <div><p className="dashboard-eyebrow">STATUS DO PERFIL</p><h2 id="profile-status-title">{status.label}</h2></div>
+        <div>
+          <p>{status.summary}</p>
+          <p className="dashboard-help-wrapper">
+            <Link
+              href={isPt ? '/ajuda/como-publicar-meu-perfil' : '/en/ajuda/como-publicar-meu-perfil'}
+              className="dashboard-inline-help-link"
+            >
+              {isPt ? 'Precisa de ajuda? Saiba mais sobre publicação →' : 'Need help? Learn more about publishing →'}
+            </Link>
+          </p>
+        </div>
+        <Link href={actionHref}>{actionLabel}<span aria-hidden="true">↗</span></Link>
       </section>
       <section className="dashboard-preview" aria-labelledby="preview-title">
         <div className="dashboard-preview-image">{review.previewPhotoUrl ? <Image src={review.previewPhotoUrl} alt={`Foto principal de ${name}`} fill priority sizes="(max-width: 768px) 100vw, 42vw" /> : <div aria-hidden="true">V</div>}</div>
@@ -34,7 +49,20 @@ export default async function DashboardPage() {
       </section>
       {!review.isPublic && review.blockingReasons.length ? <section className="dashboard-attention" aria-labelledby="attention-title"><p className="dashboard-eyebrow">PRECISA DE ATENÇÃO</p><h2 id="attention-title">Antes de ficar no ar.</h2><ul>{review.blockingReasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></section> : null}
       <section className="dashboard-management" aria-labelledby="management-title">
-        <div className="dashboard-section-heading"><p className="dashboard-eyebrow">GESTÃO DO PERFIL</p><h2 id="management-title">Tudo em seu lugar.</h2></div>
+        <div className="dashboard-section-heading">
+          <div>
+            <p className="dashboard-eyebrow">GESTÃO DO PERFIL</p>
+            <h2 id="management-title">Tudo em seu lugar.</h2>
+          </div>
+          <p className="dashboard-heading-help">
+            <Link
+              href={isPt ? '/ajuda/como-pausar-ou-reativar-meu-perfil' : '/en/ajuda/como-pausar-ou-reativar-meu-perfil'}
+              className="dashboard-inline-help-link"
+            >
+              {isPt ? 'Precisa pausar ou reativar? Saiba mais →' : 'Need to pause or reactivate? Learn more →'}
+            </Link>
+          </p>
+        </div>
         <div className="dashboard-management-list">{review.readiness.filter((item) => item.key !== 'publication').map((item) => <article key={item.key}><div><p>{item.label}</p><span>{item.key === 'photos' ? `${review.photos.approved} aprovada(s) · ${review.photos.pending} em análise` : item.key === 'locations' && review.primaryLocation ? `${review.primaryLocation}${review.serviceAreas.length > 1 ? ` + ${review.serviceAreas.length - 1} regiões` : ''}` : item.detail}</span></div><b className={item.ready ? 'is-ready' : ''}>{item.ready ? 'Em dia' : 'Atenção'}</b>{item.editHref ? <Link href={item.key === 'photos' ? '/dashboard/photos' : item.editHref}>{item.editLabel}<span aria-hidden="true">→</span></Link> : null}</article>)}</div>
       </section>
       <section className="dashboard-secondary-grid">

@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { requireAccount } from '@/modules/auth/dal'
 import { getVerificationSafe } from '@/modules/verification/dal'
 import { canProceedToProfessionalProfile } from '@/modules/verification/gates'
@@ -13,9 +14,13 @@ export const metadata = {
 }
 
 export default async function VerificationOnboardingPage() {
-  const { t } = await getTranslations()
+  const { locale, t } = await getTranslations()
   const account = await requireAccount()
   const verification = await getVerificationSafe(account.id)
+  const isPt = locale === 'pt-BR'
+  const helpHref = isPt
+    ? '/ajuda/verificacao-de-identidade-e-maioridade'
+    : '/en/ajuda/verificacao-de-identidade-e-maioridade'
 
   return (
     <OnboardingShell currentStep={4}>
@@ -23,7 +28,12 @@ export default async function VerificationOnboardingPage() {
         <section className="onboarding-intro">
           <p className="onboarding-eyebrow">{t('onboarding.verificationEyebrow')}</p>
           <h1>{t('onboarding.verificationTitle').split('\n').map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h1>
-          <p>{t('onboarding.verificationDescription')}</p>
+          <p>
+            {t('onboarding.verificationDescription')}{' '}
+            <Link href={helpHref} className="onboarding-inline-help-link">
+              {isPt ? 'Precisa de ajuda? Saiba mais →' : 'Need help? Learn more →'}
+            </Link>
+          </p>
         </section>
         <VerificationStatusCard
           initialVerification={verification}
@@ -32,7 +42,12 @@ export default async function VerificationOnboardingPage() {
       </main>
       <aside className="onboarding-privacy">
         <span>{t('onboarding.kycPrivacy')}</span>
-        <p>{t('onboarding.kycPrivacyText')}</p>
+        <p>
+          {t('onboarding.kycPrivacyText')}{' '}
+          <Link href={helpHref} className="onboarding-inline-help-link">
+            {isPt ? 'Precisa de ajuda? Saiba mais →' : 'Need help? Learn more →'}
+          </Link>
+        </p>
       </aside>
     </OnboardingShell>
   )
