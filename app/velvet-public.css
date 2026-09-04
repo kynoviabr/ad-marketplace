@@ -4,7 +4,7 @@
 .velvet-home-hero{min-height:650px;padding:58px clamp(28px,5.5vw,94px) 70px;display:grid;grid-template-columns:minmax(520px,.92fr) minmax(520px,1.08fr);gap:clamp(50px,7vw,115px);align-items:center}.velvet-home-hero-copy h1{max-width:740px;margin:18px 0 25px;color:var(--public-espresso);font:400 clamp(72px,7vw,108px)/.84 var(--public-serif);letter-spacing:-.066em}.velvet-home-hero-copy>p:last-of-type{max-width:480px;margin:0;color:var(--public-muted);font:17px/1.55 var(--public-serif)}.velvet-home-search{width:min(650px,100%);height:59px;margin-top:31px;display:flex;align-items:center;gap:14px;padding-left:19px;border:1px solid rgba(59,32,63,.34);background:var(--public-surface);box-shadow:5px 6px 0 rgba(113,53,125,.07)}.velvet-home-search>span{color:var(--public-aubergine);font:26px var(--public-serif);transform:rotate(-12deg)}.velvet-home-search label{min-width:0;flex:1}.velvet-home-search small{display:block;margin-bottom:3px;font-size:8px;font-weight:700;letter-spacing:.12em}.velvet-home-search input{width:100%;border:0;outline:0;color:var(--public-espresso);background:transparent;font-size:12px}.velvet-home-search input::placeholder{color:var(--public-muted);opacity:1}.velvet-home-search button{align-self:stretch;min-width:94px;color:var(--public-surface);background:var(--public-aubergine);font-size:10px;transition:background .2s ease}.velvet-home-search button:hover{background:var(--public-aubergine-deep)}.velvet-home-search:focus-within{border-color:var(--public-aubergine);box-shadow:7px 8px 0 rgba(113,53,125,.11)}
 .velvet-home-hero-art{position:relative;height:555px}.velvet-home-hero-art figure{position:absolute;margin:0;overflow:hidden;background:var(--public-olive)}.velvet-home-hero-art img{object-fit:cover;filter:saturate(.88) contrast(1.02)}.velvet-home-hero-main{inset:0 7% 0 20%;z-index:1}.velvet-home-hero-main img{object-position:50% 20%}.velvet-home-hero-offset{z-index:2;left:0;bottom:-25px;width:42%;height:52%;border:9px solid var(--public-paper)}.velvet-home-hero-offset img{object-position:50% 18%}.velvet-home-hero-art figcaption{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:43px 14px 13px;color:var(--public-surface);background:linear-gradient(transparent,rgba(33,27,25,.68))}.velvet-home-hero-art figcaption span{display:block;font:19px var(--public-serif)}.velvet-home-hero-art figcaption small{font-size:8px;letter-spacing:.1em;text-transform:uppercase}.velvet-home-hero-index{position:absolute;z-index:3;right:0;top:25px;color:var(--public-aubergine);font-size:8px;letter-spacing:.22em;writing-mode:vertical-rl}.velvet-home-hero-art.is-single .velvet-home-hero-main{inset-inline:8% 12%}.velvet-home-hero-placeholder{min-height:500px;display:grid;place-items:center;color:var(--public-aubergine-deep);background:var(--public-olive)}.velvet-home-hero-placeholder span{font:120px var(--public-serif);opacity:.28}.velvet-home-hero-placeholder small{align-self:end;margin-bottom:24px;font-size:9px;letter-spacing:.15em}
 .velvet-home-profiles{padding:45px clamp(28px,4.2vw,72px) 80px}.velvet-home-section-head{margin-bottom:28px;display:flex;align-items:end;justify-content:space-between;gap:28px}.velvet-home-section-head h2,.velvet-home-discovery h2,.velvet-home-locations h2,.velvet-home-trust h2,.velvet-home-acquisition h2{color:var(--public-espresso);font-family:var(--public-serif);font-weight:400;letter-spacing:-.052em}.velvet-home-section-head h2{margin:9px 0 0;font-size:clamp(38px,3.2vw,48px)}.velvet-home-section-head>a{min-height:44px;display:flex;align-items:center;gap:15px;border-bottom:1px solid currentColor;font-size:10px}.velvet-home-profile-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(16px,1.45vw,25px)}.velvet-profile-card{min-width:0;display:block;outline-offset:5px}.velvet-profile-photo{position:relative;aspect-ratio:4/5;overflow:hidden;background:#dfd8ca}.velvet-profile-image{object-fit:cover;object-position:center 18%;transition:transform .45s cubic-bezier(.2,.7,.2,1),filter .25s ease}.velvet-profile-card:hover .velvet-profile-image{transform:scale(1.02);filter:saturate(.96) contrast(1.02)}.velvet-profile-no-photo{height:100%;display:grid;place-items:center;color:rgba(33,27,25,.32);background:#ede8e0;font:italic 22px/1 var(--public-serif);letter-spacing:-.02em;user-select:none}.velvet-profile-badges{position:absolute;left:10px;bottom:10px;display:flex;flex-direction:column;align-items:start;gap:5px}.velvet-verified-mark{padding:6px 8px;display:flex;align-items:center;gap:6px;color:var(--public-espresso);background:rgba(250,248,243,.93);font-size:8px;font-weight:700;letter-spacing:.1em}.velvet-verified-mark i{width:16px;height:16px;display:grid;place-items:center;border:1px solid rgba(113,53,125,.48);border-radius:50%;color:var(--public-aubergine);font:normal 10px var(--public-serif)}.velvet-sponsored-mark{padding:5px 8px;color:var(--public-surface);background:rgba(59,32,63,.88);font-size:8px;letter-spacing:.1em;text-transform:uppercase}.velvet-profile-meta{padding:14px 1px 21px}.velvet-profile-meta h3{margin:0;color:var(--public-espresso);font:400 21px/1.1 var(--public-serif);letter-spacing:-.025em}.velvet-profile-meta>div:last-child{margin-top:7px;color:var(--public-muted);font-size:11px;letter-spacing:.025em}
-.velvet-home-discovery{margin:68px calc(clamp(28px,4.2vw,72px) * -1) 0;padding:54px clamp(28px,4.2vw,72px);display:grid;grid-template-columns:.55fr 1.45fr;gap:6vw;border-block:1px solid rgba(59,32,63,.18);background:var(--public-surface)}.velvet-home-discovery h2{max-width:340px;margin:15px 0 29px;font-size:44px;line-height:.98}.velvet-home-discovery>div:first-child a{padding-bottom:5px;border-bottom:1px solid currentColor;font-size:10px}.velvet-home-discovery>div:last-child{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}.velvet-home-discovery>div:last-child>a{display:grid;grid-template-columns:28px 1fr;gap:4px 8px}.velvet-home-discovery-image{position:relative;grid-column:1/-1;aspect-ratio:4/5;overflow:hidden}.velvet-home-discovery-image img{object-fit:cover}.velvet-home-discovery b{color:var(--public-aubergine);font:13px var(--public-serif)}.velvet-home-discovery strong{font:17px var(--public-serif)}.velvet-home-discovery small{grid-column:2;color:var(--public-muted);font-size:8px}
+.velvet-home-discovery{margin:44px calc(clamp(28px,4.2vw,72px) * -1) 0;padding:36px clamp(28px,4.2vw,72px) 40px;display:grid;grid-template-columns:minmax(210px,0.26fr) 1fr;gap:clamp(20px,2.8vw,38px);border-block:1px solid rgba(59,32,63,.18);background:var(--public-surface);align-items:start}
 .velvet-home-locations{padding:80px clamp(28px,4.2vw,72px) 90px;overflow:hidden;background:var(--public-olive)}.velvet-home-locations .velvet-overline{color:var(--public-aubergine-deep)}.velvet-home-locations .velvet-home-section-head>p{max-width:290px;color:var(--public-espresso);font:14px/1.5 var(--public-serif)}.velvet-home-location-rail{display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}.velvet-home-location{flex:0 0 clamp(225px,20vw,290px)}.velvet-home-location>span{position:relative;display:block;aspect-ratio:1.32;overflow:hidden;background:#ede8e0}.velvet-home-location img{object-fit:cover;filter:saturate(.68) contrast(1.04);transition:transform .45s ease}.velvet-home-location:hover img{transform:scale(1.025)}.velvet-home-location-placeholder{display:grid!important;place-items:center;color:rgba(33,27,25,.32);font:italic 22px var(--public-serif)}.velvet-home-location strong{padding:15px 0;display:flex;justify-content:space-between;border-bottom:1px solid rgba(59,32,63,.34);font:400 21px var(--public-serif)}.velvet-home-location i{font:normal 14px var(--font-body);transition:transform .2s ease}.velvet-home-location:hover i{transform:translateX(4px)}
 .velvet-home-trust{max-width:980px;margin:auto;padding:105px 42px 115px;text-align:center}.velvet-home-trust>span{width:43px;height:43px;margin:30px auto 0;display:grid;place-items:center;border:1px solid var(--public-aubergine);border-radius:50%;color:var(--public-aubergine);font:16px var(--public-serif)}.velvet-home-trust h2{margin:22px 0 38px;font-size:clamp(52px,5.3vw,76px);line-height:.96}.velvet-home-trust>div{padding-block:19px;display:flex;justify-content:space-between;gap:18px;border-block:1px solid rgba(59,32,63,.2);color:var(--public-aubergine-deep);font-size:8px;letter-spacing:.15em}.velvet-home-trust>div i{font-style:normal}.velvet-home-trust>p:not(.velvet-overline){max-width:580px;margin:28px auto 25px;color:var(--public-muted);font:14px/1.7 var(--public-serif)}.velvet-home-trust>a{padding-bottom:5px;border-bottom:1px solid currentColor;font-size:10px}.velvet-home-trust>a span{margin-left:13px}
 .velvet-home-acquisition{position:relative;margin:0 clamp(28px,4.2vw,72px) 96px;padding:76px clamp(35px,6vw,100px);display:grid;grid-template-columns:1.2fr .8fr;gap:8vw;align-items:end;overflow:hidden;color:var(--public-surface);background:var(--public-aubergine-deep)}.velvet-home-acquisition .velvet-overline{color:#d4bad8}.velvet-home-acquisition h2{margin:17px 0 0;color:var(--public-surface);font-size:clamp(54px,5vw,76px);line-height:.94}.velvet-home-acquisition>div:nth-child(2){position:relative;z-index:1}.velvet-home-acquisition>div:nth-child(2) p{max-width:400px;color:#d7cad8;font:16px/1.6 var(--public-serif)}.velvet-home-acquisition>div:nth-child(2) a{min-height:49px;margin-top:28px;padding:0 21px;display:inline-flex;align-items:center;gap:26px;color:var(--public-aubergine-deep);background:var(--public-surface);font-size:10px}.velvet-home-acquisition-mark{position:absolute;right:-20px;bottom:-85px;color:rgba(250,248,243,.055);font:310px var(--public-serif)}
@@ -1387,11 +1387,12 @@
 .velvet-home-section--alt {
   background: var(--public-surface);
   border-block: 1px solid rgba(59, 32, 63, 0.12);
-  margin-block: 24px;
+  margin-block: 20px;
+  padding: 28px clamp(28px, 4.2vw, 72px) 34px;
 }
 
 .velvet-home-section-header {
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -1591,8 +1592,8 @@
 }
 
 .velvet-carousel-arrow {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1600,19 +1601,28 @@
   border: 1px solid rgba(59, 32, 63, 0.22);
   background: var(--public-surface);
   color: var(--public-espresso);
-  font-family: var(--font-body), sans-serif;
-  font-size: 13px;
-  line-height: 1;
   transition: all 0.2s cubic-bezier(0.2, 0.7, 0.2, 1);
   cursor: pointer;
   padding: 0;
   user-select: none;
 }
 
+.velvet-carousel-arrow svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
 .velvet-carousel-arrow:hover:not(:disabled) {
   background: var(--public-aubergine);
   color: var(--public-surface);
   border-color: var(--public-aubergine);
+  transform: scale(1.04);
+}
+
+.velvet-carousel-arrow:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .velvet-carousel-arrow:disabled {
@@ -1628,73 +1638,129 @@
 .velvet-home-discovery-sidebar {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
+  padding-top: 4px;
 }
 
-.velvet-home-discovery-actions {
-  margin-top: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+.velvet-home-discovery-sidebar h2 {
+  max-width: 260px;
+  margin: 10px 0 18px;
+  font-size: clamp(32px, 2.5vw, 40px);
+  line-height: 1.02;
+  color: var(--public-espresso);
+  font-family: var(--public-serif);
+  font-weight: 400;
+  letter-spacing: -0.04em;
 }
 
 .velvet-home-discovery-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   padding-bottom: 5px;
   border-bottom: 1px solid currentColor;
   font-size: 10px;
+  letter-spacing: 0.04em;
   text-decoration: none;
   color: inherit;
+  transition: color 0.18s ease;
+}
+
+.velvet-home-discovery-link:hover {
+  color: var(--public-aubergine);
+}
+
+.velvet-home-discovery-content {
+  min-width: 0;
+  width: 100%;
+}
+
+.velvet-home-discovery-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .velvet-discovery-card {
-  display: grid;
-  grid-template-columns: 28px 1fr;
-  gap: 4px 8px;
+  display: flex;
+  flex-direction: column;
   text-decoration: none;
   color: inherit;
   width: 100%;
+}
+
+.velvet-discovery-card .velvet-home-discovery-image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: #dfd8ca;
+  border-radius: 2px;
 }
 
 .velvet-discovery-card:hover .velvet-home-discovery-image img {
   transform: scale(1.03);
 }
 
-.velvet-discovery-card .velvet-home-discovery-image {
-  position: relative;
-  grid-column: 1 / -1;
-  aspect-ratio: 4/5;
-  overflow: hidden;
+.velvet-discovery-card .velvet-home-discovery-image img {
+  object-fit: cover;
   transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-.velvet-discovery-card b {
+.velvet-discovery-card-meta {
+  padding: 8px 1px 2px;
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+
+.velvet-discovery-card-meta b {
   color: var(--public-aubergine);
   font: 13px var(--public-serif);
 }
 
-.velvet-discovery-card strong {
-  font: 17px var(--public-serif);
+.velvet-discovery-card-meta strong {
+  font: 16px/1.2 var(--public-serif);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--public-espresso);
 }
 
-.velvet-discovery-card small {
+.velvet-discovery-card-meta small {
   grid-column: 2;
   color: var(--public-muted);
-  font-size: 8px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 @media (max-width: 700px) {
-  .velvet-home-discovery-sidebar {
-    margin-bottom: 24px;
+  .velvet-home-discovery {
+    margin: 36px -14px 0;
+    padding: 36px 14px 40px;
+    display: block;
   }
-  .velvet-home-discovery-actions {
-    margin-top: 14px;
+  .velvet-home-discovery-sidebar {
+    margin-bottom: 18px;
+  }
+  .velvet-home-discovery-sidebar h2 {
+    max-width: 100%;
+    margin: 10px 0 16px;
+    font-size: 30px;
+  }
+  .velvet-home-discovery-header {
+    margin-bottom: 12px;
+  }
+  .velvet-home-section {
+    padding: 24px 14px 28px;
+  }
+  .velvet-home-section-header {
+    margin-bottom: 14px;
   }
 }
+
 

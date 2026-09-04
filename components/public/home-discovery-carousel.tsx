@@ -47,12 +47,15 @@ export function HomeDiscoveryCarousel({
         <div>
           <p className="velvet-overline">{overline}</p>
           <h2>{title}</h2>
-        </div>
-        <div className="velvet-home-discovery-actions">
           <Link href={exploreHref} className="velvet-home-discovery-link">
             {exploreText} <span>→</span>
           </Link>
-          {canScroll && (
+        </div>
+      </div>
+
+      <div className="velvet-home-discovery-content">
+        {canScroll && (
+          <div className="velvet-home-discovery-header">
             <div className="velvet-carousel-controls" aria-label="Controles do carrossel">
               <button
                 type="button"
@@ -60,7 +63,9 @@ export function HomeDiscoveryCarousel({
                 className="velvet-carousel-arrow"
                 aria-label="Modelo anterior"
               >
-                <span aria-hidden="true">←</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
               </button>
               <button
                 type="button"
@@ -68,61 +73,63 @@ export function HomeDiscoveryCarousel({
                 className="velvet-carousel-arrow"
                 aria-label="Próxima modelo"
               >
-                <span aria-hidden="true">→</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
               </button>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
 
-      <div
-        ref={viewportRef}
-        className="velvet-carousel-viewport"
-        {...handlers}
-      >
         <div
-          className="velvet-carousel-track"
-          style={{
-            transform: `translate3d(-${translateX}px, 0, 0)`,
-            transition: isTransitioning
-              ? 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)'
-              : 'none',
-            gap: `${gap}px`,
-          }}
-          onTransitionEnd={handleTransitionEnd}
+          ref={viewportRef}
+          className="velvet-carousel-viewport"
+          {...handlers}
         >
-          {renderedItems.map(({ item: profile, index }, renderIdx) => (
-            <div
-              key={`${profile.id}-${renderIdx}`}
-              className="velvet-carousel-slide"
-              style={{ width: cardWidth > 0 ? `${cardWidth}px` : undefined }}
-            >
-              <Link
-                href={localizePathname(`/perfil/${profile.slug}`, locale)}
-                className="velvet-discovery-card"
+          <div
+            className="velvet-carousel-track"
+            style={{
+              transform: `translate3d(-${translateX}px, 0, 0)`,
+              transition: isTransitioning
+                ? 'transform 0.45s cubic-bezier(0.25, 1, 0.5, 1)'
+                : 'none',
+              gap: `${gap}px`,
+            }}
+            onTransitionEnd={handleTransitionEnd}
+          >
+            {renderedItems.map(({ item: profile, index }, renderIdx) => (
+              <div
+                key={`${profile.id}-${renderIdx}`}
+                className="velvet-carousel-slide"
+                style={{ width: cardWidth > 0 ? `${cardWidth}px` : undefined }}
               >
-                {profile.mediaUrl ? (
+                <Link
+                  href={localizePathname(`/perfil/${profile.slug}`, locale)}
+                  className="velvet-discovery-card"
+                >
                   <span className="velvet-home-discovery-image">
-                    <Image
-                      src={profile.mediaUrl}
-                      alt={profile.stageName}
-                      fill
-                      sizes="(max-width: 700px) 50vw, (max-width: 1024px) 33vw, 220px"
-                    />
+                    {profile.mediaUrl ? (
+                      <Image
+                        src={profile.mediaUrl}
+                        alt={profile.stageName}
+                        fill
+                        sizes="(max-width: 700px) 50vw, (max-width: 1024px) 33vw, 260px"
+                      />
+                    ) : (
+                      <span className="velvet-photo-fallback" aria-hidden="true">
+                        V
+                      </span>
+                    )}
                   </span>
-                ) : (
-                  <span className="velvet-home-discovery-image">
-                    <span className="velvet-photo-fallback" aria-hidden="true">
-                      V
-                    </span>
-                  </span>
-                )}
-                <b>0{index + 1}</b>
-                <strong>{profile.stageName}</strong>
-                <small>{profile.primaryLocation?.name ?? 'São Paulo'}</small>
-              </Link>
-            </div>
-          ))}
+                  <div className="velvet-discovery-card-meta">
+                    <b>0{index + 1}</b>
+                    <strong>{profile.stageName}</strong>
+                    <small>{profile.primaryLocation?.name ?? 'São Paulo'}</small>
+                  </div>
+                </Link>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </aside>
