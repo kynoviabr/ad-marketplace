@@ -27,7 +27,7 @@ export const publicPtBR = {
   'home.profilesToMeet': 'Perfis para conhecer',
   'home.viewAll': 'Ver todos',
   'home.curated': 'UMA CURADORIA VELVET',
-  'home.discoverDifferent': 'Descubra Novas Modelos',
+  'home.discoverDifferent': 'Descubra novas Modelos',
   'home.exploreSelection': 'Explorar seleção',
   'home.aroundCity': 'PELA CIDADE',
   'home.exploreCity': 'Explore São Paulo',

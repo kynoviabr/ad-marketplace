@@ -1558,3 +1558,143 @@
     font-size: 16px;
   }
 }
+
+/* ============================================================
+   Carousel Components — Velvet discovery & new content
+   ============================================================ */
+
+.velvet-carousel-viewport {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y;
+}
+
+.velvet-carousel-track {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  will-change: transform;
+}
+
+.velvet-carousel-slide {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.velvet-carousel-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.velvet-carousel-arrow {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(59, 32, 63, 0.22);
+  background: var(--public-surface);
+  color: var(--public-espresso);
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  line-height: 1;
+  transition: all 0.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+  cursor: pointer;
+  padding: 0;
+  user-select: none;
+}
+
+.velvet-carousel-arrow:hover:not(:disabled) {
+  background: var(--public-aubergine);
+  color: var(--public-surface);
+  border-color: var(--public-aubergine);
+}
+
+.velvet-carousel-arrow:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.velvet-carousel-arrow:focus-visible {
+  outline: 2px solid var(--public-aubergine);
+  outline-offset: 2px;
+}
+
+.velvet-home-discovery-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.velvet-home-discovery-actions {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.velvet-home-discovery-link {
+  padding-bottom: 5px;
+  border-bottom: 1px solid currentColor;
+  font-size: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.velvet-discovery-card {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 4px 8px;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+}
+
+.velvet-discovery-card:hover .velvet-home-discovery-image img {
+  transform: scale(1.03);
+}
+
+.velvet-discovery-card .velvet-home-discovery-image {
+  position: relative;
+  grid-column: 1 / -1;
+  aspect-ratio: 4/5;
+  overflow: hidden;
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.velvet-discovery-card b {
+  color: var(--public-aubergine);
+  font: 13px var(--public-serif);
+}
+
+.velvet-discovery-card strong {
+  font: 17px var(--public-serif);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.velvet-discovery-card small {
+  grid-column: 2;
+  color: var(--public-muted);
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 700px) {
+  .velvet-home-discovery-sidebar {
+    margin-bottom: 24px;
+  }
+  .velvet-home-discovery-actions {
+    margin-top: 14px;
+  }
+}
+

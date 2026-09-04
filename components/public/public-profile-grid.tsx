@@ -1,7 +1,7 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import type { SearchResultDTO } from '@/modules/search/types'
 import { PublicProfileCard } from './public-profile-card'
+import { HomeDiscoveryCarousel } from './home-discovery-carousel'
 import { getTranslations } from '@/lib/i18n/server'
 import { localizePathname } from '@/lib/i18n/routing'
 
@@ -33,7 +33,16 @@ export async function PublicProfileGrid({ profiles }: PublicProfileGridProps) {
             />
           ))}
         </div>
-      {profiles.length > 3 ? <aside className="velvet-home-discovery"><div><p className="velvet-overline">{t('home.curated')}</p><h2>{t('home.discoverDifferent')}</h2><Link href={localized('/sao-paulo')}>{t('home.exploreSelection')} <span>→</span></Link></div><div>{profiles.slice(0, 4).map((profile, index) => <Link href={localized(`/perfil/${profile.slug}`)} key={profile.id}>{profile.mediaUrl ? <span className="velvet-home-discovery-image"><Image src={profile.mediaUrl} alt="" fill sizes="180px" /></span> : <span className="velvet-home-discovery-image"><span className="velvet-photo-fallback" aria-hidden="true">V</span></span>}<b>0{index + 1}</b><strong>{profile.stageName}</strong><small>{profile.primaryLocation?.name ?? 'São Paulo'}</small></Link>)}</div></aside> : null}
+      {profiles.length > 0 ? (
+        <HomeDiscoveryCarousel
+          profiles={profiles}
+          overline={t('home.curated')}
+          title={t('home.discoverDifferent')}
+          exploreText={t('home.exploreSelection')}
+          exploreHref={localized('/sao-paulo')}
+          locale={locale}
+        />
+      ) : null}
     </section>
   )
 }
