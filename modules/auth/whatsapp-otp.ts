@@ -160,6 +160,31 @@ export class UnconfiguredWhatsAppOtpProvider implements WhatsAppOtpProvider {
 
 export const defaultWhatsAppOtpProvider: WhatsAppOtpProvider = new UnconfiguredWhatsAppOtpProvider()
 
+let activeWhatsAppOtpProvider: WhatsAppOtpProvider = defaultWhatsAppOtpProvider
+
+/**
+ * Resolves the server-side WhatsApp OTP provider instance.
+ * Provider selection happens strictly server-side.
+ */
+export function getWhatsAppOtpProvider(): WhatsAppOtpProvider {
+  return activeWhatsAppOtpProvider
+}
+
+/**
+ * Server-side test helper to inject a mock provider in automated tests.
+ * NEVER exposed or accessible to client components or client-callable actions.
+ */
+export function setWhatsAppOtpProviderForTesting(provider: WhatsAppOtpProvider): void {
+  activeWhatsAppOtpProvider = provider
+}
+
+/**
+ * Server-side test helper to reset provider to default unconfigured provider.
+ */
+export function resetWhatsAppOtpProviderForTesting(): void {
+  activeWhatsAppOtpProvider = defaultWhatsAppOtpProvider
+}
+
 export type RoleResolutionResult =
   | { success: true; role: 'ADVERTISER' | 'CLIENT'; requiresIntentSelection: false }
   | { success: false; role: null; requiresIntentSelection: true; error: string }

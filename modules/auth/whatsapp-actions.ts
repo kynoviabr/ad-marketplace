@@ -16,8 +16,7 @@ import { headers } from 'next/headers'
 import { deriveAuthRateLimitKey, isAuthRateLimited } from '@/modules/auth/rate-limiter'
 import {
   normalizeWhatsAppPhone,
-  defaultWhatsAppOtpProvider,
-  type WhatsAppOtpProvider,
+  getWhatsAppOtpProvider,
 } from '@/modules/auth/whatsapp-otp'
 import type { OAuthIntent } from '@/modules/auth/oauth'
 
@@ -42,8 +41,7 @@ export interface RequestWhatsAppOtpActionResult {
 
 export async function requestWhatsAppOtpAction(
   rawPhone: string,
-  intent: OAuthIntent,
-  provider: WhatsAppOtpProvider = defaultWhatsAppOtpProvider
+  intent: OAuthIntent
 ): Promise<RequestWhatsAppOtpActionResult> {
   // Validate intent
   if (intent !== 'ADVERTISER' && intent !== 'CLIENT' && intent !== 'LOGIN') {
@@ -65,7 +63,8 @@ export async function requestWhatsAppOtpAction(
     }
   }
 
-  // Call provider (unconfigured provider returns generic unavailable error, never fakes success)
+  // Server-side provider resolution
+  const provider = getWhatsAppOtpProvider()
   const result = await provider.requestOtp(normalized.e164, intent)
 
   return {
@@ -85,8 +84,7 @@ export interface VerifyWhatsAppOtpActionResult {
 export async function verifyWhatsAppOtpAction(
   rawPhone: string,
   code: string,
-  intent: OAuthIntent,
-  provider: WhatsAppOtpProvider = defaultWhatsAppOtpProvider
+  intent: OAuthIntent
 ): Promise<VerifyWhatsAppOtpActionResult> {
   // Validate intent
   if (intent !== 'ADVERTISER' && intent !== 'CLIENT' && intent !== 'LOGIN') {
@@ -114,7 +112,8 @@ export async function verifyWhatsAppOtpAction(
     }
   }
 
-  // Call provider (unconfigured provider fails closed; never fakes success)
+  // Server-side provider resolution (unconfigured provider fails closed; never fakes success)
+  const provider = getWhatsAppOtpProvider()
   const result = await provider.verifyOtp(normalized.e164, sanitizedCode, intent)
 
   return {

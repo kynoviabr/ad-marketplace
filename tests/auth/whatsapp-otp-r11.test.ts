@@ -7,6 +7,9 @@ import {
   maskPhoneNumber,
   UnconfiguredWhatsAppOtpProvider,
   defaultWhatsAppOtpProvider,
+  getWhatsAppOtpProvider,
+  setWhatsAppOtpProviderForTesting,
+  resetWhatsAppOtpProviderForTesting,
   type WhatsAppOtpProvider,
 } from '@/modules/auth/whatsapp-otp'
 import {
@@ -272,6 +275,48 @@ describe('R11.5B1 WhatsApp OTP Foundation & Invariants', () => {
       expect(AUTH_RATE_LIMITS.OTP_VERIFY).toBeDefined()
       expect(AUTH_RATE_LIMITS.OTP_VERIFY.limit).toBe(5)
       expect(AUTH_RATE_LIMITS.OTP_VERIFY.windowSeconds).toBe(900)
+    })
+  })
+
+  describe('7. Server Boundary Hardening & Provider Selection', () => {
+    afterEach(() => {
+      resetWhatsAppOtpProviderForTesting()
+    })
+
+    it('server actions do not accept a provider parameter in their signature', () => {
+      // Client-callable Server Actions must have clean, primitive parameter signatures
+      expect(requestWhatsAppOtpAction.length).toBe(2) // (rawPhone, intent)
+      expect(verifyWhatsAppOtpAction.length).toBe(3)  // (rawPhone, code, intent)
+    })
+
+    it('resolves the default unconfigured provider server-side', () => {
+      const provider = getWhatsAppOtpProvider()
+      expect(provider.isConfigured).toBe(false)
+      expect(provider).toBe(defaultWhatsAppOtpProvider)
+    })
+
+    it('allows server-side provider override via test helper without exposing it to client', async () => {
+      const mockCustomProvider: WhatsAppOtpProvider = {
+        isConfigured: true,
+        requestOtp: vi.fn().mockResolvedValue({ success: true, retryAfterSeconds: 60 }),
+        verifyOtp: vi.fn().mockResolvedValue({ success: true, sessionToken: 'mock-token' }),
+      }
+
+      setWhatsAppOtpProviderForTesting(mockCustomProvider)
+      expect(getWhatsAppOtpProvider()).toBe(mockCustomProvider)
+
+      // Server actions now transparently use the active server-side provider
+      const reqResult = await requestWhatsAppOtpAction('(11) 98765-4321', 'LOGIN')
+      expect(reqResult.success).toBe(true)
+      expect(mockCustomProvider.requestOtp).toHaveBeenCalledWith('+5511987654321', 'LOGIN')
+
+      const verifyResult = await verifyWhatsAppOtpAction('(11) 98765-4321', '123456', 'LOGIN')
+      expect(verifyResult.success).toBe(true)
+      expect(mockCustomProvider.verifyOtp).toHaveBeenCalledWith('+5511987654321', '123456', 'LOGIN')
+
+      // Reset restores default unconfigured provider
+      resetWhatsAppOtpProviderForTesting()
+      expect(getWhatsAppOtpProvider()).toBe(defaultWhatsAppOtpProvider)
     })
   })
 })

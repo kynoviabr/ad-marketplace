@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import type { OAuthIntent } from '@/modules/auth/oauth'
-import {
-  formatBrazilianPhoneInput,
-  type WhatsAppOtpProvider,
-} from '@/modules/auth/whatsapp-otp'
+import { formatBrazilianPhoneInput } from '@/modules/auth/whatsapp-otp'
 import {
   requestWhatsAppOtpAction,
   verifyWhatsAppOtpAction,
@@ -18,7 +15,6 @@ export interface WhatsAppOtpButtonProps {
   className?: string
   initialStep?: 'button' | 'phone' | 'code'
   initialPhone?: string
-  mockProvider?: WhatsAppOtpProvider
 }
 
 function WhatsAppIcon() {
@@ -51,7 +47,6 @@ export function WhatsAppOtpButton({
   className = '',
   initialStep = 'button',
   initialPhone = '',
-  mockProvider,
 }: WhatsAppOtpButtonProps) {
   const { t } = useI18n()
   const [isOpen, setIsOpen] = useState(initialStep !== 'button')
@@ -106,7 +101,7 @@ export function WhatsAppOtpButton({
     setErrorMessage(null)
     startTransition(async () => {
       try {
-        const result = await requestWhatsAppOtpAction(phone, intent, mockProvider)
+        const result = await requestWhatsAppOtpAction(phone, intent)
         if (result.success) {
           setStep('code')
           setFormattedTargetPhone(result.formattedPhone || phone)
@@ -128,7 +123,7 @@ export function WhatsAppOtpButton({
     setErrorMessage(null)
     startTransition(async () => {
       try {
-        const result = await verifyWhatsAppOtpAction(phone, code, intent, mockProvider)
+        const result = await verifyWhatsAppOtpAction(phone, code, intent)
         if (result.success) {
           // Future: session established, redirect according to role
           setErrorMessage(null)
@@ -146,7 +141,7 @@ export function WhatsAppOtpButton({
     setErrorMessage(null)
     startTransition(async () => {
       try {
-        const result = await requestWhatsAppOtpAction(phone, intent, mockProvider)
+        const result = await requestWhatsAppOtpAction(phone, intent)
         if (result.success) {
           setResendCountdown(60)
         } else {
