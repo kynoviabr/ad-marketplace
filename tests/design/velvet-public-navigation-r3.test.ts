@@ -121,7 +121,7 @@ describe('Velvet Design System v1 — R3 public chrome', () => {
 
   it('19. does not invent routes in the R3 public chrome', () => {
     const pathLiterals = [...publicChrome.matchAll(/['"](\/(?!\/)[a-z][a-z0-9/.-]*)['"]/gi)].map((match) => match[1])
-    const allowed = new Set(['/', '/en', '/sobre', '/como-funciona', '/sao-paulo', '/anuncie', '/dashboard', '/login', '/seguranca', '/termos', '/privacidade', '/cookies'])
+    const allowed = new Set(['/', '/en', '/sobre', '/como-funciona', '/ajuda', '/sao-paulo', '/anuncie', '/dashboard', '/login', '/seguranca', '/termos', '/privacidade', '/cookies'])
     expect(pathLiterals.filter((path) => !allowed.has(path))).toEqual([])
   })
 

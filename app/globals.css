@@ -1336,6 +1336,22 @@ h1 {
   gap: 8px;
 }
 
+.auth-intent-cancel-wrapper {
+  margin-top: 4px;
+  text-align: center;
+}
+
+.auth-intent-cancel-link {
+  font-size: 11px;
+  color: var(--velvet-muted);
+  text-decoration: underline;
+  transition: color 0.15s ease;
+}
+
+.auth-intent-cancel-link:hover {
+  color: var(--velvet-aubergine-deep);
+}
+
 .dashboard-layout:has(.onboarding-shell) { padding: 0; background: var(--velvet-paper); }
 .dashboard-container:has(.onboarding-shell) { max-width: none; }
 

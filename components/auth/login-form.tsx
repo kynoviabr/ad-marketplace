@@ -14,15 +14,19 @@ import { GoogleOAuthButton } from '@/components/auth/google-oauth-button'
 
 const initialState: ActionResult = { success: false, error: '' }
 
-export function LoginForm() {
+interface LoginFormProps {
+  errorParam?: string
+}
+
+export function LoginForm({ errorParam }: LoginFormProps = {}) {
   const { t } = useI18n()
   const searchParams = useSearchParams()
   const [state, formAction, isPending] = useActionState(loginAction, initialState)
 
-  const urlError = searchParams.get('error')
-  const isIntentRequired = urlError === 'signup_intent_required'
-  const isOAuthError = urlError === 'oauth_error' || urlError === 'oauth_failed'
-  const isConfirmationFailed = urlError === 'confirmation_failed'
+  const rawError = errorParam !== undefined ? errorParam : searchParams.get('error')
+  const isIntentRequired = rawError === 'signup_intent_required'
+  const isOAuthError = rawError === 'oauth_error' || rawError === 'oauth_failed'
+  const isConfirmationFailed = rawError === 'confirmation_failed'
 
   return (
     <form action={formAction} className="auth-form" noValidate>
@@ -37,6 +41,11 @@ export function LoginForm() {
           <div className="auth-intent-actions">
             <GoogleOAuthButton intent="ADVERTISER" label={t('auth.intentAdvertiserCta')} />
             <GoogleOAuthButton intent="CLIENT" label={t('auth.intentClientCta')} />
+          </div>
+          <div className="auth-intent-cancel-wrapper">
+            <Link href="/login" className="auth-intent-cancel-link">
+              {t('auth.intentCancelCta')}
+            </Link>
           </div>
         </div>
       )}

@@ -477,4 +477,48 @@ describe('R11.5A Google OAuth & Intent Safety', () => {
       expect(mockSupabase.auth.signOut).toHaveBeenCalled()
     })
   })
+
+  describe('C. Login Recovery State Isolation & Normal Navigation', () => {
+    it('LoginPage is force-dynamic and passes key={error || "normal-login"} to LoginForm', async () => {
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+      const loginPageSource = fs.readFileSync(path.resolve(process.cwd(), 'app/(auth)/login/page.tsx'), 'utf8')
+
+      expect(loginPageSource).toContain("export const dynamic = 'force-dynamic'")
+      expect(loginPageSource).toContain("key={error || 'normal-login'}")
+      expect(loginPageSource).toContain('errorParam={error}')
+    })
+
+    it('LoginForm renders signup intent chooser ONLY when error is signup_intent_required and has cancel link', async () => {
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+      const loginFormSource = fs.readFileSync(path.resolve(process.cwd(), 'components/auth/login-form.tsx'), 'utf8')
+
+      expect(loginFormSource).toContain("isIntentRequired = rawError === 'signup_intent_required'")
+      expect(loginFormSource).toContain('auth-intent-box')
+      expect(loginFormSource).toContain('auth-intent-cancel-link')
+      expect(loginFormSource).toContain("t('auth.intentCancelCta')")
+      expect(loginFormSource).toContain('href="/login"')
+    })
+
+    it('Home public navigation unauthenticated accountPath is strictly /login without search params', async () => {
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+      const desktopNav = fs.readFileSync(path.resolve(process.cwd(), 'components/public/public-desktop-navigation.tsx'), 'utf8')
+      const mobileNav = fs.readFileSync(path.resolve(process.cwd(), 'components/public/mobile-navigation.tsx'), 'utf8')
+      const footerNav = fs.readFileSync(path.resolve(process.cwd(), 'components/public/public-footer.tsx'), 'utf8')
+
+      expect(desktopNav).toContain("const accountPath = isAuthenticated ? '/dashboard' : '/login'")
+      expect(mobileNav).toContain("const accountPath = isAuthenticated ? '/dashboard' : '/login'")
+      expect(footerNav).toContain("const accountPath = isAuthenticated ? '/dashboard' : '/login'")
+    })
+
+    it('proxy.ts clears search parameters when redirecting unauthenticated users to /login', async () => {
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+      const proxySource = fs.readFileSync(path.resolve(process.cwd(), 'proxy.ts'), 'utf8')
+
+      expect(proxySource).toMatch(/url\.pathname = localizePathname\('\/login', locale\)\s+url\.search = ''/)
+    })
+  })
 })

@@ -112,6 +112,7 @@ export async function proxy(request: NextRequest) {
   // Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !isAuthenticated) {
     url.pathname = localizePathname('/login', locale)
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

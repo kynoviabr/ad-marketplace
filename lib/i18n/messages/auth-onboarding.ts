@@ -273,6 +273,7 @@ export const authOnboardingPtBR = {
   'auth.intentRequiredDesc': 'Para sua segurança, defina como deseja usar a velvet.:',
   'auth.intentAdvertiserCta': 'Quero anunciar (Profissional)',
   'auth.intentClientCta': 'Quero acessar como cliente',
+  'auth.intentCancelCta': 'Voltar ao login normal',
 } as const
 
 export const authOnboardingEn = {
@@ -550,4 +551,5 @@ export const authOnboardingEn = {
   'auth.intentRequiredDesc': 'For your security, please define how you want to use velvet.:',
   'auth.intentAdvertiserCta': 'I want to advertise (Professional)',
   'auth.intentClientCta': 'I want to access as a client',
+  'auth.intentCancelCta': 'Back to standard sign in',
 } as const
