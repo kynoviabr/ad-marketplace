@@ -103,7 +103,7 @@ export async function adminModerateMediaAction(
         }
       }
 
-      // Check if already moderated
+      // Check if already moderated (terminal states: no duplicate moderation)
       if (photo.status === 'APPROVED') {
         return {
           success: false,
@@ -122,8 +122,28 @@ export async function adminModerateMediaAction(
         }
       }
 
-      const reviewableStates = ['PENDING_MODERATION', 'PROCESSING', 'UPLOADING', 'QUARANTINED']
-      if (!reviewableStates.includes(photo.status)) {
+      // Block moderation while media is still uploading or processing
+      if (photo.status === 'UPLOADING' || photo.status === 'PROCESSING') {
+        return {
+          success: false,
+          error: 'INVALID_TRANSITION',
+          message: `Mídia em ${photo.status} não está pronta para moderação.`,
+          currentStatus: photo.status,
+        }
+      }
+
+      // Quarantined is blocked from direct approval/rejection
+      if (photo.status === 'QUARANTINED') {
+        return {
+          success: false,
+          error: 'QUARANTINED_BLOCKED',
+          message: 'Mídia em quarentena não pode ser moderada diretamente.',
+          currentStatus: photo.status,
+        }
+      }
+
+      // Primary and only permitted reviewable state is PENDING_MODERATION
+      if (photo.status !== 'PENDING_MODERATION') {
         return {
           success: false,
           error: 'INVALID_TRANSITION',
@@ -166,7 +186,7 @@ export async function adminModerateMediaAction(
         }
       }
 
-      // Check if already moderated
+      // Check if already moderated (terminal states: no duplicate moderation)
       if (video.status === 'APPROVED') {
         return {
           success: false,
@@ -185,8 +205,28 @@ export async function adminModerateMediaAction(
         }
       }
 
-      const reviewableStates = ['PENDING_MODERATION', 'PROCESSING', 'UPLOADING']
-      if (!reviewableStates.includes(video.status)) {
+      // Block moderation while video is still uploading or processing
+      if (video.status === 'UPLOADING' || video.status === 'PROCESSING') {
+        return {
+          success: false,
+          error: 'INVALID_TRANSITION',
+          message: `Vídeo em ${video.status} não está pronto para moderação.`,
+          currentStatus: video.status,
+        }
+      }
+
+      // Quarantined is blocked
+      if (video.status === 'QUARANTINED') {
+        return {
+          success: false,
+          error: 'QUARANTINED_BLOCKED',
+          message: 'Vídeo em quarentena não pode ser moderado diretamente.',
+          currentStatus: video.status,
+        }
+      }
+
+      // Primary and only permitted reviewable state is PENDING_MODERATION
+      if (video.status !== 'PENDING_MODERATION') {
         return {
           success: false,
           error: 'INVALID_TRANSITION',

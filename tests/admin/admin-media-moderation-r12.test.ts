@@ -410,7 +410,182 @@ describe('R12.4A Admin Media Approve / Reject Mutations', () => {
     })
   })
 
-  describe('5. Reason Codes Invariant', () => {
+  describe('5. Moderation Transition Eligibility Hardening', () => {
+    it.each(['UPLOADING', 'PROCESSING'] as const)(
+      'blocks photo approve/reject when status is %s',
+      async (status) => {
+        mockAdmin.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              is: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: photoId,
+                    status,
+                    profile_id: profileId,
+                    approved_at: null,
+                    deleted_at: null,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        })
+
+        const approveRes = await adminApproveMediaAction(photoId, 'PHOTO')
+        expect(approveRes.success).toBe(false)
+        expect(approveRes.error).toBe('INVALID_TRANSITION')
+        expect(mockAdmin.rpc).not.toHaveBeenCalled()
+
+        const rejectRes = await adminRejectMediaAction({
+          mediaId: photoId,
+          mediaType: 'PHOTO',
+          reasonCode: 'LOW_QUALITY_OR_BLURRY',
+        })
+        expect(rejectRes.success).toBe(false)
+        expect(rejectRes.error).toBe('INVALID_TRANSITION')
+        expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      }
+    )
+
+    it.each(['UPLOADING', 'PROCESSING'] as const)(
+      'blocks video approve/reject when status is %s',
+      async (status) => {
+        mockAdmin.from.mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              is: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: {
+                    id: videoId,
+                    status,
+                    profile_id: profileId,
+                    approved_at: null,
+                    deleted_at: null,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        })
+
+        const approveRes = await adminApproveMediaAction(videoId, 'VIDEO')
+        expect(approveRes.success).toBe(false)
+        expect(approveRes.error).toBe('INVALID_TRANSITION')
+
+        const rejectRes = await adminRejectMediaAction({
+          mediaId: videoId,
+          mediaType: 'VIDEO',
+          reasonCode: 'LOW_QUALITY_OR_BLURRY',
+        })
+        expect(rejectRes.success).toBe(false)
+        expect(rejectRes.error).toBe('INVALID_TRANSITION')
+      }
+    )
+
+    it('blocks photo and video approve/reject when status is QUARANTINED', async () => {
+      mockAdmin.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            is: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  id: photoId,
+                  status: 'QUARANTINED',
+                  profile_id: profileId,
+                  approved_at: null,
+                  deleted_at: null,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      })
+
+      const photoApprove = await adminApproveMediaAction(photoId, 'PHOTO')
+      expect(photoApprove.success).toBe(false)
+      expect(photoApprove.error).toBe('QUARANTINED_BLOCKED')
+      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+
+      const photoReject = await adminRejectMediaAction({
+        mediaId: photoId,
+        mediaType: 'PHOTO',
+        reasonCode: 'OTHER_POLICY_VIOLATION',
+      })
+      expect(photoReject.success).toBe(false)
+      expect(photoReject.error).toBe('QUARANTINED_BLOCKED')
+      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+
+      mockAdmin.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            is: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  id: videoId,
+                  status: 'QUARANTINED',
+                  profile_id: profileId,
+                  approved_at: null,
+                  deleted_at: null,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      })
+
+      const videoApprove = await adminApproveMediaAction(videoId, 'VIDEO')
+      expect(videoApprove.success).toBe(false)
+      expect(videoApprove.error).toBe('QUARANTINED_BLOCKED')
+
+      const videoReject = await adminRejectMediaAction({
+        mediaId: videoId,
+        mediaType: 'VIDEO',
+        reasonCode: 'OTHER_POLICY_VIOLATION',
+      })
+      expect(videoReject.success).toBe(false)
+      expect(videoReject.error).toBe('QUARANTINED_BLOCKED')
+    })
+
+    it('blocks duplicate moderation on terminal state REJECTED for video', async () => {
+      mockAdmin.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            is: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  id: videoId,
+                  status: 'REJECTED',
+                  profile_id: profileId,
+                  approved_at: null,
+                  deleted_at: null,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      })
+
+      const rejectRes = await adminRejectMediaAction({
+        mediaId: videoId,
+        mediaType: 'VIDEO',
+        reasonCode: 'LOW_QUALITY_OR_BLURRY',
+      })
+      expect(rejectRes.success).toBe(false)
+      expect(rejectRes.error).toBe('ALREADY_REJECTED')
+
+      const approveRes = await adminApproveMediaAction(videoId, 'VIDEO')
+      expect(approveRes.success).toBe(false)
+      expect(approveRes.error).toBe('ALREADY_REJECTED')
+    })
+  })
+
+  describe('6. Reason Codes Invariant', () => {
     it('verifies all expected reason codes are supported', () => {
       expect(VALID_MODERATION_REASON_CODES).toEqual([
         'UNDERAGE_SUSPICION',
