@@ -43,7 +43,7 @@ export function projectSafeProfessionalSummary(input: {
   updatedAt: string
   [key: string]: unknown
 }): AdminProfessionalSummary {
-  return {
+  const summary: AdminProfessionalSummary = {
     profileId: String(input.profileId),
     stageName: String(input.stageName),
     profileStatus: input.profileStatus,
@@ -54,6 +54,12 @@ export function projectSafeProfessionalSummary(input: {
     createdAt: String(input.createdAt),
     updatedAt: String(input.updatedAt),
   }
+
+  if (input.contentModerationStatus !== undefined) {
+    summary.contentModerationStatus = input.contentModerationStatus as any
+  }
+
+  return summary
 }
 
 /**
@@ -139,6 +145,7 @@ export async function getAdminProfessionalSummary(
     primaryLocation,
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
+    contentModerationStatus: profile.content_moderation_status,
   })
 }
 

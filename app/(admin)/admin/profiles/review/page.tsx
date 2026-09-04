@@ -5,6 +5,7 @@ import { getOperationalStatusLabel } from '@/modules/admin/operational-status'
 import type { AdminProfileQueueFilter, OperationalClassification } from '@/modules/admin/types'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/format'
+import { AdminProfileModerationControls } from '@/components/admin/admin-profile-moderation-controls'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
@@ -287,6 +288,21 @@ export default async function AdminProfilesReviewPage({ searchParams }: PageProp
               <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Última Atualização</span>
               <p style={{ color: '#fff', margin: '.25rem 0 0' }}>{formatDate(safeDetail.updatedAt, locale)}</p>
             </div>
+          </div>
+
+          <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #374151' }}>
+            <AdminProfileModerationControls
+              profileId={safeDetail.profileId}
+              stageName={safeDetail.stageName}
+              profileStatus={safeDetail.profileStatus}
+              contentModerationStatus={safeDetail.contentModerationStatus}
+              publicationState={safeDetail.publicationState}
+              onSuccessUrl={`/admin/profiles/review${buildQueryString({
+                filter: currentFilter !== 'ALL' ? currentFilter : undefined,
+                q: currentSearch || undefined,
+                page: currentPage > 1 ? currentPage : undefined,
+              })}`}
+            />
           </div>
         </div>
       )}

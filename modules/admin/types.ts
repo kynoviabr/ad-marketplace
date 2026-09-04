@@ -39,6 +39,7 @@ export interface AdminProfessionalSummary {
   primaryLocation: string | null
   createdAt: string
   updatedAt: string
+  contentModerationStatus?: ContentModerationStatus
 }
 
 /** Filter options for the admin profile review queue — R12.2 */
