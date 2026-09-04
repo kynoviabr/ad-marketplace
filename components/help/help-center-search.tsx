@@ -221,6 +221,17 @@ export function HelpCenterSearch({
                           ))}
                       </div>
 
+                      {article.slug && (
+                        <div className="velvet-help-card-article-cta">
+                          <Link
+                            href={isPt ? `/ajuda/${article.slug}` : `/en/ajuda/${article.slug}`}
+                            className="velvet-help-article-btn"
+                          >
+                            {isPt ? 'Ler artigo completo' : 'Read full article'} <span aria-hidden="true">→</span>
+                          </Link>
+                        </div>
+                      )}
+
                       {article.relatedLinks && article.relatedLinks.length > 0 && (
                         <div className="velvet-help-card-links">
                           <span className="velvet-help-links-label">

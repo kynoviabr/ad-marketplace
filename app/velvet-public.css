@@ -3191,5 +3191,303 @@
   }
 }
 
+/* Accordion Article CTA */
+.velvet-help-card-article-cta {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(59, 32, 63, 0.08);
+}
+
+.velvet-help-article-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--public-aubergine-deep);
+  text-decoration: none;
+  padding: 6px 14px;
+  background: rgba(59, 32, 63, 0.06);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.velvet-help-article-btn:hover {
+  background: var(--public-aubergine-deep);
+  color: var(--public-surface);
+}
+
+/* ==========================================================================
+   Help Center Dedicated Article Page (R11.3B)
+   ========================================================================== */
+
+.velvet-help-article-page {
+  padding-top: 40px;
+  padding-bottom: 80px;
+}
+
+/* Breadcrumbs */
+.velvet-help-breadcrumbs {
+  margin-bottom: 32px;
+}
+
+.velvet-help-breadcrumbs-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--public-muted);
+}
+
+.velvet-help-breadcrumbs-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.velvet-help-breadcrumbs-link {
+  color: var(--public-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.velvet-help-breadcrumbs-link:hover {
+  color: var(--public-aubergine-deep);
+  text-decoration: underline;
+}
+
+.velvet-help-breadcrumbs-separator {
+  color: rgba(59, 32, 63, 0.3);
+  font-size: 13px;
+  user-select: none;
+}
+
+.velvet-help-breadcrumbs-item.is-current {
+  color: var(--public-espresso);
+  font-weight: 500;
+  max-width: 400px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Article Main Card */
+.velvet-help-article-main {
+  background: var(--public-surface);
+  border: 1px solid var(--public-line);
+  border-radius: 8px;
+  padding: 48px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  margin-bottom: 64px;
+  max-width: 860px;
+}
+
+.velvet-help-article-header {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(59, 32, 63, 0.08);
+}
+
+.velvet-help-article-meta {
+  margin-bottom: 14px;
+}
+
+.velvet-help-article-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--public-aubergine);
+  background: rgba(59, 32, 63, 0.06);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.velvet-help-badge-icon {
+  font-size: 13px;
+}
+
+.velvet-help-article-title {
+  font-family: var(--public-serif);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--public-espresso);
+  margin: 0 0 16px;
+  letter-spacing: -0.02em;
+}
+
+.velvet-help-article-lead {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--public-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Article Body */
+.velvet-help-article-body {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--public-espresso);
+}
+
+.velvet-help-article-p {
+  margin: 0 0 20px;
+  white-space: pre-line;
+}
+
+.velvet-help-article-p:last-child {
+  margin-bottom: 0;
+}
+
+/* Article Resources / Quick Links */
+.velvet-help-article-resources {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(59, 32, 63, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.velvet-help-resources-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--public-muted);
+}
+
+.velvet-help-resources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.velvet-help-resource-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--public-aubergine-deep);
+  text-decoration: none;
+  background: rgba(59, 32, 63, 0.05);
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.velvet-help-resource-link:hover {
+  background: var(--public-aubergine-deep);
+  color: var(--public-surface);
+}
+
+/* Related Articles Section */
+.velvet-help-related-section {
+  margin-bottom: 64px;
+}
+
+.velvet-help-related-header {
+  margin-bottom: 24px;
+}
+
+.velvet-help-related-title {
+  font-family: var(--public-serif);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 400;
+  color: var(--public-espresso);
+  margin: 4px 0 0;
+}
+
+.velvet-help-related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.velvet-help-related-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--public-surface);
+  border: 1px solid var(--public-line);
+  border-radius: 6px;
+  padding: 24px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.velvet-help-related-card:hover {
+  border-color: var(--public-aubergine);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.velvet-help-related-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--public-aubergine);
+  margin-bottom: 12px;
+}
+
+.velvet-help-related-icon {
+  font-size: 12px;
+}
+
+.velvet-help-related-card-title {
+  font-family: var(--public-serif);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--public-espresso);
+  margin: 0 0 10px;
+  line-height: 1.3;
+}
+
+.velvet-help-related-card-summary {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--public-muted);
+  margin: 0 0 16px;
+  flex-grow: 1;
+}
+
+.velvet-help-related-cta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--public-aubergine-deep);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .velvet-help-article-main {
+    padding: 28px 20px;
+  }
+  .velvet-help-article-lead {
+    font-size: 15px;
+  }
+  .velvet-help-article-body {
+    font-size: 14px;
+  }
+  .velvet-help-breadcrumbs-item.is-current {
+    max-width: 220px;
+  }
+}
+
 
 

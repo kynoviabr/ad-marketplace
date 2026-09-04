@@ -1,5 +1,6 @@
 export interface HelpArticle {
   id: string
+  slug?: string
   categoryId: string
   titlePt: string
   titleEn: string
@@ -13,6 +14,7 @@ export interface HelpArticle {
     labelEn: string
     href: string
   }>
+  relatedArticleIds?: string[]
 }
 
 export interface HelpCategory {
@@ -126,9 +128,10 @@ export const HELP_CATEGORIES: HelpCategory[] = [
 export const STARTER_FAQS: HelpArticle[] = [
   {
     id: 'como-publicar-perfil',
+    slug: 'como-publicar-meu-perfil',
     categoryId: 'primeiros-passos',
-    titlePt: 'Como publicar o perfil na velvet.?',
-    titleEn: 'How to publish my profile on velvet.?',
+    titlePt: 'Como publicar meu perfil',
+    titleEn: 'How to publish my profile',
     summaryPt: 'Saiba quais são os critérios necessários para colocar seu perfil no ar.',
     summaryEn: 'Learn the required criteria to make your professional profile public.',
     contentPt:
@@ -156,12 +159,14 @@ export const STARTER_FAQS: HelpArticle[] = [
       { labelPt: 'Guia passo a passo', labelEn: 'Step-by-step guide', href: '/como-comecar' },
       { labelPt: 'Anuncie na velvet.', labelEn: 'Advertise on velvet.', href: '/anuncie' },
     ],
+    relatedArticleIds: ['verificacao-18-como-funciona', 'fotos-e-videos-diretrizes', 'o-que-fica-publico-privado'],
   },
   {
     id: 'o-que-fica-publico-privado',
+    slug: 'o-que-fica-publico-e-o-que-fica-privado',
     categoryId: 'seguranca-e-privacidade',
-    titlePt: 'O que fica público e o que permanece privado no perfil?',
-    titleEn: 'What is public and what remains private on my profile?',
+    titlePt: 'O que fica público e o que fica privado',
+    titleEn: 'What is public and what remains private',
     summaryPt: 'Entenda a separação absoluta entre sua identidade profissional e seus dados civis.',
     summaryEn: 'Understand the strict separation between your public profile and civil documents.',
     contentPt:
@@ -179,12 +184,14 @@ export const STARTER_FAQS: HelpArticle[] = [
       { labelPt: 'Política de Privacidade', labelEn: 'Privacy Policy', href: '/privacidade' },
       { labelPt: 'Como começar na velvet.', labelEn: 'How to start on velvet.', href: '/como-comecar' },
     ],
+    relatedArticleIds: ['verificacao-18-como-funciona', 'public-vs-vip-only', 'pausar-ou-ocultar-perfil'],
   },
   {
     id: 'verificacao-18-como-funciona',
+    slug: 'verificacao-de-identidade-e-maioridade',
     categoryId: 'verificacao',
-    titlePt: 'Como funciona a verificação de identidade e maioridade (18+)?',
-    titleEn: 'How does identity and legal age (18+) verification work?',
+    titlePt: 'Verificação de identidade e maioridade',
+    titleEn: 'Identity and legal age verification',
     summaryPt: 'A verificação é obrigatória, segura e nunca expõe seus documentos.',
     summaryEn: 'Verification is mandatory, confidential, and never displays your documents.',
     contentPt:
@@ -206,13 +213,15 @@ export const STARTER_FAQS: HelpArticle[] = [
       { labelPt: 'Verificação no guia', labelEn: 'Verification in guide', href: '/como-comecar' },
       { labelPt: 'Central de Segurança', labelEn: 'Safety Center', href: '/seguranca' },
     ],
+    relatedArticleIds: ['o-que-fica-publico-privado', 'como-publicar-perfil', 'public-vs-vip-only'],
   },
   {
     id: 'fotos-e-videos-diretrizes',
+    slug: 'fotos-e-videos-envio-aprovacao-e-limites',
     categoryId: 'fotos-e-videos',
-    titlePt: 'Quais são as diretrizes para fotos e vídeos?',
-    titleEn: 'What are the guidelines for photos and videos?',
-    summaryPt: 'Dicas sobre formatos aceitos, foto principal e processo de aprovação.',
+    titlePt: 'Fotos e vídeos: envio, aprovação e limites',
+    titleEn: 'Photos and videos: upload, approval, and guidelines',
+    summaryPt: 'Diretrizes sobre formatos aceitos, foto principal e processo de aprovação.',
     summaryEn: 'Guidelines on accepted formats, primary photo, and approval review.',
     contentPt:
       'Suas fotos e vídeos são a porta de entrada para seu perfil:\n\n' +
@@ -230,12 +239,14 @@ export const STARTER_FAQS: HelpArticle[] = [
     relatedLinks: [
       { labelPt: 'Envio de mídia no guia', labelEn: 'Media upload guide', href: '/como-comecar' },
     ],
+    relatedArticleIds: ['como-publicar-perfil', 'public-vs-vip-only', 'o-que-fica-publico-privado'],
   },
   {
     id: 'public-vs-vip-only',
+    slug: 'perfil-publico-vs-vip',
     categoryId: 'clientes-vip',
-    titlePt: 'Qual a diferença entre perfil Público e Somente VIP (VIP_ONLY)?',
-    titleEn: 'What is the difference between Public and VIP-Only profiles?',
+    titlePt: 'Perfil Público vs VIP',
+    titleEn: 'Public vs VIP profile',
     summaryPt: 'Escolha quem pode descobrir e visualizar suas informações.',
     summaryEn: 'Choose who can discover and view your profile information.',
     contentPt:
@@ -252,12 +263,14 @@ export const STARTER_FAQS: HelpArticle[] = [
     relatedLinks: [
       { labelPt: 'Entenda os públicos no guia', labelEn: 'Audience settings in guide', href: '/como-comecar' },
     ],
+    relatedArticleIds: ['o-que-fica-publico-privado', 'pausar-ou-ocultar-perfil', 'como-publicar-perfil'],
   },
   {
     id: 'pausar-ou-ocultar-perfil',
+    slug: 'como-pausar-ou-reativar-meu-perfil',
     categoryId: 'perfil',
-    titlePt: 'Como pausar ou ocultar meu perfil temporariamente?',
-    titleEn: 'How to pause or temporarily hide my profile?',
+    titlePt: 'Como pausar ou reativar meu perfil',
+    titleEn: 'How to pause or reactivate my profile',
     summaryPt: 'Você tem total controle sobre quando seu anúncio fica visível.',
     summaryEn: 'You maintain full control over when your ad is visible.',
     contentPt:
@@ -276,6 +289,7 @@ export const STARTER_FAQS: HelpArticle[] = [
     relatedLinks: [
       { labelPt: 'Ir para o painel', labelEn: 'Go to dashboard', href: '/dashboard' },
     ],
+    relatedArticleIds: ['como-publicar-perfil', 'public-vs-vip-only', 'o-que-fica-publico-privado'],
   },
   {
     id: 'como-funcionam-avaliacoes',
@@ -425,3 +439,39 @@ export const STARTER_FAQS: HelpArticle[] = [
     ],
   },
 ]
+
+export const ESSENTIAL_HELP_SLUGS = [
+  'como-publicar-meu-perfil',
+  'verificacao-de-identidade-e-maioridade',
+  'o-que-fica-publico-e-o-que-fica-privado',
+  'fotos-e-videos-envio-aprovacao-e-limites',
+  'perfil-publico-vs-vip',
+  'como-pausar-ou-reativar-meu-perfil',
+] as const
+
+export type EssentialHelpSlug = (typeof ESSENTIAL_HELP_SLUGS)[number]
+
+export function isEssentialHelpSlug(slug: string): slug is EssentialHelpSlug {
+  return (ESSENTIAL_HELP_SLUGS as readonly string[]).includes(slug)
+}
+
+export function getHelpArticleBySlug(slug: string): HelpArticle | undefined {
+  return STARTER_FAQS.find((a) => a.slug === slug)
+}
+
+export function getHelpCategoryById(categoryId: string): HelpCategory | undefined {
+  return HELP_CATEGORIES.find((c) => c.id === categoryId)
+}
+
+export function getRelatedHelpArticles(article: HelpArticle, limit = 3): HelpArticle[] {
+  if (article.relatedArticleIds && article.relatedArticleIds.length > 0) {
+    const matched = article.relatedArticleIds
+      .map((id) => STARTER_FAQS.find((a) => a.id === id))
+      .filter((a): a is HelpArticle => Boolean(a && a.slug))
+    if (matched.length > 0) {
+      return matched.slice(0, limit)
+    }
+  }
+
+  return STARTER_FAQS.filter((a) => a.id !== article.id && a.slug).slice(0, limit)
+}
