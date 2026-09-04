@@ -18,12 +18,15 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
       <Link href="/" className="velvet-wordmark auth-wordmark" aria-label={t('navigation.home')}>
         velvet<span>.</span>
       </Link>
+      <div className="auth-lang-switch">
+        <LanguageSelector />
+      </div>
       <aside className="auth-editorial" aria-hidden="true">
         <p>{t('auth.professionals')}</p>
         <strong>{t('auth.editorial').split('\n').map((line) => <span key={line}>{line}<br /></span>)}</strong>
         <span>{t('auth.location')}</span>
       </aside>
-      <div className="auth-container"><LanguageSelector />{children}</div>
+      <div className="auth-container">{children}</div>
     </main>
   )
 }
