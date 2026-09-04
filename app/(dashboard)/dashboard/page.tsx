@@ -7,7 +7,7 @@ import { getProfessionalDashboardOverview } from '@/modules/dashboard/dal'
 import { getRequestLocale } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Seu estúdio | Velvet', robots: 'noindex, nofollow' }
+export const metadata = { title: 'Seu estúdio | velvet.', robots: 'noindex, nofollow' }
 
 export default async function DashboardPage() {
   const account = await requireAccount()
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   return <div className="velvet-dashboard">
     <ProfessionalDashboardHeader activeHref="/dashboard" />
     <main>
-      <section className="velvet-dashboard-intro"><p className="dashboard-eyebrow">SEU ESTÚDIO</p><h1>Olá, {name}.</h1><p>Acompanhe sua presença na Velvet e cuide do que está público.</p></section>
+      <section className="velvet-dashboard-intro"><p className="dashboard-eyebrow">SEU ESTÚDIO</p><h1>Olá, {name}.</h1><p>Acompanhe sua presença na velvet. e cuide do que está público.</p></section>
       <section className={`dashboard-status dashboard-status--${status.tone}`} aria-labelledby="profile-status-title">
         <div><p className="dashboard-eyebrow">STATUS DO PERFIL</p><h2 id="profile-status-title">{status.label}</h2></div>
         <div>

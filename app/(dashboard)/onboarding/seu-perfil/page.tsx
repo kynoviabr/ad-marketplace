@@ -10,7 +10,7 @@ import { getProfileOfferingStatuses } from '@/modules/offerings/dal'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Seu perfil — Onboarding Velvet',
+  title: 'Seu perfil — Onboarding velvet.',
   robots: 'noindex, nofollow',
 }
 

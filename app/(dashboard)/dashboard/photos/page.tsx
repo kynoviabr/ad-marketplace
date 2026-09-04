@@ -12,7 +12,7 @@ import { getManageableProfileVideos } from '@/modules/videos/dal'
 import { getRequestLocale } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Fotos | Velvet', robots: 'noindex, nofollow' }
+export const metadata = { title: 'Fotos | velvet.', robots: 'noindex, nofollow' }
 
 export default async function DashboardPhotosPage() {
   const locale = await getRequestLocale()

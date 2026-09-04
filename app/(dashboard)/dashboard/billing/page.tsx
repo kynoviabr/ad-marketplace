@@ -8,7 +8,7 @@ import { hasPublicationEntitlement, resolveEntitlements } from '@/modules/billin
 import type { SubscriptionStatus } from '@/modules/billing/types'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Plano | Velvet', robots: 'noindex, nofollow' }
+export const metadata = { title: 'Plano | velvet.', robots: 'noindex, nofollow' }
 
 const statusCopy: Record<SubscriptionStatus, string> = {
   ACTIVE: 'Acesso ativo', PAST_DUE: 'Pagamento pendente', GRACE_PERIOD: 'Período de tolerância',
@@ -30,8 +30,8 @@ export default async function BillingPage() {
   const catalog = await Promise.all((await getActivePlans()).map(async (plan) => ({ plan, prices: await getActivePricesForPlan(plan.id) })))
 
   return <div className="velvet-dashboard velvet-billing"><ProfessionalDashboardHeader activeHref="/dashboard/billing" /><main>
-    <section className="billing-intro"><div><p className="dashboard-eyebrow">{en ? 'ACCOUNT & PLAN' : 'CONTA E PLANO'}</p><h1>{en ? 'Your Velvet plan.' : 'Seu plano Velvet.'}</h1></div><p>{en ? 'See your effective plan, current status, limits and included capabilities.' : 'Veja seu plano efetivo, status atual, limites e recursos incluídos.'}</p></section>
-    <section className={`billing-access billing-access--${publicationEntitlement ? 'active' : 'inactive'}`} aria-labelledby="current-plan-title"><div className="billing-access-lead"><p className="dashboard-eyebrow">{en ? 'CURRENT PLAN' : 'PLANO ATUAL'}</p><h2 id="current-plan-title">{entitlements.planName}</h2><p>{entitlements.founder ? (en ? 'Your Founder entitlement is active with no charge for this access.' : 'Acesso de lançamento: seu benefício Founder está ativo e não há cobrança para este acesso.') : override ? (en ? 'Administrative access is active.' : 'Acesso administrativo ativo.') : (en ? 'No payment provider or checkout is currently available.' : 'A Velvet ainda não integrou um provedor real de pagamentos.')}</p></div><dl>
+    <section className="billing-intro"><div><p className="dashboard-eyebrow">{en ? 'ACCOUNT & PLAN' : 'CONTA E PLANO'}</p><h1>{en ? 'Your velvet. plan.' : 'Seu plano velvet.'}</h1></div><p>{en ? 'See your effective plan, current status, limits and included capabilities.' : 'Veja seu plano efetivo, status atual, limites e recursos incluídos.'}</p></section>
+    <section className={`billing-access billing-access--${publicationEntitlement ? 'active' : 'inactive'}`} aria-labelledby="current-plan-title"><div className="billing-access-lead"><p className="dashboard-eyebrow">{en ? 'CURRENT PLAN' : 'PLANO ATUAL'}</p><h2 id="current-plan-title">{entitlements.planName}</h2><p>{entitlements.founder ? (en ? 'Your Founder entitlement is active with no charge for this access.' : 'Acesso de lançamento: seu benefício Founder está ativo e não há cobrança para este acesso.') : override ? (en ? 'Administrative access is active.' : 'Acesso administrativo ativo.') : (en ? 'No payment provider or checkout is currently available.' : 'A velvet. ainda não integrou um provedor real de pagamentos.')}</p></div><dl>
       <div><dt>Status</dt><dd>{statusCopy[entitlements.subscriptionState as SubscriptionStatus] ?? entitlements.subscriptionState}</dd></div><div><dt>Founder</dt><dd>{entitlements.founder ? (en ? 'Yes' : 'Sim') : (en ? 'No' : 'Não')}</dd></div>
       <div><dt>{en ? 'Photos' : 'Fotos'}</dt><dd>{photos ?? 0} / {entitlements.maxPhotos}</dd></div><div><dt>{en ? 'Videos' : 'Vídeos'}</dt><dd>{videos ?? 0} / {entitlements.maxVideos}</dd></div>
       <div><dt>{en ? 'Reviews' : 'Avaliações'}</dt><dd>{entitlements.reviewsAccess ? (en ? 'Included' : 'Incluídas') : (en ? 'Not included' : 'Não incluídas')}</dd></div><div><dt>{en ? 'Premium features' : 'Recursos premium'}</dt><dd>{entitlements.premiumFeatures ? (en ? 'Included' : 'Incluídos') : (en ? 'Not included' : 'Não incluídos')}</dd></div>

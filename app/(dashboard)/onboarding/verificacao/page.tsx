@@ -9,7 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Verificação — Onboarding Velvet',
+  title: 'Verificação — Onboarding velvet.',
   robots: 'noindex, nofollow',
 }
 

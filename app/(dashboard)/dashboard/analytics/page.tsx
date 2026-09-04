@@ -7,7 +7,7 @@ import { isProfileCanonicallyEligible } from '@/modules/publication/dal'
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Analytics | Velvet', robots: 'noindex, nofollow' }
+export const metadata = { title: 'Analytics | velvet.', robots: 'noindex, nofollow' }
 
 interface AdvertiserAnalyticsPageProps { searchParams: Promise<{ days?: string }> }
 
@@ -54,7 +54,7 @@ export default async function AdvertiserAnalyticsPage({ searchParams }: Advertis
   const profile = await getProfileByAccountUserId(account.id)
   const days: 7 | 30 | 90 = resolvedParams.days === '7' ? 7 : resolvedParams.days === '90' ? 90 : 30
 
-  if (!profile) return <div className="velvet-dashboard velvet-analytics"><ProfessionalDashboardHeader activeHref="/dashboard/analytics" /><main><section className="analytics-empty"><p className="dashboard-eyebrow">ANALYTICS</p><h1>Seu perfil vem primeiro.</h1><p>Conclua sua apresentação para começar a acompanhar sua presença na Velvet.</p><Link href="/onboarding/voce">Configurar perfil <span aria-hidden="true">→</span></Link></section></main></div>
+  if (!profile) return <div className="velvet-dashboard velvet-analytics"><ProfessionalDashboardHeader activeHref="/dashboard/analytics" /><main><section className="analytics-empty"><p className="dashboard-eyebrow">ANALYTICS</p><h1>Seu perfil vem primeiro.</h1><p>Conclua sua apresentação para começar a acompanhar sua presença na velvet.</p><Link href="/onboarding/voce">Configurar perfil <span aria-hidden="true">→</span></Link></section></main></div>
 
   const [metrics, canonicallyEligible] = await Promise.all([
     getAdvertiserMetrics(profile.id, days),

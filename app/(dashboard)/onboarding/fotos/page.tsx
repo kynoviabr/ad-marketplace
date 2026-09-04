@@ -8,7 +8,7 @@ import { getManageableProfileMedia, reconcileStaleUploadingMedia } from '@/modul
 import { getTranslations } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Fotos — Onboarding Velvet', robots: 'noindex, nofollow' }
+export const metadata = { title: 'Fotos — Onboarding velvet.', robots: 'noindex, nofollow' }
 
 export default async function PhotosOnboardingPage() {
   const { locale, t } = await getTranslations()

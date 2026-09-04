@@ -9,7 +9,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { publicationReadinessDetail } from '@/lib/i18n/labels'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Revisar e publicar — Onboarding Velvet', robots: 'noindex, nofollow' }
+export const metadata = { title: 'Revisar e publicar — Onboarding velvet.', robots: 'noindex, nofollow' }
 
 const eyeLabels: Record<string, string> = { BLACK: 'Pretos', BROWN: 'Castanhos', GREEN: 'Verdes', BLUE: 'Azuis', HAZEL: 'Mel', OTHER: 'Outros' }
 const hairLabels: Record<string, string> = { BLACK: 'Preto', BRUNETTE: 'Castanho', BLONDE: 'Loiro', REDHEAD: 'Ruivo', OTHER: 'Outro' }
@@ -44,7 +44,7 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
             {review.previewPhotoUrl && preview ? <Image src={review.previewPhotoUrl} alt={`Foto de ${preview.stageName}`} fill sizes="(max-width: 768px) 100vw, 42vw" /> : <span aria-hidden="true">V</span>}
           </div>
           {preview ? <div className="review-identity">
-            <p>{review.primaryLocation ?? review.serviceAreas[0] ?? 'Velvet São Paulo'}</p>
+            <p>{review.primaryLocation ?? review.serviceAreas[0] ?? 'velvet. São Paulo'}</p>
             <h2 id="preview-title">{preview.stageName}</h2>
             {preview.headline ? <blockquote>{preview.headline}</blockquote> : null}
             {attributes.length ? <p className="review-attributes">{attributes.join(' · ')}</p> : null}
