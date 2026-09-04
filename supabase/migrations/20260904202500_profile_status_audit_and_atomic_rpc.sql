@@ -339,8 +339,8 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) TO authenticated;
 
 COMMENT ON FUNCTION public.admin_transition_profile_status IS
   'Atomic transactional RPC to SUSPEND or REACTIVATE professional profiles with session-bound auth.uid() ADMIN authorization, row locking, gate validation, and immutable whitelisted audit event logging.';

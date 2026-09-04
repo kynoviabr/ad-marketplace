@@ -204,11 +204,12 @@ describe('R12.4C1 Profile Status Audit + Atomic RPC Migration Foundation (Securi
       expect(sql).toMatch(/UPDATE public\.professional_profiles\s+SET\s+status = v_to_status,\s+updated_at = v_now\s+WHERE id = v_profile\.id;/)
     })
 
-    it('restricts RPC execution from anonymous callers and uses SECURITY DEFINER with safe search_path', () => {
+    it('enforces least-privilege EXECUTE permissions: authenticated YES, PUBLIC/anon/service_role NO', () => {
       expect(sql).toContain('SECURITY DEFINER')
       expect(sql).toContain('SET search_path = public, pg_temp')
-      expect(sql).toContain('REVOKE ALL ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon;')
-      expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) TO authenticated, service_role;')
+      expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.admin_transition_profile_status\(UUID, TEXT, TEXT, TEXT\) FROM PUBLIC,\s*anon,\s*service_role;/)
+      expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) TO authenticated;')
+      expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.admin_transition_profile_status\(UUID, TEXT, TEXT, TEXT\) TO[^\n;]*service_role/i)
     })
   })
 })
