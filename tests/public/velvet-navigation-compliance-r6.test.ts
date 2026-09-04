@@ -66,8 +66,8 @@ describe('Velvet R6 public navigation and compliance', () => {
     expect(audit).toContain("'/en/cookies'")
   })
 
-  it('preserves locale through the Advertise entry redirect', () => {
-    const advertise = read('app/anuncie/page.tsx')
+  it('preserves locale through the Advertise entry', () => {
+    const advertise = read('app/(public)/anuncie/page.tsx')
     expect(advertise).toContain('getRequestLocale()')
     expect(advertise).toContain("localizePathname('/signup', locale)")
   })

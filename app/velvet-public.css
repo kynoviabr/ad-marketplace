@@ -1763,4 +1763,564 @@
   }
 }
 
+/* ============================================================
+   R11.1 — Anuncie na velvet. Landing Page
+   ============================================================ */
+
+.velvet-anuncie {
+  width: 100%;
+  color: var(--public-espresso);
+  background: var(--public-paper);
+}
+
+.velvet-anuncie-container {
+  width: min(100% - clamp(28px, 5vw, 88px), 1200px);
+  margin-inline: auto;
+}
+
+/* 1. HERO */
+.velvet-anuncie-hero {
+  padding: clamp(52px, 6.5vw, 96px) 0 clamp(48px, 6vw, 84px);
+}
+
+.velvet-anuncie-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.15fr) minmax(280px, 0.85fr);
+  gap: clamp(36px, 5.5vw, 84px);
+  align-items: center;
+}
+
+.velvet-anuncie-hero-copy h1 {
+  margin: 18px 0 22px;
+  color: var(--public-espresso);
+  font: 400 clamp(42px, 5.2vw, 72px)/0.92 var(--public-serif);
+  letter-spacing: -0.05em;
+}
+
+.velvet-anuncie-hero-points {
+  margin: 0 0 32px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.velvet-anuncie-hero-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--public-muted);
+  font: 16px/1.55 var(--public-serif);
+}
+
+.velvet-anuncie-hero-point-bullet {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-top: 9px;
+  border-radius: 50%;
+  background: var(--public-aubergine);
+}
+
+.velvet-anuncie-cta-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+
+.velvet-anuncie-btn-primary {
+  min-height: 48px;
+  padding: 0 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--public-aubergine);
+  color: var(--public-surface);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 0.2s ease;
+}
+
+.velvet-anuncie-btn-primary:hover {
+  background: var(--public-aubergine-deep);
+}
+
+.velvet-anuncie-btn-secondary {
+  min-height: 48px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(59, 32, 63, 0.35);
+  color: var(--public-espresso);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.velvet-anuncie-btn-secondary:hover {
+  border-color: var(--public-aubergine);
+  color: var(--public-aubergine);
+}
+
+.velvet-anuncie-hero-visual {
+  position: relative;
+}
+
+.velvet-anuncie-card-preview {
+  position: relative;
+  background: var(--public-surface);
+  border: 1px solid rgba(59, 32, 63, 0.2);
+  padding: 28px;
+  box-shadow: 6px 8px 0 rgba(113, 53, 125, 0.08);
+}
+
+.velvet-anuncie-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(59, 32, 63, 0.12);
+  margin-bottom: 20px;
+}
+
+.velvet-anuncie-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  background: rgba(113, 53, 125, 0.08);
+  color: var(--public-aubergine);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.velvet-anuncie-card-status {
+  font-size: 9px;
+  color: var(--public-muted);
+  letter-spacing: 0.05em;
+}
+
+.velvet-anuncie-card-mockup {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.velvet-anuncie-card-avatar {
+  width: 80px;
+  height: 100px;
+  background: #ede8e0;
+  display: grid;
+  place-items: center;
+  color: rgba(33, 27, 25, 0.35);
+  font: italic 24px var(--public-serif);
+}
+
+.velvet-anuncie-card-info h3 {
+  margin: 0 0 6px;
+  font: 400 22px var(--public-serif);
+  color: var(--public-espresso);
+}
+
+.velvet-anuncie-card-info p {
+  margin: 0;
+  color: var(--public-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.velvet-anuncie-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid rgba(59, 32, 63, 0.12);
+  font-size: 10px;
+  color: var(--public-muted);
+}
+
+/* 2. HOW IT WORKS */
+.velvet-anuncie-how {
+  padding: clamp(56px, 7vw, 92px) 0;
+  background: var(--public-surface);
+  border-block: 1px solid rgba(59, 32, 63, 0.16);
+  scroll-margin-top: 76px;
+}
+
+.velvet-anuncie-section-header {
+  margin-bottom: clamp(32px, 4vw, 48px);
+}
+
+.velvet-anuncie-section-header h2 {
+  margin: 10px 0 12px;
+  font: 400 clamp(32px, 3.8vw, 48px)/1.02 var(--public-serif);
+  letter-spacing: -0.04em;
+  color: var(--public-espresso);
+}
+
+.velvet-anuncie-section-header p {
+  max-width: 640px;
+  margin: 0;
+  color: var(--public-muted);
+  font: 16px/1.55 var(--public-serif);
+}
+
+.velvet-anuncie-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.velvet-anuncie-step-card {
+  position: relative;
+  background: var(--public-paper);
+  border: 1px solid rgba(59, 32, 63, 0.14);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.velvet-anuncie-step-num {
+  font: 400 13px var(--font-body);
+  letter-spacing: 0.12em;
+  color: var(--public-aubergine);
+  margin-bottom: 12px;
+}
+
+.velvet-anuncie-step-card h3 {
+  margin: 0 0 8px;
+  font: 400 19px var(--public-serif);
+  color: var(--public-espresso);
+  letter-spacing: -0.02em;
+}
+
+.velvet-anuncie-step-card p {
+  margin: 0;
+  color: var(--public-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* 3. WHAT THE PROFILE OFFERS */
+.velvet-anuncie-offers {
+  padding: clamp(56px, 7vw, 92px) 0;
+}
+
+.velvet-anuncie-features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.velvet-anuncie-feature-card {
+  background: var(--public-surface);
+  border: 1px solid rgba(59, 32, 63, 0.14);
+  padding: 24px 20px;
+}
+
+.velvet-anuncie-feature-card h3 {
+  margin: 0 0 8px;
+  font: 400 18px var(--public-serif);
+  color: var(--public-espresso);
+  letter-spacing: -0.02em;
+}
+
+.velvet-anuncie-feature-card p {
+  margin: 0;
+  color: var(--public-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* 4. VERIFICATION + PRIVACY */
+.velvet-anuncie-privacy {
+  padding: clamp(56px, 7vw, 92px) 0;
+  background: var(--public-surface);
+  border-block: 1px solid rgba(59, 32, 63, 0.16);
+}
+
+.velvet-anuncie-privacy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.velvet-anuncie-privacy-card {
+  background: var(--public-paper);
+  border: 1px solid rgba(59, 32, 63, 0.14);
+  padding: 32px 28px;
+}
+
+.velvet-anuncie-privacy-card h3 {
+  margin: 0 0 14px;
+  font: 400 24px var(--public-serif);
+  color: var(--public-espresso);
+  letter-spacing: -0.03em;
+}
+
+.velvet-anuncie-privacy-card p {
+  margin: 0 0 14px;
+  color: var(--public-muted);
+  font: 14px/1.6 var(--public-serif);
+}
+
+.velvet-anuncie-privacy-card p:last-child {
+  margin-bottom: 0;
+}
+
+/* 5. INDEPENDENCE */
+.velvet-anuncie-independence {
+  padding: clamp(56px, 7vw, 92px) 0;
+}
+
+.velvet-anuncie-ind-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.velvet-anuncie-ind-card {
+  background: var(--public-surface);
+  border: 1px solid rgba(59, 32, 63, 0.14);
+  padding: 24px 20px;
+}
+
+.velvet-anuncie-ind-card h3 {
+  margin: 0 0 8px;
+  font: 400 18px var(--public-serif);
+  color: var(--public-espresso);
+  letter-spacing: -0.02em;
+}
+
+.velvet-anuncie-ind-card p {
+  margin: 0;
+  color: var(--public-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* 6. PLANS */
+.velvet-anuncie-plans {
+  padding: clamp(56px, 7vw, 92px) 0;
+  background: var(--public-surface);
+  border-block: 1px solid rgba(59, 32, 63, 0.16);
+}
+
+.velvet-anuncie-founder-card {
+  max-width: 760px;
+  margin: 0 auto;
+  background: var(--public-paper);
+  border: 1px solid rgba(59, 32, 63, 0.22);
+  padding: clamp(32px, 4.5vw, 48px);
+  box-shadow: 6px 8px 0 rgba(113, 53, 125, 0.08);
+}
+
+.velvet-anuncie-founder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(59, 32, 63, 0.14);
+  margin-bottom: 28px;
+}
+
+.velvet-anuncie-founder-head h3 {
+  margin: 6px 0 0;
+  font: 400 32px var(--public-serif);
+  color: var(--public-espresso);
+  letter-spacing: -0.03em;
+}
+
+.velvet-anuncie-founder-price {
+  font: 400 32px var(--public-serif);
+  color: var(--public-aubergine);
+}
+
+.velvet-anuncie-founder-price small {
+  font-size: 11px;
+  color: var(--public-muted);
+  font-family: var(--font-body);
+  display: block;
+}
+
+.velvet-anuncie-founder-perks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 28px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+}
+
+.velvet-anuncie-founder-perk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--public-espresso);
+}
+
+.velvet-anuncie-founder-perk i {
+  color: var(--public-aubergine);
+  font-style: normal;
+  font-weight: bold;
+}
+
+.velvet-anuncie-founder-note {
+  margin: 0;
+  padding-top: 20px;
+  border-top: 1px solid rgba(59, 32, 63, 0.12);
+  color: var(--public-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* 7. SAFETY / CONTROL */
+.velvet-anuncie-safety {
+  padding: clamp(56px, 7vw, 92px) 0;
+}
+
+.velvet-anuncie-safety-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.velvet-anuncie-safety-card {
+  background: var(--public-surface);
+  border: 1px solid rgba(59, 32, 63, 0.14);
+  padding: 24px 20px;
+}
+
+.velvet-anuncie-safety-card h3 {
+  margin: 0 0 8px;
+  font: 400 18px var(--public-serif);
+  color: var(--public-espresso);
+  letter-spacing: -0.02em;
+}
+
+.velvet-anuncie-safety-card p {
+  margin: 0;
+  color: var(--public-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+/* 8. FINAL CTA */
+.velvet-anuncie-final {
+  padding: clamp(56px, 7vw, 96px) 0 clamp(72px, 9vw, 120px);
+}
+
+.velvet-anuncie-final-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--public-aubergine-deep);
+  color: var(--public-surface);
+  padding: clamp(48px, 6vw, 76px) clamp(32px, 5vw, 64px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.velvet-anuncie-final-card .velvet-overline {
+  color: #d4bad8;
+}
+
+.velvet-anuncie-final-copy h2 {
+  margin: 14px 0 12px;
+  color: var(--public-surface);
+  font: 400 clamp(36px, 4.4vw, 56px)/0.96 var(--public-serif);
+  letter-spacing: -0.045em;
+}
+
+.velvet-anuncie-final-copy p {
+  max-width: 460px;
+  margin: 0;
+  color: #d7cad8;
+  font: 16px/1.55 var(--public-serif);
+}
+
+.velvet-anuncie-final-card a {
+  flex: none;
+  min-height: 50px;
+  padding: 0 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--public-surface);
+  color: var(--public-aubergine-deep);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: opacity 0.2s ease;
+}
+
+.velvet-anuncie-final-card a:hover {
+  opacity: 0.92;
+}
+
+.velvet-anuncie-final-mark {
+  position: absolute;
+  right: -15px;
+  bottom: -65px;
+  color: rgba(250, 248, 243, 0.05);
+  font: 260px var(--public-serif);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .velvet-anuncie-features-grid,
+  .velvet-anuncie-ind-grid,
+  .velvet-anuncie-safety-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .velvet-anuncie-hero-grid {
+    grid-template-columns: 1fr;
+  }
+  .velvet-anuncie-privacy-grid {
+    grid-template-columns: 1fr;
+  }
+  .velvet-anuncie-final-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .velvet-anuncie-final-card a {
+    width: 100%;
+    justify-content: center;
+  }
+  .velvet-anuncie-founder-perks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .velvet-anuncie-features-grid,
+  .velvet-anuncie-ind-grid,
+  .velvet-anuncie-safety-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
