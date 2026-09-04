@@ -19,6 +19,8 @@ export const AUTH_RATE_LIMITS = {
   LOGIN: { limit: 10, windowSeconds: 900 },           // 10 attempts / 15 min
   SIGNUP: { limit: 5, windowSeconds: 3600 },           // 5 attempts / hour
   PASSWORD_RESET: { limit: 5, windowSeconds: 900 },   // 5 attempts / 15 min
+  OTP_REQUEST: { limit: 5, windowSeconds: 900 },       // 5 requests / 15 min
+  OTP_VERIFY: { limit: 5, windowSeconds: 900 },        // 5 verify attempts / 15 min
 } as const
 
 const rateLimitStore = new Map<string, { count: number; expiresAt: number }>()
