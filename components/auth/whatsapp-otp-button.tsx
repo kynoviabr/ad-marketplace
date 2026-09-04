@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import type { OAuthIntent } from '@/modules/auth/oauth'
-import { formatBrazilianPhoneInput } from '@/modules/auth/whatsapp-otp'
+import { formatBrazilianPhoneInput, isWhatsAppOtpEnabled } from '@/modules/auth/whatsapp-otp'
 import {
   requestWhatsAppOtpAction,
   verifyWhatsAppOtpAction,
@@ -15,6 +15,7 @@ export interface WhatsAppOtpButtonProps {
   className?: string
   initialStep?: 'button' | 'phone' | 'code'
   initialPhone?: string
+  enabled?: boolean
 }
 
 function WhatsAppIcon() {
@@ -41,7 +42,7 @@ function WhatsAppIcon() {
   )
 }
 
-export function WhatsAppOtpButton({
+function WhatsAppOtpContent({
   intent,
   label,
   className = '',
@@ -324,4 +325,16 @@ export function WhatsAppOtpButton({
       )}
     </div>
   )
+}
+
+/**
+ * Public component with feature flag guard.
+ * Returns null if NEXT_PUBLIC_WHATSAPP_OTP_ENABLED is false or unset.
+ */
+export function WhatsAppOtpButton(props: WhatsAppOtpButtonProps) {
+  const isEnabled = props.enabled !== undefined ? props.enabled : isWhatsAppOtpEnabled()
+  if (!isEnabled) {
+    return null
+  }
+  return <WhatsAppOtpContent {...props} />
 }

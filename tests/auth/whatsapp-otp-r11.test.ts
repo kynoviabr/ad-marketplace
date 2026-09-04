@@ -10,12 +10,14 @@ import {
   getWhatsAppOtpProvider,
   setWhatsAppOtpProviderForTesting,
   resetWhatsAppOtpProviderForTesting,
+  isWhatsAppOtpEnabled,
   type WhatsAppOtpProvider,
 } from '@/modules/auth/whatsapp-otp'
 import {
   requestWhatsAppOtpAction,
   verifyWhatsAppOtpAction,
 } from '@/modules/auth/whatsapp-actions'
+import { WhatsAppOtpButton } from '@/components/auth/whatsapp-otp-button'
 import { AUTH_RATE_LIMITS } from '@/modules/auth/rate-limiter'
 
 // Mock next/headers
@@ -25,6 +27,14 @@ vi.mock('next/headers', () => ({
       if (header === 'x-forwarded-for') return '203.0.113.195'
       return null
     },
+  }),
+}))
+
+// Mock useI18n for component visibility tests
+vi.mock('@/components/i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    locale: 'pt-BR',
   }),
 }))
 
@@ -317,6 +327,68 @@ describe('R11.5B1 WhatsApp OTP Foundation & Invariants', () => {
       // Reset restores default unconfigured provider
       resetWhatsAppOtpProviderForTesting()
       expect(getWhatsAppOtpProvider()).toBe(defaultWhatsAppOtpProvider)
+    })
+  })
+
+  describe('8. Public Feature Flag & Visibility Control (NEXT_PUBLIC_WHATSAPP_OTP_ENABLED)', () => {
+    const originalEnv = process.env
+
+    beforeEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    afterEach(() => {
+      process.env = originalEnv
+    })
+
+    it('defaults to false when NEXT_PUBLIC_WHATSAPP_OTP_ENABLED is missing', () => {
+      delete process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED
+      expect(isWhatsAppOtpEnabled()).toBe(false)
+    })
+
+    it('returns false when NEXT_PUBLIC_WHATSAPP_OTP_ENABLED is explicitly "false"', () => {
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = 'false'
+      expect(isWhatsAppOtpEnabled()).toBe(false)
+    })
+
+    it('returns false when NEXT_PUBLIC_WHATSAPP_OTP_ENABLED is any non-true string', () => {
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = '0'
+      expect(isWhatsAppOtpEnabled()).toBe(false)
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = ''
+      expect(isWhatsAppOtpEnabled()).toBe(false)
+    })
+
+    it('returns true when NEXT_PUBLIC_WHATSAPP_OTP_ENABLED is "true"', () => {
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = 'true'
+      expect(isWhatsAppOtpEnabled()).toBe(true)
+    })
+
+    it('WhatsAppOtpButton renders null (hidden) when flag is disabled / false', () => {
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = 'false'
+      const rendered = WhatsAppOtpButton({ intent: 'LOGIN' })
+      expect(rendered).toBeNull()
+    })
+
+    it('WhatsAppOtpButton renders null (hidden) when flag is missing', () => {
+      delete process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED
+      const rendered = WhatsAppOtpButton({ intent: 'ADVERTISER' })
+      expect(rendered).toBeNull()
+    })
+
+    it('WhatsAppOtpButton renders component tree when flag is "true"', () => {
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = 'true'
+      const rendered = WhatsAppOtpButton({ intent: 'LOGIN' })
+      expect(rendered).not.toBeNull()
+      // Component returns JSX element with trigger button
+      expect(rendered).toHaveProperty('type')
+    })
+
+    it('WhatsAppOtpButton respects explicit enabled prop override', () => {
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = 'true'
+      expect(WhatsAppOtpButton({ intent: 'LOGIN', enabled: false })).toBeNull()
+
+      process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED = 'false'
+      expect(WhatsAppOtpButton({ intent: 'LOGIN', enabled: true })).not.toBeNull()
     })
   })
 })

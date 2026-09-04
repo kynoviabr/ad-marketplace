@@ -19,6 +19,14 @@ import type { OAuthIntent } from '@/modules/auth/oauth'
  */
 export const WHATSAPP_OTP_PROVIDER_CONFIGURED = false as const
 
+/**
+ * Public feature flag: controls whether "Continuar com WhatsApp" UI is rendered.
+ * Defaults to false (hidden) when env var is missing or not 'true'.
+ */
+export function isWhatsAppOtpEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_WHATSAPP_OTP_ENABLED === 'true'
+}
+
 export type WhatsAppOtpIntent = OAuthIntent
 
 export interface WhatsAppOtpRequestResult {
