@@ -1,4 +1,5 @@
 export const adminPtBR = {
+  'admin.operations': 'Operações',
   'admin.panel': 'Painel Administrativo',
   'admin.photoModeration': 'Moderação de Fotos',
   'admin.profileModeration': 'Moderação de Perfis',
@@ -65,6 +66,7 @@ export const adminPtBR = {
 } as const
 
 export const adminEn = {
+  'admin.operations': 'Operations',
   'admin.panel': 'Admin Panel',
   'admin.photoModeration': 'Photo moderation',
   'admin.profileModeration': 'Profile moderation',

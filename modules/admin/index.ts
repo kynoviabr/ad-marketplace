@@ -1,12 +1,13 @@
 /**
  * Module: admin
  *
- * Responsible for: Internal admin tooling, moderation dashboard,
- * user management, audit log review. Admin routes must require
- * explicit authorization — never expose publicly.
+ * Responsible for: Internal admin tooling, operational status classification,
+ * professional summary projection, operations overview and queue monitoring.
+ * Admin routes must require explicit authorization — never expose publicly.
  *
- * Status: BOUNDARY ONLY — implementation begins in FASE 06.
- *
- * @see docs/08_MODERATION.md
+ * Status: R12.1 ADMIN OPERATIONS FOUNDATION
  */
-export {}
+
+export * from './types'
+export * from './operational-status'
+export * from './dal'

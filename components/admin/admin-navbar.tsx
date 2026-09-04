@@ -9,6 +9,7 @@ export function AdminNavbar() {
   const pathname = usePathname()
 
   const navItems = [
+    { href: '/admin', label: t('admin.operations') },
     { href: '/admin/moderation', label: t('admin.photoModeration') },
     { href: '/admin/profiles', label: t('admin.profileModeration') },
     { href: '/admin/kyc', label: t('admin.kyc') },
@@ -22,12 +23,12 @@ export function AdminNavbar() {
     <header style={{ backgroundColor: '#111827', borderBottom: '1px solid #374151', padding: '0.75rem 1.5rem' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <Link href="/admin/moderation" style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '1.125rem', textDecoration: 'none' }}>
+          <Link href="/admin" style={{ color: '#f59e0b', fontWeight: 'bold', fontSize: '1.125rem', textDecoration: 'none' }}>
             {t('admin.panel')}
           </Link>
           <nav style={{ display: 'flex', gap: '1rem' }}>
             {navItems.map((item) => {
-              const isActive = pathname.startsWith(item.href)
+              const isActive = item.href === '/admin' ? pathname === '/admin' : pathname.startsWith(item.href)
               return (
                 <Link
                   key={item.href}
