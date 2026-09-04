@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createServerClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/modules/moderation/guards'
 import { evaluateProfileCompleteness } from '@/modules/profiles/completeness'
 import { hasPublicationEntitlement } from '@/modules/billing/entitlements'
@@ -706,3 +707,167 @@ export async function adminRejectProfileAction(input: {
     notes: input.notes,
   })
 }
+
+// -----------------------------------------------------------------------------
+// R12.4C2: Profile Status Suspension & Reactivation Actions
+// -----------------------------------------------------------------------------
+
+export interface AdminTransitionProfileStatusInput {
+  profileId: string
+  action: 'SUSPEND' | 'REACTIVATE'
+  reasonCode: string
+  notes?: string
+}
+
+export interface AdminTransitionProfileStatusResult {
+  success: boolean
+  error?: string
+  message?: string
+  data?: any
+}
+
+/**
+ * Server Action: Transition a professional profile status between ACTIVE and SUSPENDED.
+ *
+ * Enforces:
+ * 1. ADMIN-only authorization via requireAdmin() (rejects CLIENT and ADVERTISER)
+ * 2. Strict input validation and UUID format check
+ * 3. Atomic execution exclusively via canonical RPC admin_transition_profile_status
+ * 4. Database-enforced session binding to auth.uid() (actor resolution inside PostgreSQL)
+ * 5. Pessimistic row locking (SELECT ... FOR UPDATE) and expected-state validation
+ * 6. Full publication gate re-verification on reactivation (fail closed on gate failure)
+ * 7. No direct table updates or application-layer duplicate audit writes
+ * 8. Revalidation of admin queues and detail views on success
+ */
+export async function adminTransitionProfileStatusAction(
+  input: AdminTransitionProfileStatusInput
+): Promise<AdminTransitionProfileStatusResult> {
+  try {
+    // 1. Authorize ADMIN actor server-side
+    await requireAdmin()
+
+    // 2. Validate input parameters
+    const { profileId, action, reasonCode, notes } = input
+
+    if (!profileId || !UUID_REGEX.test(profileId)) {
+      return { success: false, error: 'INVALID_INPUT', message: 'ID de perfil inválido.' }
+    }
+
+    if (action !== 'SUSPEND' && action !== 'REACTIVATE') {
+      return {
+        success: false,
+        error: 'INVALID_ACTION',
+        message: 'Ação inválida. Permitido apenas SUSPEND ou REACTIVATE.',
+      }
+    }
+
+    if (action === 'SUSPEND' && (!reasonCode || !reasonCode.trim())) {
+      return { success: false, error: 'MISSING_REASON_CODE', message: 'Motivo obrigatório para suspensão.' }
+    }
+
+    if (reasonCode && reasonCode.length > 50) {
+      return { success: false, error: 'INVALID_INPUT', message: 'Código de motivo excede 50 caracteres.' }
+    }
+
+    if (notes && notes.length > 1000) {
+      return { success: false, error: 'INVALID_INPUT', message: 'Observações excedem 1000 caracteres.' }
+    }
+
+    // 3. Call canonical transactional RPC via authenticated Supabase server client
+    const supabase = await createServerClient()
+    const { data, error } = await supabase.rpc('admin_transition_profile_status', {
+      p_profile_id: profileId,
+      p_action: action,
+      p_reason_code: reasonCode.trim(),
+      p_notes: notes?.trim() || null,
+    })
+
+    if (error) {
+      console.error('[admin:actions] Error in admin_transition_profile_status RPC:', error)
+
+      if (error.message.includes('ALREADY_SUSPENDED')) {
+        return { success: false, error: 'ALREADY_SUSPENDED', message: 'O perfil já se encontra suspenso.' }
+      }
+      if (error.message.includes('ALREADY_ACTIVE')) {
+        return { success: false, error: 'ALREADY_ACTIVE', message: 'O perfil já se encontra ativo.' }
+      }
+      if (error.message.includes('INVALID_TRANSITION')) {
+        return {
+          success: false,
+          error: 'INVALID_TRANSITION',
+          message: error.message.replace(/^.*?INVALID_TRANSITION:\s*/, ''),
+        }
+      }
+      if (error.message.includes('PUBLICATION_GATE_FAILED')) {
+        return {
+          success: false,
+          error: 'PUBLICATION_GATE_FAILED',
+          message: error.message.replace(/^.*?PUBLICATION_GATE_FAILED:\s*/, ''),
+        }
+      }
+      if (error.message.includes('UNAUTHORIZED') || error.message.includes('FORBIDDEN')) {
+        return { success: false, error: 'FORBIDDEN', message: 'Acesso restrito a administradores ativos.' }
+      }
+      if (error.message.includes('PROFILE_NOT_FOUND')) {
+        return { success: false, error: 'NOT_FOUND', message: 'Perfil não encontrado.' }
+      }
+
+      return {
+        success: false,
+        error: 'MUTATION_FAILED',
+        message: error.message || 'Falha ao processar transição de status do perfil.',
+      }
+    }
+
+    // 4. Revalidate admin operational queues and profile pages
+    revalidatePath('/admin/profiles/review')
+    revalidatePath('/admin/profiles')
+    revalidatePath('/admin')
+
+    return {
+      success: true,
+      message: action === 'SUSPEND' ? 'Perfil suspenso com sucesso.' : 'Perfil reativado com sucesso.',
+      data,
+    }
+  } catch (err: any) {
+    console.error('[admin:actions] Unexpected error during profile status transition:', err)
+    return {
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: err.message || 'Erro interno ao processar transição de status.',
+    }
+  }
+}
+
+/**
+ * Convenience helper: Suspend profile
+ */
+export async function adminSuspendProfileAction(input: {
+  profileId: string
+  reasonCode: string
+  notes?: string
+}): Promise<AdminTransitionProfileStatusResult> {
+  return adminTransitionProfileStatusAction({
+    profileId: input.profileId,
+    action: 'SUSPEND',
+    reasonCode: input.reasonCode,
+    notes: input.notes,
+  })
+}
+
+/**
+ * Convenience helper: Reactivate profile
+ */
+export async function adminReactivateProfileAction(input: {
+  profileId: string
+  reasonCode?: string
+  notes?: string
+}): Promise<AdminTransitionProfileStatusResult> {
+  return adminTransitionProfileStatusAction({
+    profileId: input.profileId,
+    action: 'REACTIVATE',
+    reasonCode: input.reasonCode || 'ADMIN_REACTIVATION',
+    notes: input.notes,
+  })
+}
+
