@@ -2675,4 +2675,521 @@
   }
 }
 
+/* ============================================================
+   VELVET HELP CENTER — R11.3A EDITORIAL STYLES
+   ============================================================ */
+
+.velvet-help-page {
+  background: var(--public-paper);
+  color: var(--public-espresso);
+  font-family: var(--public-sans);
+  min-height: 100vh;
+}
+
+.velvet-help-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+.velvet-help-hero {
+  padding: 80px 0 48px;
+  border-bottom: 1px solid var(--public-line);
+}
+
+.velvet-help-eyebrow {
+  color: var(--public-aubergine-deep);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 0 0 16px;
+}
+
+.velvet-help-title {
+  font-family: var(--public-serif);
+  font-size: clamp(40px, 5.2vw, 64px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  margin: 0 0 20px;
+  color: var(--public-espresso);
+}
+
+.velvet-help-lead {
+  font-family: var(--public-serif);
+  font-size: clamp(18px, 1.8vw, 22px);
+  line-height: 1.5;
+  color: var(--public-muted);
+  max-width: 720px;
+  margin: 0 0 36px;
+}
+
+.velvet-help-quick-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(59, 32, 63, 0.08);
+}
+
+.velvet-help-quick-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--public-muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.velvet-help-quick-btn {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--public-aubergine-deep);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 4px;
+  background: rgba(59, 32, 63, 0.05);
+  border: 1px solid rgba(59, 32, 63, 0.1);
+  transition: all 0.2s ease;
+}
+
+.velvet-help-quick-btn:hover {
+  background: rgba(59, 32, 63, 0.1);
+  color: var(--public-aubergine);
+}
+
+/* Search bar */
+.velvet-help-content {
+  padding: 48px 0 80px;
+}
+
+.velvet-help-search-container {
+  margin-bottom: 40px;
+}
+
+.velvet-help-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  background: var(--public-surface);
+  border: 1px solid var(--public-line);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(59, 32, 63, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.velvet-help-search-box:focus-within {
+  border-color: var(--public-aubergine);
+  box-shadow: 0 4px 24px rgba(59, 32, 63, 0.1);
+}
+
+.velvet-help-search-icon {
+  padding-left: 20px;
+  font-size: 16px;
+  color: var(--public-muted);
+  pointer-events: none;
+}
+
+.velvet-help-search-input {
+  width: 100%;
+  padding: 18px 20px;
+  border: none;
+  background: transparent;
+  font-family: var(--public-sans);
+  font-size: 16px;
+  color: var(--public-espresso);
+  outline: none;
+}
+
+.velvet-help-search-input::placeholder {
+  color: var(--public-muted);
+  opacity: 0.7;
+}
+
+.velvet-help-search-clear {
+  margin-right: 16px;
+  padding: 6px 10px;
+  background: rgba(59, 32, 63, 0.06);
+  border: none;
+  border-radius: 4px;
+  color: var(--public-muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.velvet-help-search-clear:hover {
+  background: rgba(59, 32, 63, 0.12);
+  color: var(--public-espresso);
+}
+
+/* Categories */
+.velvet-help-categories-section {
+  margin-bottom: 48px;
+}
+
+.velvet-help-categories-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.velvet-help-categories-title {
+  font-family: var(--public-serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--public-espresso);
+  margin: 0;
+}
+
+.velvet-help-reset-filter {
+  background: none;
+  border: none;
+  color: var(--public-aubergine-deep);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.velvet-help-category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.velvet-help-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--public-surface);
+  border: 1px solid var(--public-line);
+  border-radius: 9999px;
+  color: var(--public-espresso);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.velvet-help-pill strong {
+  font-weight: 500;
+}
+
+.velvet-help-pill small {
+  color: var(--public-muted);
+  font-size: 11px;
+}
+
+.velvet-help-pill:hover {
+  border-color: var(--public-aubergine);
+  background: rgba(59, 32, 63, 0.02);
+}
+
+.velvet-help-pill.is-active {
+  background: var(--public-aubergine-deep);
+  border-color: var(--public-aubergine-deep);
+  color: var(--public-surface);
+}
+
+.velvet-help-pill.is-active small {
+  color: rgba(250, 248, 243, 0.7);
+}
+
+/* Accordion FAQ cards */
+.velvet-help-results-header {
+  margin-bottom: 20px;
+}
+
+.velvet-help-results-count {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--public-muted);
+  margin: 0;
+}
+
+.velvet-help-results-count strong {
+  color: var(--public-aubergine-deep);
+}
+
+.velvet-help-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.velvet-help-card {
+  background: var(--public-surface);
+  border: 1px solid var(--public-line);
+  border-radius: 6px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+.velvet-help-card:hover {
+  border-color: rgba(59, 32, 63, 0.25);
+}
+
+.velvet-help-card.is-expanded {
+  border-color: var(--public-aubergine);
+  box-shadow: 0 4px 16px rgba(59, 32, 63, 0.04);
+}
+
+.velvet-help-card-trigger {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 24px 28px;
+  cursor: pointer;
+  position: relative;
+  display: block;
+}
+
+.velvet-help-card-meta {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.velvet-help-card-cat {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--public-aubergine-deep);
+}
+
+.velvet-help-card-title {
+  font-family: var(--public-serif);
+  font-size: clamp(19px, 2vw, 24px);
+  font-weight: 400;
+  color: var(--public-espresso);
+  margin: 0 0 6px;
+  padding-right: 36px;
+  line-height: 1.25;
+}
+
+.velvet-help-card-summary {
+  font-size: 13px;
+  color: var(--public-muted);
+  line-height: 1.5;
+  margin: 0;
+  padding-right: 36px;
+}
+
+.velvet-help-card-icon {
+  position: absolute;
+  right: 28px;
+  top: 28px;
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--public-aubergine-deep);
+  line-height: 1;
+}
+
+.velvet-help-card-body {
+  padding: 0 28px 28px;
+  border-top: 1px solid rgba(59, 32, 63, 0.06);
+}
+
+.velvet-help-card-text {
+  padding-top: 20px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--public-espresso);
+}
+
+.velvet-help-card-text p {
+  margin: 0 0 14px;
+}
+
+.velvet-help-card-text p:last-child {
+  margin-bottom: 0;
+}
+
+.velvet-help-card-links {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(59, 32, 63, 0.06);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.velvet-help-links-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--public-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.velvet-help-links-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.velvet-help-link-item {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--public-aubergine-deep);
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  transition: opacity 0.2s ease;
+}
+
+.velvet-help-link-item:hover {
+  opacity: 0.8;
+}
+
+/* Empty state */
+.velvet-help-empty {
+  padding: 60px 24px;
+  text-align: center;
+  background: var(--public-surface);
+  border: 1px dashed var(--public-line);
+  border-radius: 6px;
+}
+
+.velvet-help-empty-title {
+  font-family: var(--public-serif);
+  font-size: 22px;
+  color: var(--public-espresso);
+  margin: 0 0 8px;
+}
+
+.velvet-help-empty-desc {
+  font-size: 14px;
+  color: var(--public-muted);
+  margin: 0 0 20px;
+}
+
+.velvet-help-empty-reset {
+  padding: 10px 20px;
+  background: var(--public-aubergine);
+  color: var(--public-surface);
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Footer Banner */
+.velvet-help-footer-banner {
+  padding: 0 0 80px;
+}
+
+.velvet-help-banner-card {
+  background: var(--public-aubergine-deep);
+  color: var(--public-surface);
+  padding: 48px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 36px;
+}
+
+.velvet-help-banner-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(250, 248, 243, 0.7);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.velvet-help-banner-info h2 {
+  font-family: var(--public-serif);
+  font-size: clamp(28px, 3vw, 38px);
+  font-weight: 400;
+  line-height: 1.15;
+  margin: 0 0 12px;
+  color: var(--public-surface);
+}
+
+.velvet-help-banner-info p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(250, 248, 243, 0.8);
+  margin: 0;
+  max-width: 540px;
+}
+
+.velvet-help-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.velvet-help-btn-primary {
+  min-height: 48px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--public-surface);
+  color: var(--public-aubergine-deep);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: opacity 0.2s ease;
+}
+
+.velvet-help-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.velvet-help-btn-secondary {
+  min-height: 48px;
+  padding: 0 24px;
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: 1px solid rgba(250, 248, 243, 0.4);
+  color: var(--public-surface);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.velvet-help-btn-secondary:hover {
+  border-color: var(--public-surface);
+}
+
+@media (max-width: 860px) {
+  .velvet-help-banner-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 32px 24px;
+  }
+  .velvet-help-banner-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .velvet-help-btn-primary,
+  .velvet-help-btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
 

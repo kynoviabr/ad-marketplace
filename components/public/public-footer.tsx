@@ -28,6 +28,7 @@ export async function PublicFooter() {
           <h2>{t('footer.discover')}</h2>
           <Link href={localized('/sobre')}>{t('footer.about')}</Link>
           <Link href={localized('/como-funciona')}>{t('footer.howItWorks')}</Link>
+          <Link href={localized('/ajuda')}>{t('footer.help')}</Link>
           <Link href={localized('/sao-paulo')}>{t('navigation.explore')}</Link>
           <span>São Paulo</span>
         </nav>
