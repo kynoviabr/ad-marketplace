@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { FormMessage } from '@/components/ui/form-message'
 import { GoogleOAuthButton } from '@/components/auth/google-oauth-button'
 import { WhatsAppOtpButton } from '@/components/auth/whatsapp-otp-button'
+import { EmailOtpButton } from '@/components/auth/email-otp-button'
 import type { ActionResult } from '@/modules/auth/types'
 import { useI18n } from '@/components/i18n'
 
@@ -31,6 +32,7 @@ export function ClientSignupForm() {
 
       <GoogleOAuthButton intent="CLIENT" />
       <WhatsAppOtpButton intent="CLIENT" />
+      <EmailOtpButton intent="CLIENT" />
 
       <div className="auth-divider" aria-hidden="true">
         <span>{t('auth.or')}</span>

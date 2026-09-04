@@ -12,6 +12,7 @@ import type { ActionResult } from '@/modules/auth/types'
 import { useI18n } from '@/components/i18n'
 import { GoogleOAuthButton } from '@/components/auth/google-oauth-button'
 import { WhatsAppOtpButton } from '@/components/auth/whatsapp-otp-button'
+import { EmailOtpButton } from '@/components/auth/email-otp-button'
 
 const initialState: ActionResult = { success: false, error: '' }
 
@@ -65,6 +66,7 @@ export function LoginForm({ errorParam }: LoginFormProps = {}) {
 
       <GoogleOAuthButton intent="LOGIN" label={t('auth.continueWithGoogle')} />
       <WhatsAppOtpButton intent="LOGIN" />
+      <EmailOtpButton intent="LOGIN" />
 
       <div className="auth-divider" aria-hidden="true">
         <span>{t('auth.or')}</span>

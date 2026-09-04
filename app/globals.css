@@ -1484,6 +1484,211 @@ h1 {
   color: var(--velvet-espresso);
 }
 
+/* Email OTP Styles — R11.5C1 */
+.auth-btn-email {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 18px;
+  background: #ffffff;
+  color: var(--velvet-espresso);
+  border: 1px solid var(--velvet-line);
+  border-radius: 1px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-btn-email:hover:not(:disabled) {
+  background: rgba(59, 32, 63, 0.03);
+  border-color: var(--velvet-aubergine);
+}
+
+.auth-btn-email:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-btn-email svg {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--velvet-aubergine);
+}
+
+.auth-email-box {
+  background: #ffffff;
+  border: 1px solid var(--velvet-line);
+  border-radius: 1px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+}
+
+.auth-email-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-email-title {
+  margin: 0;
+  font-family: var(--velvet-serif);
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--velvet-espresso);
+  line-height: 1.2;
+}
+
+.auth-email-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--velvet-muted);
+  line-height: 1.4;
+}
+
+.auth-email-close-btn {
+  background: transparent;
+  border: 0;
+  color: var(--velvet-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 1px;
+  transition: color 0.15s ease;
+}
+
+.auth-email-close-btn:hover {
+  color: var(--velvet-espresso);
+}
+
+.auth-email-error {
+  background: rgba(199, 44, 65, 0.06);
+  border: 1px solid rgba(199, 44, 65, 0.3);
+  color: #c72c41;
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 1px;
+}
+
+.auth-email-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-email-field label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--velvet-espresso);
+}
+
+.auth-email-input {
+  min-height: 48px;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid var(--velvet-line);
+  border-radius: 1px;
+  font-size: 15px;
+  color: var(--velvet-espresso);
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+
+.auth-email-input:focus {
+  outline: none;
+  border-color: var(--velvet-aubergine);
+}
+
+.auth-email-input-code {
+  font-family: monospace;
+  font-size: 24px;
+  letter-spacing: 0.3em;
+  text-align: center;
+  font-weight: 600;
+}
+
+.auth-email-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(59, 32, 63, 0.04);
+  padding: 8px 12px;
+  border-radius: 1px;
+  font-size: 12px;
+  color: var(--velvet-espresso);
+}
+
+.auth-email-change-email {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: 11px;
+  color: var(--velvet-aubergine-deep);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-email-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-email-resend-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 11px;
+  color: var(--velvet-muted);
+}
+
+.auth-email-resend-btn {
+  background: transparent;
+  border: 0;
+  color: var(--velvet-aubergine-deep);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.auth-email-resend-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-email-back-btn {
+  background: transparent;
+  border: 0;
+  color: var(--velvet-muted);
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.auth-email-back-btn:hover {
+  color: var(--velvet-espresso);
+}
+
 .auth-divider {
   display: flex;
   align-items: center;
