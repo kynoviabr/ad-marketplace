@@ -21,11 +21,15 @@ export async function startGoogleOAuthAction(intent: OAuthIntent): Promise<{
     return { success: false, error: 'Intenção de acesso inválida.' }
   }
 
-  const cookieStore = await cookies()
   const token = createSignedOAuthIntent(intent)
+  const cookieStore = await cookies()
+  const headersList = await headers()
+  const host = headersList.get('x-forwarded-host') || headersList.get('host')
+  const proto = headersList.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http')
+
   cookieStore.set('velvet_oauth_intent', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: proto === 'https' || process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: 600, // 10 minutes
@@ -33,11 +37,9 @@ export async function startGoogleOAuthAction(intent: OAuthIntent): Promise<{
 
   try {
     const supabase = await createServerClient()
-    const headersList = await headers()
-    const host = headersList.get('x-forwarded-host') || headersList.get('host')
-    const proto = headersList.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http')
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || (host ? `${proto}://${host}` : 'http://localhost:3000')
-    const redirectTo = `${appUrl}/auth/callback`
+    const currentOrigin = host ? `${proto}://${host}` : null
+    const appUrl = currentOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const redirectTo = `${appUrl}/auth/callback?intent_token=${encodeURIComponent(token)}`
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

@@ -27,7 +27,8 @@ function isSafeRedirect(next: string | null): next is string {
 }
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const origin = request.nextUrl?.origin || new URL(request.url).origin
+  const searchParams = request.nextUrl?.searchParams || new URL(request.url).searchParams
   const code = searchParams.get('code')
   const nextParam = searchParams.get('next')
   const errorParam = searchParams.get('error')
@@ -48,9 +49,21 @@ export async function GET(request: NextRequest) {
     return redirectWithClearedCookie(`${origin}/login?error=confirmation_failed`)
   }
 
-  // 3. Read signed intent from HttpOnly cookie
-  const intentCookie = request.cookies.get('velvet_oauth_intent')?.value
-  const verifiedIntent = verifyOAuthIntentCookie(intentCookie)
+  // 3. Read signed intent from HttpOnly cookie or signed intent_token query parameter
+  let intentCookie = request.cookies.get('velvet_oauth_intent')?.value
+  if (!intentCookie) {
+    try {
+      const { cookies } = await import('next/headers')
+      const cookieStore = await cookies()
+      intentCookie = cookieStore.get('velvet_oauth_intent')?.value
+    } catch {
+      // Ignore if next/headers cookies() is unavailable
+    }
+  }
+  const intentParam = searchParams.get('intent_token')
+  const verifiedIntent =
+    verifyOAuthIntentCookie(intentCookie) ||
+    verifyOAuthIntentCookie(intentParam)
 
   // 4. Exchange code for session via PKCE
   const supabase = await createServerClient()
