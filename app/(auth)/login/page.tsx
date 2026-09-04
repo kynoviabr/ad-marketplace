@@ -4,8 +4,8 @@ import { LoginForm } from '@/components/auth/login-form'
 export const dynamic = 'force-dynamic'
 
 export const metadata = {
-  title: 'Entrar — Velvet',
-  description: 'Acesse seu espaço profissional na Velvet',
+  title: 'Entrar — velvet.',
+  description: 'Acesse seu espaço profissional na velvet.',
   robots: 'noindex, nofollow',
 }
 
