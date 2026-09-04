@@ -35,6 +35,11 @@ const readinessDetailsEn: Record<string, string> = {
   'Sua conta ainda não possui direito de publicação ativo.': 'Your account does not yet have an active publication entitlement.',
   'Sua conta não está ativa.': 'Your account is not active.',
   'Ainda existem requisitos pendentes.': 'Some requirements are still pending.',
+  'crie seu perfil': 'create your profile',
+  'informe seu nome profissional': 'enter your professional name',
+  'adicione uma apresentação': 'add a presentation headline',
+  'complete sua biografia': 'complete your bio',
+  'ative um canal público de contato': 'activate a public contact channel',
 }
 
 export function publicationReadinessDetail(locale: Locale, detail: string): string {

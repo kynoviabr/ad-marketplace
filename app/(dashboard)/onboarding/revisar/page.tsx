@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { OnboardingShell } from '@/components/onboarding/onboarding-shell'
 import { PublicationAction } from '@/components/onboarding/publication-action'
+import { OnboardingProgressSummary } from '@/components/onboarding/onboarding-progress-summary'
 import { requireAccount } from '@/modules/auth/dal'
 import { getPublicationReviewState } from '@/modules/publication/dal'
 import { getTranslations } from '@/lib/i18n/server'
@@ -66,6 +67,7 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
           </div> : <><PublicationAction enabled={review.isCanonicallyEligible && !review.hasDataError} />{!review.isCanonicallyEligible ? <p className="review-blocked-summary" role="status">{t('review.blocked')}</p> : null}</>}
         </section>
       </section>
+      <OnboardingProgressSummary review={review} locale={locale} />
     </main>
     <aside className="onboarding-privacy"><span>{t('review.safePublication')}</span><p>{t('review.safePublicationText')}</p></aside>
   </OnboardingShell>
