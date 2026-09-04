@@ -40,6 +40,36 @@ export interface AdminProfessionalSummary {
   updatedAt: string
 }
 
+/** Filter options for the admin profile review queue — R12.2 */
+export type AdminProfileQueueFilter =
+  | 'ALL'
+  | 'NEEDS_REVIEW'
+  | 'SUSPENDED'
+  | 'PAUSED'
+  | 'BLOCKED_OR_INELIGIBLE'
+
+/** Queue item extending the safe professional summary with operational classification */
+export interface AdminProfileQueueItem extends AdminProfessionalSummary {
+  operationalClassification: OperationalClassification
+}
+
+/** Parameters for retrieving the admin profile review queue */
+export interface AdminProfileQueueParams {
+  filter?: AdminProfileQueueFilter
+  search?: string
+  page?: number
+  pageSize?: number
+}
+
+/** Bounded server-side paginated result for the profile review queue */
+export interface AdminProfileQueueResult {
+  items: AdminProfileQueueItem[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
 /** Profile requiring administrative attention (e.g. pending/flagged text or ready for review) */
 export interface AdminAttentionProfile {
   profileId: string

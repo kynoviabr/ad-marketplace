@@ -9,7 +9,12 @@ import type {
   AdminAttentionMedia,
   AdminSuspendedProfile,
   AdminRecentActivityItem,
+  AdminProfileQueueFilter,
+  AdminProfileQueueItem,
+  AdminProfileQueueParams,
+  AdminProfileQueueResult,
 } from './types'
+import { classifyOperationalStatus } from './operational-status'
 import type { ProfileStatus, ContentModerationStatus } from '@/modules/profiles/types'
 import type { UserStatus } from '@/modules/auth/types'
 import type { VerificationStatus } from '@/modules/verification/types'
@@ -329,5 +334,182 @@ export async function getAdminOperationsOverview(): Promise<AdminOperationsOverv
       items: suspendedProfiles,
     },
     recentActivity: recentActivities,
+  }
+}
+
+/**
+ * Retrieves the paginated, filtered, and ordered profile review queue for administrative operations.
+ *
+ * Requirements:
+ * - ADMIN authorization strictly required
+ * - Shows real database profiles using canonical status and operational classification
+ * - Projects operational-safe fields only (never exposes legal names, CPFs, DOB, documents, biometrics, Didit data)
+ * - Supported filters: 'ALL', 'NEEDS_REVIEW', 'SUSPENDED', 'PAUSED', 'BLOCKED_OR_INELIGIBLE'
+ * - Search: stage/display name only
+ * - Ordering: needs review first, then oldest waiting/updated first, deterministic tie-breaker
+ * - Bounded server-side pagination
+ */
+export async function getAdminProfileQueue(
+  params: AdminProfileQueueParams = {}
+): Promise<AdminProfileQueueResult> {
+  await requireAdmin()
+
+  const admin = createAdminClient()
+  const filter = params.filter || 'ALL'
+  const search = params.search?.trim() || ''
+  const page = Math.max(1, Number(params.page) || 1)
+  const pageSize = Math.min(50, Math.max(1, Number(params.pageSize) || 10))
+
+  let query = admin
+    .from('professional_profiles')
+    .select(`
+      id,
+      stage_name,
+      status,
+      content_moderation_status,
+      account_user_id,
+      created_at,
+      updated_at,
+      account_user:account_users(
+        id,
+        status,
+        verifications:identity_verifications(status, created_at)
+      ),
+      locations:professional_profile_locations(
+        is_primary,
+        location:marketplace_locations(name, city:cities(name))
+      )
+    `)
+
+  if (search) {
+    query = query.ilike('stage_name', `%${search}%`)
+  }
+
+  const { data: rows, error } = await query
+
+  if (error || !rows) {
+    return {
+      items: [],
+      total: 0,
+      page,
+      pageSize,
+      totalPages: 0,
+    }
+  }
+
+  // Pre-fetch canonical publication eligibility for this candidate set
+  const profileIds = rows.map((r: any) => r.id)
+  const eligibleSet = new Set<string>()
+  if (profileIds.length > 0) {
+    const { data: eligible } = await admin
+      .from('v_publication_eligible_profiles')
+      .select('profile_id')
+      .in('profile_id', profileIds)
+    for (const e of eligible ?? []) {
+      eligibleSet.add(e.profile_id)
+    }
+  }
+
+  // Map and project safe summaries
+  const allItems: AdminProfileQueueItem[] = rows.map((row: any) => {
+    const accountStatus: UserStatus = row.account_user?.status ?? 'ACTIVE'
+
+    // Latest verification
+    const sortedVerifs = (row.account_user?.verifications ?? []).sort(
+      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    const verificationStatus: VerificationStatus = sortedVerifs[0]?.status ?? 'NOT_STARTED'
+
+    const isCanonicallyEligible = eligibleSet.has(row.id)
+
+    // Primary location
+    let primaryLocation: string | null = null
+    const locations = row.locations ?? []
+    if (locations.length > 0) {
+      const primary = locations.find((l: any) => l.is_primary) ?? locations[0]
+      const loc = primary.location
+      if (loc?.name && loc?.city?.name) {
+        primaryLocation = `${loc.city.name} — ${loc.name}`
+      } else if (loc?.name) {
+        primaryLocation = loc.name
+      }
+    }
+
+    // Publication state
+    let publicationState: 'PUBLIC' | 'INELIGIBLE' | 'SUSPENDED' | 'BLOCKED' = 'INELIGIBLE'
+    if (accountStatus === 'SUSPENDED' || row.status === 'SUSPENDED') {
+      publicationState = 'SUSPENDED'
+    } else if (isCanonicallyEligible) {
+      publicationState = 'PUBLIC'
+    } else if (verificationStatus === 'REJECTED' || row.content_moderation_status === 'REJECTED') {
+      publicationState = 'BLOCKED'
+    } else {
+      publicationState = 'INELIGIBLE'
+    }
+
+    const operationalClassification = classifyOperationalStatus({
+      profileStatus: row.status,
+      accountStatus,
+      contentModerationStatus: row.content_moderation_status,
+      verificationStatus,
+      isCanonicallyEligible,
+    })
+
+    const summary = projectSafeProfessionalSummary({
+      profileId: row.id,
+      stageName: row.stage_name,
+      profileStatus: row.status,
+      verificationStatus,
+      accountStatus,
+      publicationState,
+      primaryLocation,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })
+
+    return {
+      ...summary,
+      operationalClassification,
+    }
+  })
+
+  // Filter
+  let filtered = allItems
+  if (filter === 'NEEDS_REVIEW') {
+    filtered = filtered.filter((i) => i.operationalClassification === 'NEEDS_REVIEW')
+  } else if (filter === 'SUSPENDED') {
+    filtered = filtered.filter((i) => i.operationalClassification === 'SUSPENDED')
+  } else if (filter === 'PAUSED') {
+    filtered = filtered.filter((i) => i.operationalClassification === 'PAUSED')
+  } else if (filter === 'BLOCKED_OR_INELIGIBLE') {
+    filtered = filtered.filter((i) => i.operationalClassification === 'BLOCKED_OR_INELIGIBLE')
+  }
+
+  // Ordering:
+  // 1. Needs review first
+  // 2. Oldest waiting/updated first
+  // 3. Deterministic tie-breaker
+  filtered.sort((a, b) => {
+    const aNeeds = a.operationalClassification === 'NEEDS_REVIEW' ? 0 : 1
+    const bNeeds = b.operationalClassification === 'NEEDS_REVIEW' ? 0 : 1
+    if (aNeeds !== bNeeds) return aNeeds - bNeeds
+
+    const aTime = new Date(a.updatedAt).getTime()
+    const bTime = new Date(b.updatedAt).getTime()
+    if (aTime !== bTime) return aTime - bTime
+
+    return a.profileId.localeCompare(b.profileId)
+  })
+
+  const total = filtered.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const paginatedItems = filtered.slice((page - 1) * pageSize, page * pageSize)
+
+  return {
+    items: paginatedItems,
+    total,
+    page,
+    pageSize,
+    totalPages,
   }
 }
