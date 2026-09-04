@@ -3,6 +3,7 @@ import {
   normalizeEmail,
   validateEmailOtpCode,
   maskEmail,
+  isEmailOtpEnabled,
 } from '@/modules/auth/email-otp'
 import {
   requestEmailOtpAction,
@@ -464,18 +465,66 @@ describe('R11.5C1 Email Passwordless OTP Foundation & Role Safety', () => {
   })
 
   // ---------------------------------------------------------------------------
-  // 5. Component Visibility and Prop Contracts
+  // 5. Public Feature Flag & Visibility Control (NEXT_PUBLIC_EMAIL_OTP_ENABLED)
   // ---------------------------------------------------------------------------
-  describe('5. UI Component Contracts', () => {
-    it('EmailOtpButton renders by default', () => {
+  describe('5. Feature Flag & Visibility Control (NEXT_PUBLIC_EMAIL_OTP_ENABLED)', () => {
+    const originalEnv = process.env
+
+    beforeEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    afterEach(() => {
+      process.env = originalEnv
+    })
+
+    it('defaults to false when NEXT_PUBLIC_EMAIL_OTP_ENABLED is missing', () => {
+      delete process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED
+      expect(isEmailOtpEnabled()).toBe(false)
+    })
+
+    it('returns false when NEXT_PUBLIC_EMAIL_OTP_ENABLED is explicitly "false"', () => {
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = 'false'
+      expect(isEmailOtpEnabled()).toBe(false)
+    })
+
+    it('returns false when NEXT_PUBLIC_EMAIL_OTP_ENABLED is any non-true string', () => {
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = '0'
+      expect(isEmailOtpEnabled()).toBe(false)
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = ''
+      expect(isEmailOtpEnabled()).toBe(false)
+    })
+
+    it('returns true when NEXT_PUBLIC_EMAIL_OTP_ENABLED is "true"', () => {
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = 'true'
+      expect(isEmailOtpEnabled()).toBe(true)
+    })
+
+    it('EmailOtpButton renders null (hidden) when flag is disabled / false', () => {
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = 'false'
+      const rendered = EmailOtpButton({ intent: 'LOGIN' })
+      expect(rendered).toBeNull()
+    })
+
+    it('EmailOtpButton renders null (hidden) when flag is missing', () => {
+      delete process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED
+      const rendered = EmailOtpButton({ intent: 'ADVERTISER' })
+      expect(rendered).toBeNull()
+    })
+
+    it('EmailOtpButton renders component tree when flag is "true"', () => {
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = 'true'
       const rendered = EmailOtpButton({ intent: 'LOGIN' })
       expect(rendered).not.toBeNull()
       expect(rendered).toHaveProperty('type')
     })
 
-    it('EmailOtpButton respects explicit enabled=false prop', () => {
-      const rendered = EmailOtpButton({ intent: 'LOGIN', enabled: false })
-      expect(rendered).toBeNull()
+    it('EmailOtpButton respects explicit enabled prop override', () => {
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = 'true'
+      expect(EmailOtpButton({ intent: 'LOGIN', enabled: false })).toBeNull()
+
+      process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED = 'false'
+      expect(EmailOtpButton({ intent: 'LOGIN', enabled: true })).not.toBeNull()
     })
   })
 })

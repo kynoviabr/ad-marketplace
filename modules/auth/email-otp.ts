@@ -15,6 +15,15 @@ export interface VerifyEmailOtpResult {
   requiresIntentSelection?: boolean
 }
 
+/**
+ * Public feature flag: controls whether "Receber código por e-mail" UI is rendered.
+ * Defaults to false (hidden) when env var is missing or not 'true'.
+ * Required because hosted Supabase requires Custom SMTP to edit email templates for 6-digit tokens.
+ */
+export function isEmailOtpEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_EMAIL_OTP_ENABLED === 'true'
+}
+
 const emailSchema = z.string().trim().email()
 
 /**

@@ -7,6 +7,7 @@ import {
   requestEmailOtpAction,
   verifyEmailOtpAction,
 } from '@/modules/auth/email-otp-actions'
+import { isEmailOtpEnabled } from '@/modules/auth/email-otp'
 import { useI18n } from '@/components/i18n'
 
 export interface EmailOtpButtonProps {
@@ -326,7 +327,8 @@ function EmailOtpContent({
 }
 
 export function EmailOtpButton(props: EmailOtpButtonProps) {
-  if (props.enabled === false) {
+  const isEnabled = props.enabled !== undefined ? props.enabled : isEmailOtpEnabled()
+  if (!isEnabled) {
     return null
   }
   return <EmailOtpContent {...props} />
