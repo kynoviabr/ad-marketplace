@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     return redirectWithClearedCookie(`${origin}/login?error=confirmation_failed`)
   }
 
-  // 3. Read signed intent from HttpOnly cookie or signed intent_token query parameter
+  // 3. Read signed intent from HttpOnly cookie
   let intentCookie = request.cookies.get('velvet_oauth_intent')?.value
   if (!intentCookie) {
     try {
@@ -60,10 +60,7 @@ export async function GET(request: NextRequest) {
       // Ignore if next/headers cookies() is unavailable
     }
   }
-  const intentParam = searchParams.get('intent_token')
-  const verifiedIntent =
-    verifyOAuthIntentCookie(intentCookie) ||
-    verifyOAuthIntentCookie(intentParam)
+  const verifiedIntent = verifyOAuthIntentCookie(intentCookie)
 
   // 4. Exchange code for session via PKCE
   const supabase = await createServerClient()

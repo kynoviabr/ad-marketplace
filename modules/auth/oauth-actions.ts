@@ -39,7 +39,7 @@ export async function startGoogleOAuthAction(intent: OAuthIntent): Promise<{
     const supabase = await createServerClient()
     const currentOrigin = host ? `${proto}://${host}` : null
     const appUrl = currentOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const redirectTo = `${appUrl}/auth/callback?intent_token=${encodeURIComponent(token)}`
+    const redirectTo = `${appUrl}/auth/callback`
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',

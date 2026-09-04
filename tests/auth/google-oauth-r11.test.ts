@@ -434,98 +434,7 @@ describe('R11.5A Google OAuth & Intent Safety', () => {
       expect(mockSupabase.auth.signOut).toHaveBeenCalled()
     })
 
-    it('NEW USER with explicit ADVERTISER intent via query param intent_token: configures account and routes to /onboarding', async () => {
-      const updateMock = vi.fn().mockReturnThis()
-      const eqMock = vi.fn().mockResolvedValue({ error: null })
-      updateMock.mockReturnValue({ eq: eqMock })
-
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'account_users') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                id: 'new-acc-query',
-                role: 'ADVERTISER',
-                status: 'ACTIVE',
-                onboarding_status: 'NOT_STARTED',
-                terms_version: null,
-              },
-            }),
-            update: updateMock,
-          }
-        }
-      })
-
-      const token = createSignedOAuthIntent('ADVERTISER')
-      // No cookie in headers, token passed via intent_token URL parameter
-      const req = new NextRequest(`http://localhost:3000/auth/callback?code=valid-code&intent_token=${encodeURIComponent(token)}`)
-      const res = await GET(req)
-
-      expect(res.status).toBe(307)
-      expect(res.headers.get('location')).toBe('http://localhost:3000/onboarding')
-      expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          role: 'ADVERTISER',
-          status: 'ACTIVE',
-          onboarding_status: 'NOT_STARTED',
-        })
-      )
-    })
-
-    it('NEW USER with explicit CLIENT intent via query param intent_token: configures client and routes to /cliente', async () => {
-      const updateMock = vi.fn()
-      const upsertMock = vi.fn().mockResolvedValue({ error: null })
-
-      updateMock.mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { id: 'client-acc-param' } }),
-          }),
-        }),
-      })
-
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'account_users') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                id: 'new-acc-param',
-                role: 'ADVERTISER',
-                status: 'ACTIVE',
-                onboarding_status: 'NOT_STARTED',
-                terms_version: null,
-              },
-            }),
-            update: updateMock,
-          }
-        }
-        if (table === 'client_memberships') {
-          return {
-            upsert: upsertMock,
-          }
-        }
-      })
-
-      const token = createSignedOAuthIntent('CLIENT')
-      const req = new NextRequest(`http://localhost:3000/auth/callback?code=valid-code&intent_token=${encodeURIComponent(token)}`)
-      const res = await GET(req)
-
-      expect(res.status).toBe(307)
-      expect(res.headers.get('location')).toBe('http://localhost:3000/cliente')
-      expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          role: 'CLIENT',
-          status: 'ACTIVE',
-          onboarding_status: 'COMPLETED',
-        })
-      )
-    })
-
-    it('FAIL CLOSED: tampered intent_token query param rolls back and redirects to /login?error=signup_intent_required', async () => {
+    it('FAIL CLOSED: tampered intent cookie rolls back and redirects to /login?error=signup_intent_required', async () => {
       const deleteUserMock = mockAdmin.auth.admin.deleteUser
       const deleteFromMock = vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({ error: null }),
@@ -554,7 +463,11 @@ describe('R11.5A Google OAuth & Intent Safety', () => {
       const [payload] = validToken.split('.')
       const tamperedToken = `${payload}.forged_signature_xyz`
 
-      const req = new NextRequest(`http://localhost:3000/auth/callback?code=valid-code&intent_token=${encodeURIComponent(tamperedToken)}`)
+      const req = new NextRequest('http://localhost:3000/auth/callback?code=valid-code', {
+        headers: {
+          cookie: `velvet_oauth_intent=${tamperedToken}`,
+        },
+      })
       const res = await GET(req)
 
       expect(res.status).toBe(307)

@@ -53,7 +53,7 @@ export function LoginForm() {
         <FormMessage type="error" message={state.error} />
       )}
 
-      <GoogleOAuthButton intent="LOGIN" />
+      <GoogleOAuthButton intent="LOGIN" label={t('auth.continueWithGoogle')} />
 
       <div className="auth-divider" aria-hidden="true">
         <span>{t('auth.or')}</span>
