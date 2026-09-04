@@ -35,7 +35,7 @@ export function PublicProfileCard({ profile, mediaUrl, priority = false, variant
               className="velvet-profile-image"
             />
           ) : (
-            <div className="velvet-profile-no-photo" aria-hidden="true">
+            <div className="velvet-photo-fallback" aria-hidden="true">
               V
             </div>
           )}

@@ -92,13 +92,17 @@ export async function getNewContent(accountId: string | null, limit = 8) {
 
   combined = combined.sort((a, b) => new Date(b.approved_at!).getTime() - new Date(a.approved_at!).getTime()).slice(0, limit)
 
-  return Promise.all(combined.map(async item => {
-    let url = null
+  const resolved = await Promise.all(combined.map(async item => {
+    let url: string | null = null
     if (item.type === 'PHOTO') {
       url = await getApprovedMediaDeliveryUrl({ status: 'APPROVED', storage_path: item.storage_path })
-    } else if (item.type === 'VIDEO' && 'poster_storage_path' in item) {
+    } else if (item.type === 'VIDEO' && 'poster_storage_path' in item && item.poster_storage_path) {
       url = await getApprovedVideoPosterDeliveryUrl(item.poster_storage_path)
     }
-    return { ...item, mediaUrl: url, profileSlug: eligibleMap.get(item.profile_id) }
+    const profileSlug = eligibleMap.get(item.profile_id)
+    if (!url || !profileSlug) return null
+    return { ...item, mediaUrl: url, profileSlug }
   }))
+
+  return resolved.filter((item): item is NonNullable<typeof item> => item !== null).slice(0, limit)
 }

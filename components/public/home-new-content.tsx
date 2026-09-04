@@ -17,7 +17,8 @@ export function HomeNewContent({
   title: string
   overline?: string
 }) {
-  if (!content || content.length === 0) return null
+  const validContent = (content || []).filter((c) => Boolean(c.mediaUrl && c.profileSlug))
+  if (validContent.length === 0) return null
 
   return (
     <section className="velvet-home-section velvet-home-section--alt" aria-label={title}>
@@ -28,26 +29,20 @@ export function HomeNewContent({
         </div>
       </div>
       <div className="velvet-home-section-grid">
-        {content.map((c) => (
+        {validContent.map((c) => (
           <Link
             key={c.id}
             href={`/perfil/${c.profileSlug}`}
             className="velvet-new-content-card"
             aria-label={`Mídia do perfil ${c.profileSlug}`}
           >
-            {c.mediaUrl ? (
-              <Image
-                src={c.mediaUrl}
-                alt=""
-                fill
-                sizes="(max-width: 700px) 50vw, (max-width: 1024px) 25vw, 320px"
-                className="velvet-new-content-image"
-              />
-            ) : (
-              <div className="velvet-photo-fallback" aria-hidden="true">
-                V
-              </div>
-            )}
+            <Image
+              src={c.mediaUrl!}
+              alt=""
+              fill
+              sizes="(max-width: 700px) 50vw, (max-width: 1024px) 25vw, 320px"
+              className="velvet-new-content-image"
+            />
             {c.type === 'VIDEO' && (
               <div className="velvet-video-badge" aria-hidden="true">
                 <span className="velvet-video-play-icon">▶</span>
