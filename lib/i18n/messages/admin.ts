@@ -76,6 +76,17 @@ export const adminPtBR = {
   'admin.safeProfileDetail': 'Detalhe Operacional Seguro',
   'admin.safeProfileDisclaimer': 'Este resumo operacional interno contém apenas campos autorizados. Dados sensíveis de identidade (nome civil, CPF, data de nascimento, documentos ou biometria) nunca são expostos.',
   'admin.close': 'Fechar',
+  'admin.mediaReview': 'Moderação de Mídias',
+  'admin.mediaReviewTitle': 'Fila de Moderação de Mídias',
+  'admin.mediaReviewSubtitle': 'Triagem operacional de fotos e vídeos submetidos por profissionais.',
+  'admin.pendingReview': 'Aguardando revisão',
+  'admin.photos': 'Fotos',
+  'admin.videos': 'Vídeos',
+  'admin.approved': 'Aprovadas',
+  'admin.rejected': 'Rejeitadas',
+  'admin.allMedia': 'Todas as mídias',
+  'admin.reviewMedia': 'Revisar mídia',
+  'admin.safeMediaDisclaimer': 'Resumo operacional seguro. Arquivos armazenados de forma privada; acesso temporário concedido exclusivamente para moderação.',
 } as const
 
 export const adminEn = {
@@ -156,4 +167,15 @@ export const adminEn = {
   'admin.safeProfileDetail': 'Safe Operational Detail',
   'admin.safeProfileDisclaimer': 'This safe internal operational summary contains authorized fields only. Sensitive identity data (legal name, CPF, DOB, documents, or biometrics) is never exposed.',
   'admin.close': 'Close',
+  'admin.mediaReview': 'Media Review',
+  'admin.mediaReviewTitle': 'Media Moderation Queue',
+  'admin.mediaReviewSubtitle': 'Operational triage of photos and videos submitted by professionals.',
+  'admin.pendingReview': 'Pending review',
+  'admin.photos': 'Photos',
+  'admin.videos': 'Videos',
+  'admin.approved': 'Approved',
+  'admin.rejected': 'Rejected',
+  'admin.allMedia': 'All media',
+  'admin.reviewMedia': 'Review media',
+  'admin.safeMediaDisclaimer': 'Safe operational summary. Files are stored privately; temporary access granted exclusively for moderation.',
 } as const

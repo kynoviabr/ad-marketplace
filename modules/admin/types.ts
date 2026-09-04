@@ -12,6 +12,7 @@
 import type { ProfileStatus, ContentModerationStatus } from '@/modules/profiles/types'
 import type { UserStatus } from '@/modules/auth/types'
 import type { VerificationStatus } from '@/modules/verification/types'
+import type { MediaStatus } from '@/modules/media/types'
 
 /**
  * Reusable operational status classification.
@@ -64,6 +65,56 @@ export interface AdminProfileQueueParams {
 /** Bounded server-side paginated result for the profile review queue */
 export interface AdminProfileQueueResult {
   items: AdminProfileQueueItem[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+/** Filter options for the admin media review queue — R12.3 */
+export type AdminMediaQueueFilter =
+  | 'PENDING'
+  | 'PHOTOS'
+  | 'VIDEOS'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'ALL'
+
+export type AdminMediaType = 'PHOTO' | 'VIDEO'
+
+/** Safe media queue item containing operational-safe fields only */
+export interface AdminMediaQueueItem {
+  id: string
+  profileId: string
+  mediaType: AdminMediaType
+  stageName: string
+  status: MediaStatus
+  isPrimary: boolean
+  previewUrl: string | null
+  videoUrl?: string | null
+  posterUrl?: string | null
+  storagePath: string
+  createdAt: string
+  updatedAt: string
+  approvedAt: string | null
+  mimeType?: string | null
+  fileSizeBytes?: number | null
+  durationSeconds?: number | null
+  width?: number | null
+  height?: number | null
+}
+
+/** Parameters for retrieving the admin media review queue */
+export interface AdminMediaQueueParams {
+  filter?: AdminMediaQueueFilter
+  search?: string
+  page?: number
+  pageSize?: number
+}
+
+/** Bounded server-side paginated result for the media review queue */
+export interface AdminMediaQueueResult {
+  items: AdminMediaQueueItem[]
   total: number
   page: number
   pageSize: number

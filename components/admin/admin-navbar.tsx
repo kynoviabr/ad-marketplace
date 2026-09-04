@@ -11,6 +11,7 @@ export function AdminNavbar() {
   const navItems = [
     { href: '/admin', label: t('admin.operations') },
     { href: '/admin/profiles/review', label: t('admin.profileQueue') },
+    { href: '/admin/media/review', label: t('admin.mediaReview') },
     { href: '/admin/moderation', label: t('admin.photoModeration') },
     { href: '/admin/profiles', label: t('admin.profileModeration') },
     { href: '/admin/kyc', label: t('admin.kyc') },

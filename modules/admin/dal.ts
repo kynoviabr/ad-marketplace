@@ -13,6 +13,11 @@ import type {
   AdminProfileQueueItem,
   AdminProfileQueueParams,
   AdminProfileQueueResult,
+  AdminMediaQueueFilter,
+  AdminMediaType,
+  AdminMediaQueueItem,
+  AdminMediaQueueParams,
+  AdminMediaQueueResult,
 } from './types'
 import { classifyOperationalStatus } from './operational-status'
 import type { ProfileStatus, ContentModerationStatus } from '@/modules/profiles/types'
@@ -511,5 +516,336 @@ export async function getAdminProfileQueue(
     page,
     pageSize,
     totalPages,
+  }
+}
+
+/**
+ * Retrieves the paginated, filtered, and ordered media moderation review queue (photos & videos).
+ *
+ * Requirements:
+ * - ADMIN authorization strictly required
+ * - Shows real database candidates from profile_media and profile_videos
+ * - Reuses existing canonical MediaStatus enums (never invents duplicate status models)
+ * - Projects operational-safe fields only (never exposes legal name, CPF, DOB, biometrics, documents, Didit data)
+ * - Safe server-side signed URL generation (short-lived 900s, private buckets only)
+ * - Supported filters: 'PENDING', 'PHOTOS', 'VIDEOS', 'APPROVED', 'REJECTED', 'ALL'
+ * - Search: stage/display name only
+ * - Ordering: pending review first, then oldest waiting item first, deterministic tie-breaker by media ID
+ * - Bounded server-side pagination (default 12, max 50)
+ */
+export async function getAdminMediaQueue(
+  params: AdminMediaQueueParams = {}
+): Promise<AdminMediaQueueResult> {
+  await requireAdmin()
+
+  const admin = createAdminClient()
+  const filter: AdminMediaQueueFilter = params.filter || 'PENDING'
+  const search = params.search?.trim() || ''
+  const page = Math.max(1, Number(params.page) || 1)
+  const pageSize = Math.min(50, Math.max(1, Number(params.pageSize) || 12))
+
+  // 1. Stage name pre-filtering if search is provided
+  let matchingProfileIds: string[] | null = null
+  if (search) {
+    const { data: matchedProfiles } = await admin
+      .from('professional_profiles')
+      .select('id')
+      .ilike('stage_name', `%${search}%`)
+
+    matchingProfileIds = (matchedProfiles ?? []).map((p: any) => p.id)
+    if (matchingProfileIds.length === 0) {
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        totalPages: 0,
+      }
+    }
+  }
+
+  // 2. Query photo candidates (if not filtered strictly to VIDEOS)
+  const queryPhotos = filter !== 'VIDEOS'
+  const queryVideos = filter !== 'PHOTOS'
+
+  const photoPromise = queryPhotos
+    ? (async () => {
+        let q = admin
+          .from('profile_media')
+          .select(
+            'id, profile_id, storage_path, status, is_primary, width, height, file_size_bytes, mime_type, created_at, updated_at, approved_at, profile:professional_profiles(id, stage_name)'
+          )
+          .is('deleted_at', null)
+
+        if (matchingProfileIds) {
+          q = q.in('profile_id', matchingProfileIds)
+        }
+
+        if (filter === 'PENDING') {
+          q = q.eq('status', 'PENDING_MODERATION')
+        } else if (filter === 'APPROVED') {
+          q = q.eq('status', 'APPROVED')
+        } else if (filter === 'REJECTED') {
+          q = q.in('status', ['REJECTED', 'QUARANTINED'])
+        }
+
+        const { data, error } = await q
+        if (error || !data) return []
+
+        return (data as any[]).map((row) => ({
+          id: row.id,
+          profileId: row.profile_id,
+          mediaType: 'PHOTO' as const,
+          stageName: row.profile?.stage_name || 'Profissional',
+          status: row.status,
+          isPrimary: Boolean(row.is_primary),
+          storagePath: row.storage_path,
+          posterStoragePath: null,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          approvedAt: row.approved_at,
+          mimeType: row.mime_type,
+          fileSizeBytes: row.file_size_bytes,
+          width: row.width,
+          height: row.height,
+          durationSeconds: null,
+        }))
+      })()
+    : Promise.resolve([])
+
+  const videoPromise = queryVideos
+    ? (async () => {
+        let q = admin
+          .from('profile_videos')
+          .select(
+            'id, profile_id, storage_path, poster_storage_path, status, duration_seconds, file_size_bytes, mime_type, created_at, updated_at, approved_at, profile:professional_profiles(id, stage_name)'
+          )
+          .is('deleted_at', null)
+
+        if (matchingProfileIds) {
+          q = q.in('profile_id', matchingProfileIds)
+        }
+
+        if (filter === 'PENDING') {
+          q = q.eq('status', 'PENDING_MODERATION')
+        } else if (filter === 'APPROVED') {
+          q = q.eq('status', 'APPROVED')
+        } else if (filter === 'REJECTED') {
+          q = q.in('status', ['REJECTED', 'QUARANTINED'])
+        }
+
+        const { data, error } = await q
+        if (error || !data) return []
+
+        return (data as any[]).map((row) => ({
+          id: row.id,
+          profileId: row.profile_id,
+          mediaType: 'VIDEO' as const,
+          stageName: row.profile?.stage_name || 'Profissional',
+          status: row.status,
+          isPrimary: false,
+          storagePath: row.storage_path,
+          posterStoragePath: row.poster_storage_path,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+          approvedAt: row.approved_at,
+          mimeType: row.mime_type,
+          fileSizeBytes: row.file_size_bytes,
+          width: null,
+          height: null,
+          durationSeconds: row.duration_seconds,
+        }))
+      })()
+    : Promise.resolve([])
+
+  const [photoCandidates, videoCandidates] = await Promise.all([photoPromise, videoPromise])
+  const combined = [...photoCandidates, ...videoCandidates]
+
+  // 3. Ordering:
+  // - Pending review first
+  // - Oldest waiting item first (createdAt ascending)
+  // - Deterministic tie-breaker by media ID
+  combined.sort((a, b) => {
+    const aPending = a.status === 'PENDING_MODERATION' ? 0 : 1
+    const bPending = b.status === 'PENDING_MODERATION' ? 0 : 1
+    if (aPending !== bPending) return aPending - bPending
+
+    const aTime = new Date(a.createdAt).getTime()
+    const bTime = new Date(b.createdAt).getTime()
+    if (aTime !== bTime) return aTime - bTime
+
+    return a.id.localeCompare(b.id)
+  })
+
+  // 4. Bounded pagination (server-side slicing)
+  const total = combined.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const paginatedSlice = combined.slice((page - 1) * pageSize, page * pageSize)
+
+  // 5. Generate short-lived signed preview URLs strictly for the bounded page
+  const items: AdminMediaQueueItem[] = await Promise.all(
+    paginatedSlice.map(async (item) => {
+      let previewUrl: string | null = null
+      let posterUrl: string | null = null
+      let videoUrl: string | null = null
+
+      try {
+        if (item.mediaType === 'PHOTO') {
+          const { data: signed } = await admin.storage
+            .from('profile-media')
+            .createSignedUrl(item.storagePath, 900)
+          previewUrl = signed?.signedUrl ?? null
+        } else if (item.mediaType === 'VIDEO') {
+          if (item.posterStoragePath) {
+            const { data: signedPoster } = await admin.storage
+              .from('profile-videos')
+              .createSignedUrl(item.posterStoragePath, 900)
+            posterUrl = signedPoster?.signedUrl ?? null
+            previewUrl = posterUrl
+          }
+          const { data: signedVideo } = await admin.storage
+            .from('profile-videos')
+            .createSignedUrl(item.storagePath, 900)
+          videoUrl = signedVideo?.signedUrl ?? null
+          if (!previewUrl) {
+            previewUrl = videoUrl
+          }
+        }
+      } catch {
+        // Fail-safe: null URL on preview generation error
+      }
+
+      return {
+        id: item.id,
+        profileId: item.profileId,
+        mediaType: item.mediaType,
+        stageName: item.stageName,
+        status: item.status,
+        isPrimary: item.isPrimary,
+        previewUrl,
+        posterUrl,
+        videoUrl,
+        storagePath: item.storagePath,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+        approvedAt: item.approvedAt,
+        mimeType: item.mimeType,
+        fileSizeBytes: item.fileSizeBytes,
+        durationSeconds: item.durationSeconds,
+        width: item.width,
+        height: item.height,
+      }
+    })
+  )
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages,
+  }
+}
+
+/**
+ * Retrieves the safe operational detail for a single media item (photo or video),
+ * including its safe profile summary and short-lived private playback/preview URLs.
+ */
+export async function getAdminMediaDetail(
+  mediaId: string,
+  mediaType?: AdminMediaType
+): Promise<{
+  item: AdminMediaQueueItem
+  profileSummary: AdminProfessionalSummary | null
+} | null> {
+  await requireAdmin()
+
+  const admin = createAdminClient()
+
+  // 1. Try fetching from profile_media
+  let photoRow: any = null
+  let videoRow: any = null
+
+  if (!mediaType || mediaType === 'PHOTO') {
+    const { data } = await admin
+      .from('profile_media')
+      .select('id, profile_id, storage_path, status, is_primary, width, height, file_size_bytes, mime_type, created_at, updated_at, approved_at, profile:professional_profiles(id, stage_name)')
+      .eq('id', mediaId)
+      .is('deleted_at', null)
+      .maybeSingle()
+    photoRow = data
+  }
+
+  // 2. If not found in photos or type is explicitly VIDEO, check profile_videos
+  if (!photoRow && (!mediaType || mediaType === 'VIDEO')) {
+    const { data } = await admin
+      .from('profile_videos')
+      .select('id, profile_id, storage_path, poster_storage_path, status, duration_seconds, file_size_bytes, mime_type, created_at, updated_at, approved_at, profile:professional_profiles(id, stage_name)')
+      .eq('id', mediaId)
+      .is('deleted_at', null)
+      .maybeSingle()
+    videoRow = data
+  }
+
+  if (!photoRow && !videoRow) {
+    return null
+  }
+
+  const isPhoto = Boolean(photoRow)
+  const row = photoRow || videoRow
+  const resolvedMediaType: AdminMediaType = isPhoto ? 'PHOTO' : 'VIDEO'
+
+  let previewUrl: string | null = null
+  let posterUrl: string | null = null
+  let videoUrl: string | null = null
+
+  if (isPhoto) {
+    const { data: signed } = await admin.storage
+      .from('profile-media')
+      .createSignedUrl(row.storage_path, 900)
+    previewUrl = signed?.signedUrl ?? null
+  } else {
+    if (row.poster_storage_path) {
+      const { data: signedPoster } = await admin.storage
+        .from('profile-videos')
+        .createSignedUrl(row.poster_storage_path, 900)
+      posterUrl = signedPoster?.signedUrl ?? null
+      previewUrl = posterUrl
+    }
+    const { data: signedVideo } = await admin.storage
+      .from('profile-videos')
+      .createSignedUrl(row.storage_path, 900)
+    videoUrl = signedVideo?.signedUrl ?? null
+    if (!previewUrl) {
+      previewUrl = videoUrl
+    }
+  }
+
+  const item: AdminMediaQueueItem = {
+    id: row.id,
+    profileId: row.profile_id,
+    mediaType: resolvedMediaType,
+    stageName: row.profile?.stage_name || 'Profissional',
+    status: row.status,
+    isPrimary: Boolean(row.is_primary),
+    previewUrl,
+    posterUrl,
+    videoUrl,
+    storagePath: row.storage_path,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    approvedAt: row.approved_at,
+    mimeType: row.mime_type,
+    fileSizeBytes: row.file_size_bytes,
+    durationSeconds: row.duration_seconds || null,
+    width: row.width || null,
+    height: row.height || null,
+  }
+
+  const profileSummary = await getAdminProfessionalSummary(item.profileId)
+
+  return {
+    item,
+    profileSummary,
   }
 }
