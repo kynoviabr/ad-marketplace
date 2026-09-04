@@ -1,26 +1,62 @@
 import Link from 'next/link'
 import Image from 'next/image'
 
-export function HomeNewProfessionals({ profiles, title, overline }: { profiles: any[], title: string, overline?: string }) {
+interface ProfileItem {
+  id: string
+  slug: string
+  stage_name: string
+  headline?: string | null
+  public_age?: number | null
+  show_age?: boolean | null
+  mediaUrl?: string | null
+  mediaWidth?: number | null
+  mediaHeight?: number | null
+  primaryLocation?: { name: string } | null
+}
+
+export function HomeNewProfessionals({
+  profiles,
+  title,
+  overline,
+}: {
+  profiles: ProfileItem[]
+  title: string
+  overline?: string
+}) {
   if (!profiles || profiles.length === 0) return null
+
   return (
-    <section className="velvet-home-discovery" style={{ marginTop: '4rem' }}>
-      <div>
-        <p className="velvet-overline">{overline || 'NOVIDADES'}</p>
-        <h2>{title}</h2>
+    <section className="velvet-home-section" aria-label={title}>
+      <div className="velvet-home-section-header">
+        <div>
+          <p className="velvet-overline">{overline || 'NOVIDADES'}</p>
+          <h2>{title}</h2>
+        </div>
       </div>
-      <div className="velvet-profile-grid">
-        {profiles.map(p => (
-          <Link key={p.id} href={`/perfil/${p.slug}`} className="velvet-card">
-            <div className="velvet-image-container" style={{ aspectRatio: '4/5', position: 'relative', overflow: 'hidden', borderRadius: '8px' }}>
+      <div className="velvet-home-section-grid">
+        {profiles.map((p) => (
+          <Link key={p.id} href={`/perfil/${p.slug}`} className="velvet-new-prof-card">
+            <div className="velvet-new-prof-photo">
               {p.mediaUrl ? (
-                <Image src={p.mediaUrl} alt={p.stage_name} fill sizes="300px" style={{ objectFit: 'cover' }} />
+                <Image
+                  src={p.mediaUrl}
+                  alt={p.stage_name}
+                  fill
+                  sizes="(max-width: 700px) 50vw, (max-width: 1024px) 25vw, 320px"
+                  className="velvet-new-prof-image"
+                />
               ) : (
-                <div style={{ width: '100%', height: '100%', backgroundColor: '#eee' }} />
+                <div className="velvet-photo-fallback" aria-hidden="true">
+                  V
+                </div>
               )}
             </div>
-            <div style={{ padding: '0.5rem 0' }}>
-              <strong>{p.stage_name}{p.show_age && p.public_age ? `, ${p.public_age}` : ''}</strong>
+            <div className="velvet-new-prof-meta">
+              <h3>
+                {p.stage_name}
+                {p.show_age && p.public_age ? `, ${p.public_age}` : ''}
+              </h3>
+              <p>{p.primaryLocation?.name || 'São Paulo'}</p>
             </div>
           </Link>
         ))}

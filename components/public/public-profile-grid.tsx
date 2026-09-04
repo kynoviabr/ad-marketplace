@@ -33,7 +33,7 @@ export async function PublicProfileGrid({ profiles }: PublicProfileGridProps) {
             />
           ))}
         </div>
-      {profiles.length > 3 ? <aside className="velvet-home-discovery"><div><p className="velvet-overline">{t('home.curated')}</p><h2>{t('home.discoverDifferent')}</h2><Link href={localized('/sao-paulo')}>{t('home.exploreSelection')} <span>→</span></Link></div><div>{profiles.slice(0, 4).map((profile, index) => <Link href={localized(`/perfil/${profile.slug}`)} key={profile.id}>{profile.mediaUrl ? <span className="velvet-home-discovery-image"><Image src={profile.mediaUrl} alt="" fill sizes="180px" /></span> : <span aria-hidden="true">V</span>}<b>0{index + 1}</b><strong>{profile.stageName}</strong><small>{profile.primaryLocation?.name ?? 'São Paulo'}</small></Link>)}</div></aside> : null}
+      {profiles.length > 3 ? <aside className="velvet-home-discovery"><div><p className="velvet-overline">{t('home.curated')}</p><h2>{t('home.discoverDifferent')}</h2><Link href={localized('/sao-paulo')}>{t('home.exploreSelection')} <span>→</span></Link></div><div>{profiles.slice(0, 4).map((profile, index) => <Link href={localized(`/perfil/${profile.slug}`)} key={profile.id}>{profile.mediaUrl ? <span className="velvet-home-discovery-image"><Image src={profile.mediaUrl} alt="" fill sizes="180px" /></span> : <span className="velvet-home-discovery-image"><span className="velvet-photo-fallback" aria-hidden="true">V</span></span>}<b>0{index + 1}</b><strong>{profile.stageName}</strong><small>{profile.primaryLocation?.name ?? 'São Paulo'}</small></Link>)}</div></aside> : null}
     </section>
   )
 }
