@@ -5,6 +5,7 @@ import { getAdminMediaQueue, getAdminMediaDetail } from '@/modules/admin/dal'
 import type { AdminMediaQueueFilter, AdminMediaType } from '@/modules/admin/types'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/format'
+import { AdminMediaModerationControls } from '@/components/admin/admin-media-moderation-controls'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
@@ -377,6 +378,18 @@ export default async function AdminMediaReviewPage({ searchParams }: PageProps) 
                   </div>
                 </div>
               )}
+
+              {/* Operational Moderation Controls (Approve / Reject) */}
+              <AdminMediaModerationControls
+                mediaId={safeDetail.item.id}
+                mediaType={safeDetail.item.mediaType}
+                currentStatus={safeDetail.item.status}
+                onSuccessUrl={`/admin/media/review${buildQueryString({
+                  filter: currentFilter !== 'PENDING' ? currentFilter : undefined,
+                  q: currentSearch || undefined,
+                  page: currentPage > 1 ? currentPage : undefined,
+                })}`}
+              />
             </div>
           </div>
         </div>
