@@ -4,8 +4,9 @@
 -- =============================================================================
 -- Creates the canonical append-only audit event ledger for profile status
 -- transitions (SUSPEND / REACTIVATE) and the atomic transactional RPC
--- admin_transition_profile_status with database-enforced ADMIN authorization,
--- pessimistic row locking, publication gate validation, and published_at preservation.
+-- admin_transition_profile_status with session-bound auth.uid() ADMIN
+-- authorization, pessimistic row locking, publication gate validation,
+-- explicit whitelisted audit snapshot, and published_at preservation.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -82,9 +83,7 @@ CREATE OR REPLACE FUNCTION public.admin_transition_profile_status(
   p_profile_id          UUID,
   p_action              TEXT,
   p_reason_code         TEXT,
-  p_notes               TEXT DEFAULT NULL,
-  p_admin_account_id    UUID DEFAULT NULL,
-  p_safe_snapshot       JSONB DEFAULT '{}'::JSONB
+  p_notes               TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -117,27 +116,21 @@ BEGIN
     RAISE EXCEPTION 'INVALID_NOTES: Observações excedem 1000 caracteres.';
   END IF;
 
-  -- 3. Resolve & Verify ADMIN Actor Authorization
-  -- Prefer authenticated user context if present
-  IF auth.uid() IS NOT NULL THEN
-    SELECT id INTO v_admin_id
-    FROM public.account_users
-    WHERE auth_user_id = auth.uid()
-      AND role = 'ADMIN'
-      AND status = 'ACTIVE';
+  -- 3. Resolve & Verify ADMIN Actor Authorization strictly from session context (auth.uid())
+  -- Fail closed: Anonymous or non-session callers are strictly blocked.
+  -- Client-supplied admin account parameters are forbidden.
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'UNAUTHORIZED: Sessão autenticada necessária.';
   END IF;
 
-  -- Fallback to database-verified admin account if invoked via backend service_role
-  IF v_admin_id IS NULL AND p_admin_account_id IS NOT NULL THEN
-    SELECT id INTO v_admin_id
-    FROM public.account_users
-    WHERE id = p_admin_account_id
-      AND role = 'ADMIN'
-      AND status = 'ACTIVE';
-  END IF;
+  SELECT id INTO v_admin_id
+  FROM public.account_users
+  WHERE auth_user_id = auth.uid()
+    AND role = 'ADMIN'
+    AND status = 'ACTIVE';
 
   IF v_admin_id IS NULL THEN
-    RAISE EXCEPTION 'UNAUTHORIZED: Apenas administradores ativos podem alterar o status do perfil.';
+    RAISE EXCEPTION 'FORBIDDEN: Apenas administradores ativos têm permissão para executar esta operação.';
   END IF;
 
   -- 4. Lock target profile row inside transaction (Pessimistic concurrency protection)
@@ -288,25 +281,17 @@ BEGIN
     v_to_status := 'ACTIVE'::public.profile_status;
   END IF;
 
-  -- 7. Build safe state snapshot (strictly sanitizing any sensitive fields)
+  -- 7. Build safe operational snapshot strictly from explicit database whitelist
+  -- Never accept client-supplied snapshot JSON; never include personal, KYC, biometrics or secrets
   v_snapshot := jsonb_build_object(
+    'profile_id', v_profile.id,
     'stage_name', v_profile.stage_name,
-    'headline', v_profile.headline,
-    'bio', v_profile.bio,
+    'from_status', v_profile.status,
+    'to_status', v_to_status,
+    'content_moderation_status', v_profile.content_moderation_status,
     'published_at', v_profile.published_at,
-    'content_moderation_status', v_profile.content_moderation_status
+    'transition_timestamp', v_now
   );
-
-  IF p_safe_snapshot IS NOT NULL AND p_safe_snapshot <> '{}'::jsonb THEN
-    -- Strip any sensitive personal/KYC keys if accidentally passed
-    v_snapshot := v_snapshot || (
-      p_safe_snapshot - ARRAY[
-        'legal_name', 'cpf', 'dob', 'didit', 'biometric',
-        'document_front', 'document_back', 'secret', 'token',
-        'access_token', 'password', 'stripe_customer_id'
-      ]
-    );
-  END IF;
 
   -- 8. Atomic Status Mutation
   -- Note: trg_profile_first_published_at automatically preserves OLD.published_at
@@ -354,8 +339,8 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT, UUID, JSONB) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT, UUID, JSONB) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) TO authenticated, service_role;
 
 COMMENT ON FUNCTION public.admin_transition_profile_status IS
-  'Atomic transactional RPC to SUSPEND or REACTIVATE professional profiles with row locking, gate validation, and immutable audit event logging.';
+  'Atomic transactional RPC to SUSPEND or REACTIVATE professional profiles with session-bound auth.uid() ADMIN authorization, row locking, gate validation, and immutable whitelisted audit event logging.';

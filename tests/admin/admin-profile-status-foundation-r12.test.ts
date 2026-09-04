@@ -10,7 +10,7 @@ const getMigrationSql = () => {
   return readFileSync(filePath, 'utf8')
 }
 
-describe('R12.4C1 Profile Status Audit + Atomic RPC Migration Foundation', () => {
+describe('R12.4C1 Profile Status Audit + Atomic RPC Migration Foundation (Security Hardened)', () => {
   const sql = getMigrationSql()
 
   describe('1. Dedicated Immutable Status Event Ledger Table', () => {
@@ -53,30 +53,87 @@ describe('R12.4C1 Profile Status Audit + Atomic RPC Migration Foundation', () =>
     })
   })
 
-  describe('2. Atomic Transactional RPC (admin_transition_profile_status)', () => {
-    it('defines canonical RPC with SECURITY DEFINER and isolated search_path', () => {
+  describe('2. RPC Signature & Session-Bound Authorization (Adversarial Security)', () => {
+    it('defines canonical RPC signature with NO client-supplied admin ID or snapshot parameter', () => {
       expect(sql).toContain('CREATE OR REPLACE FUNCTION public.admin_transition_profile_status(')
-      expect(sql).toContain('LANGUAGE plpgsql')
-      expect(sql).toContain('SECURITY DEFINER')
-      expect(sql).toContain('SET search_path = public, pg_temp')
+      expect(sql).toContain('p_profile_id          UUID,')
+      expect(sql).toContain('p_action              TEXT,')
+      expect(sql).toContain('p_reason_code         TEXT,')
+      expect(sql).toContain('p_notes               TEXT DEFAULT NULL')
+      // Confirms p_admin_account_id and p_safe_snapshot are completely removed
+      expect(sql).not.toContain('p_admin_account_id')
+      expect(sql).not.toContain('p_safe_snapshot')
     })
 
-    it('validates action and reason_code inputs strictly', () => {
-      expect(sql).toContain("p_action NOT IN ('SUSPEND', 'REACTIVATE')")
-      expect(sql).toContain('MISSING_REASON_CODE')
-      expect(sql).toContain('length(p_reason_code) > 50')
-      expect(sql).toContain('length(p_notes) > 1000')
+    it('denies access when auth.uid() is null (fails closed)', () => {
+      expect(sql).toContain('IF auth.uid() IS NULL THEN')
+      expect(sql).toContain("RAISE EXCEPTION 'UNAUTHORIZED: Sessão autenticada necessária.';")
     })
 
-    it('enforces ADMIN actor authorization in the database without trusting client roles', () => {
-      expect(sql).toContain('auth.uid() IS NOT NULL')
-      expect(sql).toContain("WHERE auth_user_id = auth.uid()")
+    it('strictly binds actor resolution to session auth.uid() with active ADMIN check', () => {
+      expect(sql).toContain('SELECT id INTO v_admin_id')
+      expect(sql).toContain('FROM public.account_users')
+      expect(sql).toContain('WHERE auth_user_id = auth.uid()')
       expect(sql).toContain("AND role = 'ADMIN'")
-      expect(sql).toContain("AND status = 'ACTIVE'")
-      expect(sql).toContain("WHERE id = p_admin_account_id")
-      expect(sql).toContain('UNAUTHORIZED: Apenas administradores ativos podem alterar o status do perfil')
+      expect(sql).toContain("AND status = 'ACTIVE';")
     })
 
+    it('denies non-ADMIN (CLIENT, ADVERTISER) callers even if authenticated', () => {
+      expect(sql).toContain('IF v_admin_id IS NULL THEN')
+      expect(sql).toContain("RAISE EXCEPTION 'FORBIDDEN: Apenas administradores ativos têm permissão para executar esta operação.';")
+    })
+
+    it('guarantees CLIENT or ADVERTISER cannot spoof an admin ID because parameter does not exist', () => {
+      expect(sql).not.toContain('p_admin_account_id')
+      expect(sql).not.toMatch(/WHERE id = p_admin_account_id/)
+    })
+
+    it('denies inactive ADMIN accounts (status <> ACTIVE)', () => {
+      expect(sql).toMatch(/role = 'ADMIN'\s+AND status = 'ACTIVE'/)
+    })
+  })
+
+  describe('3. Audit Snapshot Strict Database Whitelist (Anti-Tampering & Privacy)', () => {
+    it('builds audit snapshot exclusively from explicit internal PostgreSQL whitelist', () => {
+      // Must use jsonb_build_object with explicit whitelisted keys only
+      expect(sql).toContain('v_snapshot := jsonb_build_object(')
+      expect(sql).toContain("'profile_id', v_profile.id,")
+      expect(sql).toContain("'stage_name', v_profile.stage_name,")
+      expect(sql).toContain("'from_status', v_profile.status,")
+      expect(sql).toContain("'to_status', v_to_status,")
+      expect(sql).toContain("'content_moderation_status', v_profile.content_moderation_status,")
+      expect(sql).toContain("'published_at', v_profile.published_at,")
+      expect(sql).toContain("'transition_timestamp', v_now")
+    })
+
+    it('does not accept client-provided snapshot JSON, preventing arbitrary injection', () => {
+      expect(sql).not.toContain('p_safe_snapshot')
+      expect(sql).not.toContain('p_snapshot')
+      expect(sql).not.toMatch(/v_snapshot\s*:=\s*v_snapshot\s*\|\|/)
+    })
+
+    it('never includes sensitive KYC, personal identity, biometric, or secret tokens in audit schema', () => {
+      const forbiddenTokens = [
+        'legal_name',
+        'cpf',
+        'dob',
+        'didit',
+        'biometric',
+        'document_front',
+        'document_back',
+        'secret',
+        'token',
+        'access_token',
+        'password',
+        'stripe_customer_id',
+      ]
+      for (const token of forbiddenTokens) {
+        expect(sql).not.toContain(`'${token}',`)
+      }
+    })
+  })
+
+  describe('4. Concurrency, Atomicity & Guards', () => {
     it('implements pessimistic row locking FOR UPDATE to block concurrent mutations', () => {
       expect(sql).toContain('FROM public.professional_profiles')
       expect(sql).toContain('WHERE id = p_profile_id')
@@ -137,40 +194,21 @@ describe('R12.4C1 Profile Status Audit + Atomic RPC Migration Foundation', () =>
       expect(sql).toContain('A conta não possui assinatura ou benefício de publicação ativo.')
     })
 
-    it('atomically executes status mutation and immutable event insert', () => {
+    it('atomically executes status mutation and immutable event insert in one transaction', () => {
       expect(sql).toContain('UPDATE public.professional_profiles')
       expect(sql).toContain('INSERT INTO public.professional_profile_status_events')
       expect(sql).toContain('RETURNING id INTO v_event_id;')
     })
 
     it('preserves published_at semantics and does not re-publish or overwrite it', () => {
-      // The update only modifies status and updated_at; does not set published_at
       expect(sql).toMatch(/UPDATE public\.professional_profiles\s+SET\s+status = v_to_status,\s+updated_at = v_now\s+WHERE id = v_profile\.id;/)
     })
 
-    it('sanitizes safe state snapshot to strictly exclude sensitive personal / KYC / secret fields', () => {
-      const forbiddenTokens = [
-        'legal_name',
-        'cpf',
-        'dob',
-        'didit',
-        'biometric',
-        'document_front',
-        'document_back',
-        'secret',
-        'token',
-        'access_token',
-        'password',
-        'stripe_customer_id',
-      ]
-      for (const token of forbiddenTokens) {
-        expect(sql).toContain(`'${token}'`)
-      }
-    })
-
-    it('restricts RPC execution from anonymous callers', () => {
-      expect(sql).toContain('REVOKE ALL ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT, UUID, JSONB) FROM PUBLIC, anon;')
-      expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT, UUID, JSONB) TO authenticated, service_role;')
+    it('restricts RPC execution from anonymous callers and uses SECURITY DEFINER with safe search_path', () => {
+      expect(sql).toContain('SECURITY DEFINER')
+      expect(sql).toContain('SET search_path = public, pg_temp')
+      expect(sql).toContain('REVOKE ALL ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon;')
+      expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.admin_transition_profile_status(UUID, TEXT, TEXT, TEXT) TO authenticated, service_role;')
     })
   })
 })
