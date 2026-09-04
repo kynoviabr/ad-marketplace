@@ -54,6 +54,7 @@ export const RESERVED_TOP_LEVEL_SLUGS = new Set([
   'verify-email',
   // FASE 12.2A: Public marketplace routes (must not collide with city slugs)
   'anuncie', // Professional acquisition page — FASE 12.2F
+  'como-comecar', // Professional how-to-start guide — R11.2A
   'go',      // WhatsApp conversion Route Handler — FASE 12.2E
 ])
 

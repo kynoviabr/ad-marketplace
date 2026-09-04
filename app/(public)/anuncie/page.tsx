@@ -311,6 +311,25 @@ export default async function AdvertisePage() {
               </div>
             ))}
           </div>
+          <div style={{ marginTop: '28px', textAlign: 'center' }}>
+            <Link
+              href={localizePathname('/como-comecar', locale)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--public-aubergine)',
+                textDecoration: 'underline',
+                textUnderlineOffset: '4px',
+              }}
+            >
+              {en ? 'View detailed onboarding guide' : 'Ver guia detalhado passo a passo'} <span aria-hidden="true">→</span>
+            </Link>
+          </div>
         </div>
       </section>
 
