@@ -247,6 +247,14 @@ export const authOnboardingPtBR = {
   'onboarding.journey.publication': 'Publicação',
   'onboarding.help.guide': 'Guia / Ajuda',
   'onboarding.help.viewGuide': 'Ver guia no /como-comecar →',
+  'auth.continueWithGoogle': 'Continuar com Google',
+  'auth.or': 'ou',
+  'auth.googleOAuthError': 'Não foi possível autenticar com o Google. Tente novamente.',
+  'auth.confirmationFailed': 'Link inválido ou expirado. Tente novamente.',
+  'auth.intentRequiredTitle': 'Primeiro acesso com Google',
+  'auth.intentRequiredDesc': 'Para sua segurança, defina como deseja usar a velvet.:',
+  'auth.intentAdvertiserCta': 'Quero anunciar (Profissional)',
+  'auth.intentClientCta': 'Quero acessar como cliente',
 } as const
 
 export const authOnboardingEn = {
@@ -498,4 +506,12 @@ export const authOnboardingEn = {
   'onboarding.journey.publication': 'Publication',
   'onboarding.help.guide': 'Guide / Help',
   'onboarding.help.viewGuide': 'View guide at /como-comecar →',
+  'auth.continueWithGoogle': 'Continue with Google',
+  'auth.or': 'or',
+  'auth.googleOAuthError': 'Could not authenticate with Google. Please try again.',
+  'auth.confirmationFailed': 'Invalid or expired link. Please try again.',
+  'auth.intentRequiredTitle': 'First time with Google',
+  'auth.intentRequiredDesc': 'For your security, please define how you want to use velvet.:',
+  'auth.intentAdvertiserCta': 'I want to advertise (Professional)',
+  'auth.intentClientCta': 'I want to access as a client',
 } as const

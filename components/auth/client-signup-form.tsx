@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { FormMessage } from '@/components/ui/form-message'
+import { GoogleOAuthButton } from '@/components/auth/google-oauth-button'
 import type { ActionResult } from '@/modules/auth/types'
 import { useI18n } from '@/components/i18n'
 
@@ -26,6 +27,12 @@ export function ClientSignupForm() {
       {!state.success && state.error && !fieldErrors && (
         <FormMessage type="error" message={state.error} />
       )}
+
+      <GoogleOAuthButton intent="CLIENT" />
+
+      <div className="auth-divider" aria-hidden="true">
+        <span>{t('auth.or')}</span>
+      </div>
 
       <div className="auth-field">
         <Label htmlFor="email">{t('auth.email')}</Label>
