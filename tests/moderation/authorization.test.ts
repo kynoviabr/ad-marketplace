@@ -53,4 +53,44 @@ describe('FASE 06 — Admin Authorization Boundary', () => {
     await requireAdmin()
     expect(redirect).toHaveBeenCalledWith('/dashboard')
   })
+
+  it('redirects to /cliente when user has role = CLIENT', async () => {
+    vi.spyOn(authDal, 'requireAccount').mockResolvedValue({
+      id: 'acc-client-1',
+      auth_user_id: 'auth-client-1',
+      role: 'CLIENT',
+      status: 'ACTIVE',
+      terms_version: '1.0',
+      terms_accepted_at: new Date().toISOString(),
+      privacy_version: '1.0',
+      privacy_accepted_at: new Date().toISOString(),
+      onboarding_step: 0,
+      onboarding_status: 'COMPLETED',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+
+    await requireAdmin()
+    expect(redirect).toHaveBeenCalledWith('/cliente')
+  })
+
+  it('redirects to current onboarding step when ADVERTISER onboarding is incomplete', async () => {
+    vi.spyOn(authDal, 'requireAccount').mockResolvedValue({
+      id: 'acc-user-incomplete',
+      auth_user_id: 'auth-user-inc',
+      role: 'ADVERTISER',
+      status: 'ACTIVE',
+      terms_version: '1.0',
+      terms_accepted_at: new Date().toISOString(),
+      privacy_version: '1.0',
+      privacy_accepted_at: new Date().toISOString(),
+      onboarding_step: 2,
+      onboarding_status: 'IN_PROGRESS',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+
+    await requireAdmin()
+    expect(redirect).toHaveBeenCalledWith('/onboarding/seu-perfil')
+  })
 })

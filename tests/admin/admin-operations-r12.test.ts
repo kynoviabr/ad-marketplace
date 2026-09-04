@@ -21,6 +21,16 @@ vi.mock('@/modules/auth/dal', () => ({
   requireAccount: () => mockRequireAccount(),
 }))
 
+const mockGetVerificationSafe = vi.fn()
+vi.mock('@/modules/verification/dal', () => ({
+  getVerificationSafe: (id: string) => mockGetVerificationSafe(id),
+}))
+
+const mockCanProceed = vi.fn()
+vi.mock('@/modules/verification/gates', () => ({
+  canProceedToProfessionalProfile: (v: any) => mockCanProceed(v),
+}))
+
 const mockSupabaseAdmin = {
   from: vi.fn(),
 }
@@ -229,7 +239,7 @@ describe('R12.1 Admin Operations Foundation', () => {
       expect(redirectMock).not.toHaveBeenCalled()
     })
 
-    it('denies CLIENT accounts and redirects away from admin area', async () => {
+    it('denies CLIENT accounts and redirects directly to /cliente', async () => {
       const { requireAdmin } = await import('@/modules/moderation/guards')
       mockRequireAccount.mockResolvedValueOnce({
         id: 'client-user-1',
@@ -238,19 +248,97 @@ describe('R12.1 Admin Operations Foundation', () => {
       })
 
       await requireAdmin()
-      expect(redirectMock).toHaveBeenCalledWith('/dashboard')
+      expect(redirectMock).toHaveBeenCalledWith('/cliente')
     })
 
-    it('denies ADVERTISER accounts and redirects away from admin area', async () => {
+    it('denies completed ADVERTISER accounts and redirects to /dashboard', async () => {
       const { requireAdmin } = await import('@/modules/moderation/guards')
       mockRequireAccount.mockResolvedValueOnce({
-        id: 'advertiser-user-1',
+        id: 'advertiser-user-completed',
         role: 'ADVERTISER',
         status: 'ACTIVE',
+        onboarding_status: 'COMPLETED',
+        onboarding_step: 6,
       })
 
       await requireAdmin()
       expect(redirectMock).toHaveBeenCalledWith('/dashboard')
+    })
+
+    it('denies incomplete ADVERTISER accounts and redirects to current onboarding step', async () => {
+      const { requireAdmin } = await import('@/modules/moderation/guards')
+
+      // 1. Step 1 (or 0) -> /onboarding/voce
+      mockRequireAccount.mockResolvedValueOnce({
+        id: 'adv-step-1',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+        onboarding_status: 'NOT_STARTED',
+        onboarding_step: 1,
+      })
+      await requireAdmin()
+      expect(redirectMock).toHaveBeenCalledWith('/onboarding/voce')
+
+      // 2. Step 2 -> /onboarding/seu-perfil
+      mockRequireAccount.mockResolvedValueOnce({
+        id: 'adv-step-2',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+        onboarding_status: 'IN_PROGRESS',
+        onboarding_step: 2,
+      })
+      await requireAdmin()
+      expect(redirectMock).toHaveBeenCalledWith('/onboarding/seu-perfil')
+
+      // 3. Step 3 -> /onboarding/onde-atende
+      mockRequireAccount.mockResolvedValueOnce({
+        id: 'adv-step-3',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+        onboarding_status: 'IN_PROGRESS',
+        onboarding_step: 3,
+      })
+      await requireAdmin()
+      expect(redirectMock).toHaveBeenCalledWith('/onboarding/onde-atende')
+
+      // 4. Step 4 unverified -> /onboarding/verificacao
+      mockRequireAccount.mockResolvedValueOnce({
+        id: 'adv-step-4-unverified',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+        onboarding_status: 'IN_PROGRESS',
+        onboarding_step: 4,
+      })
+      mockGetVerificationSafe.mockResolvedValueOnce({ status: 'PENDING', identityVerified: false, ageVerified: false })
+      mockCanProceed.mockReturnValueOnce(false)
+      await requireAdmin()
+      expect(redirectMock).toHaveBeenCalledWith('/onboarding/verificacao')
+
+      // 5. Step 5 verified -> /onboarding/fotos
+      mockRequireAccount.mockResolvedValueOnce({
+        id: 'adv-step-5-verified',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+        onboarding_status: 'IN_PROGRESS',
+        onboarding_step: 5,
+      })
+      mockGetVerificationSafe.mockResolvedValueOnce({ status: 'VERIFIED', identityVerified: true, ageVerified: true })
+      mockCanProceed.mockReturnValueOnce(true)
+      await requireAdmin()
+      expect(redirectMock).toHaveBeenCalledWith('/onboarding/fotos')
+
+      // 6. Step 6 verified -> /onboarding/revisar
+      mockRequireAccount.mockResolvedValueOnce({
+        id: 'adv-step-6-verified',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+        onboarding_status: 'IN_PROGRESS',
+        onboarding_step: 6,
+      })
+      mockGetVerificationSafe.mockResolvedValueOnce({ status: 'VERIFIED', identityVerified: true, ageVerified: true })
+      mockCanProceed.mockReturnValueOnce(true)
+      await requireAdmin()
+      expect(redirectMock).toHaveBeenCalledWith('/onboarding/revisar')
     })
   })
 
