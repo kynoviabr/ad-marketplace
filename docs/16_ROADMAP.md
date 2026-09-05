@@ -177,7 +177,7 @@ The technical hardening findings identified during R12 analysis are preserved an
 | **Item D** | Didit KYC `FAILED` webhook retry reconciliation | **Continuous Security Guardrail** | **RESOLVED** (Commit validated with retry suite) |
 | **Item F** | OAuth callback & auth redirect trusted origin validation | **Continuous Security Guardrail** | **RESOLVED** (Enforced server-authoritative origin, Host spoofing tests PASS) |
 | **Item E** | Media delivery publication gate enforcement | **Continuous Security Guardrail** | **RESOLVED** (Enforced canonical publication eligibility for public media; 12/12 dedicated tests PASS) |
-| **Item I** | CLIENT signup error handling & provisioning atomicity | **Continuous Security Guardrail** | **Fix before PX1** (Account consistency) |
+| **Item I** | CLIENT signup error handling & provisioning atomicity | **Continuous Security Guardrail** | **RESOLVED** (Enforced canonical CLIENT membership provisioning, fail-closed on DB errors; dedicated test suite PASS) |
 | **Item H** | Admin operational classification drift vs canonical view | **Continuous Security Guardrail** | **Fix during PX1** (Observability / Health alignment) |
 | **Item A** | Canonical publication eligibility in utility helpers | **Continuous Security Guardrail** | **Fix during PX2 / PX4** (Analytics / Agenda gating) |
 | **Item B** | Non-atomic mutation and audit trail pairs | **Continuous Security Guardrail** | **Fix during PX7** (Cybersecurity & Atomic RPCs) |
@@ -248,9 +248,10 @@ Executed only **after** the GTM Ready Gate is achieved:
 
 ## Immediate Next Development Step
 
-- **Completed Pre-PX1 Guardrails**:
+- **Pre-PX1 Critical Guardrails (ALL RESOLVED)**:
   - **Didit FAILED Webhook Retry Reconciliation (Backlog Item D) — RESOLVED** (Validated with 15/15 tests).
   - **OAuth Trusted Origin Validation (Backlog Item F) — RESOLVED** (Server-authoritative origin enforced; header spoofing defense validated with 17/17 tests).
   - **Media Publication Gate Enforcement (Backlog Item E) — RESOLVED** (Enforced canonical publication eligibility view for public media; 12/12 dedicated tests PASS).
-- **Remaining Pre-PX1 Guardrail**: **Backlog Item I (CLIENT Provisioning Consistency)**.
-- **Next Product Workstream**: **PX1 — Observability & Telemetry Foundation**.
+  - **CLIENT Provisioning Consistency (Backlog Item I) — RESOLVED** (Enforced fail-closed CLIENT membership creation and domain invariant validation; 19/19 dedicated tests PASS).
+- **All Pre-PX1 Critical Guardrails Resolved**: Ready to begin Product Expansion workstreams in VELVET DEV.
+- **Immediate Next Development Step**: **PX1 — Observability & Telemetry Foundation**.

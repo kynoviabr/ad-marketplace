@@ -26,6 +26,7 @@ import {
   type VerifyEmailOtpResult,
 } from './email-otp'
 import type { OAuthIntent } from './oauth'
+import { ensureClientMembership } from './client-provisioning'
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '@/lib/config/legal-versions'
 
 /**
@@ -221,7 +222,7 @@ export async function verifyEmailOtpAction(
 
   // 9. NEW ACCOUNT WITH EXPLICIT CLIENT INTENT
   if (intent === 'CLIENT') {
-    const { data: updatedAccount } = await admin
+    const { data: updatedAccount, error: updateError } = await admin
       .from('account_users')
       .upsert(
         {
@@ -240,16 +241,21 @@ export async function verifyEmailOtpAction(
       .select('id')
       .single()
 
-    if (updatedAccount) {
-      await admin
-        .from('client_memberships')
-        .upsert(
-          {
-            account_id: updatedAccount.id,
-            membership_type: 'FREE',
-          },
-          { onConflict: 'account_id' }
-        )
+    if (updateError || !updatedAccount) {
+      console.error('[Email OTP] Failed to update client account:', updateError)
+      return {
+        success: false,
+        error: 'Não foi possível provisionar a conta de cliente. Tente novamente.',
+      }
+    }
+
+    const membershipResult = await ensureClientMembership(admin, updatedAccount.id)
+    if (!membershipResult.success) {
+      console.error('[Email OTP] Failed to provision client membership:', membershipResult.error)
+      return {
+        success: false,
+        error: 'Não foi possível provisionar a assinatura do cliente. Tente novamente.',
+      }
     }
 
     return { success: true, destination: '/cliente' }

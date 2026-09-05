@@ -19,6 +19,7 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyOAuthIntentCookie } from '@/modules/auth/oauth'
+import { ensureClientMembership } from '@/modules/auth/client-provisioning'
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '@/lib/config/legal-versions'
 import { getTrustedAuthCallbackOrigin, isSafeInternalRedirectPath } from '@/modules/auth/origin'
 
@@ -147,7 +148,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (verifiedIntent === 'CLIENT') {
-    const { data: updatedAccount } = await admin
+    const { data: updatedAccount, error: updateError } = await admin
       .from('account_users')
       .update({
         role: 'CLIENT',
@@ -163,16 +164,15 @@ export async function GET(request: NextRequest) {
       .select('id')
       .single()
 
-    if (updatedAccount) {
-      await admin
-        .from('client_memberships')
-        .upsert(
-          {
-            account_id: updatedAccount.id,
-            membership_type: 'FREE',
-          },
-          { onConflict: 'account_id' }
-        )
+    if (updateError || !updatedAccount) {
+      console.error('[OAuth Callback] Failed to update client account:', updateError)
+      return redirectWithClearedCookie(`${origin}/login?error=provisioning_failed`)
+    }
+
+    const membershipResult = await ensureClientMembership(admin, updatedAccount.id)
+    if (!membershipResult.success) {
+      console.error('[OAuth Callback] Failed to provision client membership:', membershipResult.error)
+      return redirectWithClearedCookie(`${origin}/login?error=provisioning_failed`)
     }
 
     return redirectWithClearedCookie(`${origin}/cliente`)

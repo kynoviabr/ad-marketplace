@@ -27,7 +27,7 @@ export function LoginForm({ errorParam }: LoginFormProps = {}) {
 
   const rawError = errorParam !== undefined ? errorParam : searchParams.get('error')
   const isIntentRequired = rawError === 'signup_intent_required'
-  const isOAuthError = rawError === 'oauth_error' || rawError === 'oauth_failed'
+  const isOAuthError = rawError === 'oauth_error' || rawError === 'oauth_failed' || rawError === 'provisioning_failed'
   const isConfirmationFailed = rawError === 'confirmation_failed'
 
   return (
