@@ -20,19 +20,12 @@ const mockAdmin = {
   from: vi.fn(),
   rpc: vi.fn(),
 }
+const mockServerRpc = vi.fn()
+vi.mock('@/lib/supabase/server', () => ({
+  createServerClient: vi.fn().mockResolvedValue({ rpc: (...args: any[]) => mockServerRpc(...args) }),
+}))
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => mockAdmin,
-}))
-
-// Mock completeness and entitlement helpers
-const mockEvaluateProfileCompleteness = vi.fn()
-vi.mock('@/modules/profiles/completeness', () => ({
-  evaluateProfileCompleteness: (...args: any[]) => mockEvaluateProfileCompleteness(...args),
-}))
-
-const mockHasPublicationEntitlement = vi.fn()
-vi.mock('@/modules/billing/entitlements', () => ({
-  hasPublicationEntitlement: (...args: any[]) => mockHasPublicationEntitlement(...args),
 }))
 
 function createQueryMock(data: any, error: any = null) {
@@ -93,8 +86,7 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRequireAdmin.mockResolvedValue(adminActor)
-    mockEvaluateProfileCompleteness.mockReturnValue({ isComplete: true, missingFields: [] })
-    mockHasPublicationEntitlement.mockResolvedValue(true)
+    mockServerRpc.mockResolvedValue({ data: { success: true }, error: null })
   })
 
   describe('1. Security & Access Control', () => {
@@ -135,21 +127,12 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
 
   describe('2. Concurrency & State Pre-reads', () => {
     it('blocks approval when profile is already APPROVED and ACTIVE', async () => {
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'professional_profiles') {
-          return createQueryMock({
-            ...mockBaseProfile,
-            status: 'ACTIVE',
-            content_moderation_status: 'APPROVED',
-          })
-        }
-        return createQueryMock(null)
-      })
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'ALREADY_APPROVED' } })
 
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
       expect(res.error).toBe('ALREADY_APPROVED')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('blocks rejection when profile is already REJECTED', async () => {
@@ -170,20 +153,12 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
     })
 
     it('blocks moderation if profile is in DRAFT state', async () => {
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'professional_profiles') {
-          return createQueryMock({
-            ...mockBaseProfile,
-            status: 'DRAFT',
-          })
-        }
-        return createQueryMock(null)
-      })
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'INVALID_STATE' } })
 
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
-      expect(res.error).toBe('DRAFT_BLOCKED')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(res.error).toBe('INVALID_STATE')
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('blocks moderation if profile is in SUSPENDED state', async () => {
@@ -225,10 +200,12 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
         return createQueryMock(null)
       })
       mockAdmin.rpc.mockResolvedValue({ error: null })
+      mockServerRpc.mockResolvedValue({ data: { success: true }, error: null })
     }
 
     it('gate 1: fails when account is not ACTIVE', async () => {
       setupGatesPass()
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'PUBLICATION_GATE_FAILED' } })
       mockAdmin.from.mockImplementation((table: string) => {
         if (table === 'professional_profiles') {
           return createQueryMock({ ...mockBaseProfile })
@@ -242,12 +219,13 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
       expect(res.error).toBe('PUBLICATION_GATE_FAILED')
-      expect(res.message).toContain('não está ativa')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(res.message).toContain('critérios de publicação')
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('gate 2: fails when identity verification is not VERIFIED', async () => {
       setupGatesPass()
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'PUBLICATION_GATE_FAILED' } })
       mockAdmin.from.mockImplementation((table: string) => {
         if (table === 'professional_profiles') {
           return createQueryMock({ ...mockBaseProfile })
@@ -264,23 +242,24 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
       expect(res.error).toBe('PUBLICATION_GATE_FAILED')
-      expect(res.message).toContain('KYC')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(res.message).toContain('critérios de publicação')
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('gate 3: fails when profile is incomplete', async () => {
       setupGatesPass()
-      mockEvaluateProfileCompleteness.mockReturnValue({ isComplete: false, missingFields: ['bio', 'rates'] })
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'PUBLICATION_GATE_FAILED' } })
 
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
       expect(res.error).toBe('PUBLICATION_GATE_FAILED')
-      expect(res.message).toContain('incompletos')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(res.message).toContain('critérios de publicação')
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('gate 4: fails when profile has no active locations', async () => {
       setupGatesPass()
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'PUBLICATION_GATE_FAILED' } })
       mockAdmin.from.mockImplementation((table: string) => {
         if (table === 'professional_profiles') {
           return createQueryMock({ ...mockBaseProfile })
@@ -300,12 +279,13 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
       expect(res.error).toBe('PUBLICATION_GATE_FAILED')
-      expect(res.message).toContain('localização ou cidade')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(res.message).toContain('critérios de publicação')
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('gate 5: fails when profile has no approved primary photo', async () => {
       setupGatesPass()
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'PUBLICATION_GATE_FAILED' } })
       mockAdmin.from.mockImplementation((table: string) => {
         if (table === 'professional_profiles') {
           return createQueryMock({ ...mockBaseProfile })
@@ -328,19 +308,19 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
       expect(res.error).toBe('PUBLICATION_GATE_FAILED')
-      expect(res.message).toContain('foto aprovada definida como principal')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(res.message).toContain('critérios de publicação')
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('gate 6: fails when profile has no publication entitlement', async () => {
       setupGatesPass()
-      mockHasPublicationEntitlement.mockResolvedValue(false)
+      mockServerRpc.mockResolvedValue({ data: null, error: { message: 'PUBLICATION_GATE_FAILED' } })
 
       const res = await adminApproveProfileAction({ profileId })
       expect(res.success).toBe(false)
       expect(res.error).toBe('PUBLICATION_GATE_FAILED')
-      expect(res.message).toContain('assinatura ou benefício')
-      expect(mockAdmin.rpc).not.toHaveBeenCalled()
+      expect(res.message).toContain('critérios de publicação')
+      expect(mockAdmin.from).not.toHaveBeenCalled()
     })
 
     it('approves profile when ALL gates pass, updates profile & onboarding status', async () => {
@@ -350,20 +330,12 @@ describe('R12.4B Admin Profile Approve / Reject Mutations', () => {
       expect(res.success).toBe(true)
       expect(res.message).toContain('aprovado')
 
-      // Verify moderate_profile RPC was called
-      expect(mockAdmin.rpc).toHaveBeenCalledWith('moderate_profile', {
+      expect(mockServerRpc).toHaveBeenCalledWith('admin_approve_and_activate_profile', {
         p_profile_id: profileId,
-        p_reviewer_id: adminActor.id,
-        p_decision: 'APPROVE',
-        p_reason_code: null,
         p_notes: 'All documents and media verified',
-        p_content_snapshot: expect.objectContaining({
-          stage_name: 'Test Artist',
-          headline: 'Top Model',
-          bio: 'Experienced professional model',
-          whatsapp_phone: '+5511999999999',
-        }),
       })
+      expect(mockAdmin.from).not.toHaveBeenCalled()
+      expect(mockAdmin.rpc).not.toHaveBeenCalled()
     })
   })
 

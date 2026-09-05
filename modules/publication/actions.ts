@@ -1,23 +1,23 @@
 'use server'
 import { redirect } from 'next/navigation'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { createServerClient } from '@/lib/supabase/server'
 import { requireAccount } from '@/modules/auth/dal'
-import { getProfileByAccountUserId } from '@/modules/profiles/dal'
-import { isProfileCanonicallyEligible, isProfileReadyForActivation } from './dal'
 import type { PublishProfileActionState } from './types'
 
 export async function publishProfileAction(_previousState: PublishProfileActionState, _formData: FormData): Promise<PublishProfileActionState> {
-  const account = await requireAccount()
-  const profile = await getProfileByAccountUserId(account.id)
-  if (!profile) return { success: false, error: 'Perfil não encontrado.' }
+  await requireAccount()
   try {
-    if (!(await isProfileReadyForActivation(account.id, profile.id))) return { success: false, error: 'Seu perfil ainda possui pendências. Atualize a página e revise os itens indicados.' }
-    const admin = createAdminClient(); const now = new Date().toISOString()
-    const { data: activated, error: profileError } = await admin.from('professional_profiles').update({ status: 'ACTIVE', updated_at: now }).eq('id', profile.id).eq('account_user_id', account.id).eq('status', 'READY_FOR_REVIEW').select('id').maybeSingle()
-    if (profileError || !activated) return { success: false, error: 'Não foi possível publicar seu perfil agora.' }
-    const { error: accountError } = await admin.from('account_users').update({ onboarding_status: 'COMPLETED', onboarding_step: 6, updated_at: now }).eq('id', account.id)
-    if (accountError) return { success: false, error: 'O perfil foi validado, mas não foi possível concluir o cadastro.' }
-    if (!(await isProfileCanonicallyEligible(account.id, profile.id))) return { success: false, error: 'A elegibilidade mudou durante a publicação. Revise seu perfil.' }
+    const supabase = await createServerClient()
+    const { error } = await supabase.rpc('publish_owned_profile')
+    if (error) {
+      if (error.message.includes('PROFILE_NOT_FOUND')) return { success: false, error: 'Perfil não encontrado.' }
+      if (error.message.includes('MODERATION_REQUIRED')) return { success: false, error: 'A moderação do perfil ainda não foi concluída.' }
+      if (error.message.includes('INVALID_STATE') || error.message.includes('PUBLICATION_GATE_FAILED')) {
+        return { success: false, error: 'Seu perfil ainda possui pendências. Atualize a página e revise os itens indicados.' }
+      }
+      if (error.message.includes('ALREADY_ACTIVE')) return { success: false, error: 'Seu perfil já está publicado.' }
+      return { success: false, error: 'Não foi possível publicar seu perfil agora.' }
+    }
   } catch (error) {
     console.error('[publication:publish] Failed closed:', error instanceof Error ? error.message : error)
     return { success: false, error: 'Não foi possível confirmar sua elegibilidade agora. Tente novamente.' }

@@ -16,14 +16,11 @@ describe('Velvet onboarding Step 06 readiness', () => {
   it('keeps text moderation separate from approved media', () => { const result = buildPublicationReadiness({ ...base, profile: { ...profile, content_moderation_status: 'PENDING' }, activationEligible: false }); expect(result.items.find((item) => item.key === 'photos')?.ready).toBe(true); expect(result.items.find((item) => item.key === 'publication')?.detail).toContain('texto') })
   it('identifies entitlement as the remaining blocker', () => { const result = buildPublicationReadiness({ ...base, hasEntitlement: false, activationEligible: false }); expect(result.items.find((item) => item.key === 'publication')?.detail).toContain('direito de publicação') })
   it('fails closed on unavailable data', () => { const result = buildPublicationReadiness({ ...base, dataAvailable: false, activationEligible: false }); expect(result.items.find((item) => item.key === 'publication')?.ready).toBe(false) })
-  it('derives ownership from auth and rechecks the canonical view in the server action', () => {
+  it('derives ownership from auth inside the atomic publication RPC', () => {
     const action = readFileSync(resolve(process.cwd(), 'modules/publication/actions.ts'), 'utf8')
     expect(action).toContain('requireAccount()')
-    expect(action).toContain('getProfileByAccountUserId(account.id)')
-    expect(action).toContain(".eq('account_user_id', account.id)")
-    expect(action).toContain('isProfileReadyForActivation(account.id, profile.id)')
-    expect(action).toContain('isProfileCanonicallyEligible(account.id, profile.id)')
-    expect(action).toContain(".eq('status', 'READY_FOR_REVIEW')")
+    expect(action).toContain("supabase.rpc('publish_owned_profile')")
+    expect(action).not.toContain(".from('professional_profiles')")
     expect(action).not.toContain('formData.get')
   })
 })

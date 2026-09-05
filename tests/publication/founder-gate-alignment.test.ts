@@ -76,11 +76,11 @@ describe('Velvet Founder lifecycle and public gate alignment', () => {
     expect(read('modules/profiles/public-detail.ts')).toContain(".from('v_publication_eligible_profiles')")
   })
 
-  it('requires activation eligibility before the READY_FOR_REVIEW to ACTIVE transition', () => {
+  it('delegates READY_FOR_REVIEW to ACTIVE atomically to the owner RPC', () => {
     const action = read('modules/publication/actions.ts')
-    expect(action.indexOf('isProfileReadyForActivation')).toBeLessThan(action.indexOf("status: 'ACTIVE'"))
-    expect(action).toContain(".eq('status', 'READY_FOR_REVIEW')")
-    expect(action).toContain('isProfileCanonicallyEligible')
+    expect(action).toContain("supabase.rpc('publish_owned_profile')")
+    expect(action).not.toContain(".update({ status: 'ACTIVE'")
+    expect(action).not.toContain('isProfileCanonicallyEligible')
   })
 
   it('reconciles approval to an approved deterministic primary', () => {
