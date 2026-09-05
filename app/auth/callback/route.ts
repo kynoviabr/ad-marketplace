@@ -21,6 +21,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyOAuthIntentCookie } from '@/modules/auth/oauth'
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '@/lib/config/legal-versions'
 import { getTrustedAuthCallbackOrigin, isSafeInternalRedirectPath } from '@/modules/auth/origin'
+import { logger, getRequestId } from '@/modules/observability'
 
 function isSafeRedirect(next: string | null): next is string {
   if (!next) return false
@@ -29,6 +30,7 @@ function isSafeRedirect(next: string | null): next is string {
 }
 
 export async function GET(request: NextRequest) {
+  const requestId = getRequestId(request)
   // Origin is strictly server-authoritative; request headers (Host, X-Forwarded-Host, Forwarded) are NEVER used.
   const origin = getTrustedAuthCallbackOrigin()
   const searchParams = request.nextUrl?.searchParams || new URL(request.url).searchParams
@@ -39,16 +41,30 @@ export async function GET(request: NextRequest) {
   const redirectWithClearedCookie = (url: string) => {
     const res = NextResponse.redirect(url)
     res.cookies.set('velvet_oauth_intent', '', { maxAge: 0, path: '/' })
+    res.headers.set('x-request-id', requestId)
     return res
   }
 
   // 1. Check for provider-level OAuth errors
   if (errorParam) {
+    logger.warn('auth.oauth.callback_failed', {
+      subsystem: 'AUTH',
+      requestId,
+      outcome: 'REJECTED',
+      errorCode: 'OAUTH_PROVIDER_ERROR',
+      metadata: { errorParam },
+    })
     return redirectWithClearedCookie(`${origin}/login?error=oauth_error`)
   }
 
   // 2. Missing authorization code
   if (!code) {
+    logger.warn('auth.oauth.callback_failed', {
+      subsystem: 'AUTH',
+      requestId,
+      outcome: 'REJECTED',
+      errorCode: 'MISSING_CODE',
+    })
     return redirectWithClearedCookie(`${origin}/login?error=confirmation_failed`)
   }
 
@@ -164,7 +180,13 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (updateError || !updatedAccount) {
-      console.error('[OAuth Callback] Failed to update client account:', updateError)
+      logger.error('auth.oauth.provisioning_failed', {
+        subsystem: 'AUTH',
+        requestId,
+        outcome: 'FAILURE',
+        errorCode: 'CLIENT_UPDATE_FAILED',
+        error: updateError,
+      })
       return redirectWithClearedCookie(`${origin}/login?error=provisioning_failed`)
     }
 
@@ -178,8 +200,20 @@ export async function GET(request: NextRequest) {
     await admin.auth.admin.deleteUser(user.id)
     await supabase.auth.signOut()
   } catch (rollbackErr) {
-    console.error('[OAuth Callback] Error during rollback of ambiguous signup:', rollbackErr)
+    logger.error('auth.oauth.rollback_failed', {
+      subsystem: 'AUTH',
+      requestId,
+      outcome: 'FAILURE',
+      errorCode: 'AMBIGUOUS_SIGNUP_ROLLBACK_ERROR',
+      error: rollbackErr,
+    })
   }
 
+  logger.warn('auth.oauth.signup_intent_required', {
+    subsystem: 'AUTH',
+    requestId,
+    outcome: 'REJECTED',
+    errorCode: 'SIGNUP_INTENT_REQUIRED',
+  })
   return redirectWithClearedCookie(`${origin}/login?error=signup_intent_required`)
 }

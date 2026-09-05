@@ -21,6 +21,7 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { DEFAULT_LOCALE, LOCALE_COOKIE, LOCALE_HEADER, resolveLocale } from '@/lib/i18n/config'
 import { isLocaleRoutingExcluded, localeFromPathname, localizePathname, stripLocalePrefix } from '@/lib/i18n/routing'
+import { CANONICAL_REQUEST_ID_HEADER, resolveCanonicalRequestId } from '@/modules/observability/request-id'
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = ['/dashboard', '/suspended', '/onboarding']
@@ -36,17 +37,30 @@ export async function proxy(request: NextRequest) {
     ? resolveLocale(request.cookies.get(LOCALE_COOKIE)?.value)
     : DEFAULT_LOCALE)
   const pathname = stripLocalePrefix(requestedPathname)
+  const requestId = resolveCanonicalRequestId(request.headers.get(CANONICAL_REQUEST_ID_HEADER))
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set(LOCALE_HEADER, locale)
+  requestHeaders.set(CANONICAL_REQUEST_ID_HEADER, requestId)
+
+  // API endpoints bypass session refresh/locale redirection, but propagate x-request-id
+  if (pathname.startsWith('/api/')) {
+    const apiResponse = NextResponse.next({ request: { headers: requestHeaders } })
+    apiResponse.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
+    return apiResponse
+  }
 
   // Internal endpoints keep one canonical path and are never duplicated under
   // a locale prefix. This also prevents prefixed API POST aliases.
   if (pathLocale && isLocaleRoutingExcluded(pathname)) {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      const res = NextResponse.json({ error: 'Not found' }, { status: 404 })
+      res.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
+      return res
     }
     url.pathname = pathname
-    return NextResponse.redirect(url)
+    const res = NextResponse.redirect(url)
+    res.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
+    return res
   }
 
   const createResponse = () => {
@@ -66,6 +80,7 @@ export async function proxy(request: NextRequest) {
         secure: request.nextUrl.protocol === 'https:',
       })
     }
+    nextResponse.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
     return nextResponse
   }
 
@@ -113,13 +128,17 @@ export async function proxy(request: NextRequest) {
   if (isProtectedRoute && !isAuthenticated) {
     url.pathname = localizePathname('/login', locale)
     url.search = ''
-    return NextResponse.redirect(url)
+    const redirectRes = NextResponse.redirect(url)
+    redirectRes.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
+    return redirectRes
   }
 
   // Redirect authenticated users away from auth-only routes
   if (isAuthOnlyRoute && isAuthenticated) {
     url.pathname = localizePathname('/onboarding', locale)
-    return NextResponse.redirect(url)
+    const redirectRes = NextResponse.redirect(url)
+    redirectRes.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
+    return redirectRes
   }
 
   if (
@@ -129,9 +148,12 @@ export async function proxy(request: NextRequest) {
     (request.method === 'GET' || request.method === 'HEAD')
   ) {
     url.pathname = localizePathname(requestedPathname, locale)
-    return NextResponse.redirect(url)
+    const redirectRes = NextResponse.redirect(url)
+    redirectRes.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
+    return redirectRes
   }
 
+  response.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
   return response
 }
 
@@ -142,9 +164,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico, robots.txt, sitemap.xml
-     * - api routes (handled by their own auth checks)
      * - public folder assets
      */
-    '/((?!_next/static|_next/image|api/|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 }

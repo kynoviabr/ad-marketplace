@@ -58,6 +58,10 @@ To deliver compelling professional value and establish deep competitive differen
 - **Product Value**: Gives platform operators instant visibility into subsystem health, API errors, stuck webhooks, and performance bottlenecks before introducing AI and complex workflows.
 - **User**: Platform Administrator / Operator.
 - **Scope**: Request correlation IDs (`x-request-id`), structured application logging abstraction, subsystem health monitors (Supabase DB, Auth, Storage, Didit KYC, Billing Webhooks, Email/OTP), operational status alignment, and Admin System Health dashboard (`/admin/health`).
+- **Sub-phases**:
+  - **PX1A — Correlation IDs + Structured Logging Foundation**: **RESOLVED** (Canonical `x-request-id` header, safe regex validation, Next.js `proxy.ts` propagation, structured JSON logger, recursive sensitive data redaction, safe error serializer, targeted adoption across Didit KYC, OAuth, Billing, Media, and Health boundaries; 55/55 dedicated tests PASS).
+  - **PX1B — Health Probes & Operational Integrity Foundation**: PENDING (Immediate Next Sub-phase).
+  - **PX1C — Admin System Health Dashboard (`/admin/health`)**: PENDING.
 - **Out of Scope**: Third-party paid APM subscriptions, external telemetry agents.
 - **Dependencies**: R12 admin layout foundation.
 - **Data Model**: `operational_health_probes` (transient probe cache).
@@ -254,4 +258,6 @@ Executed only **after** the GTM Ready Gate is achieved:
   - **Media Publication Gate Enforcement (Backlog Item E) — RESOLVED** (Enforced canonical publication eligibility view for public media; 12/12 dedicated tests PASS).
   - **CLIENT Provisioning Consistency (Backlog Item I) — RESOLVED & DEV VALIDATED** (Database-owned atomic membership provisioning via `trg_ensure_client_membership` trigger on `account_users`; 30/30 DEV migrations applied and verified in DEV; 233/233 auth suite tests PASS).
 - **All Pre-PX1 Critical Guardrails**: **RESOLVED (100% COMPLETE)**.
-- **Immediate Next Development Step**: **PX1 — Observability & Telemetry Foundation**.
+- **Current Product Workstream**: **PX1 — Observability & Telemetry Foundation**.
+  - **PX1A — Correlation IDs + Structured Logging Foundation**: **RESOLVED** (55/55 tests PASS).
+  - **Immediate Next Development Step**: **PX1B — Health Probes & Operational Integrity Foundation**.

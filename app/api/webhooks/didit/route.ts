@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getVerificationProvider } from '@/modules/verification/providers/factory'
 import { getVerificationBySessionId } from '@/modules/verification/dal'
 import { isTerminalState } from '@/modules/verification/state-machine'
+import { logger, getRequestId } from '@/modules/observability'
 
 /**
  * Route Handler: POST /api/webhooks/didit
@@ -12,14 +13,23 @@ import { isTerminalState } from '@/modules/verification/state-machine'
  * and recovery reprocessing for FAILED or interrupted RECEIVED events.
  */
 export async function POST(request: NextRequest) {
+  const requestId = getRequestId(request)
   const admin = createAdminClient()
+
+  const respond = (body: unknown, status: number = 200) => {
+    return NextResponse.json(body, {
+      status,
+      headers: { 'x-request-id': requestId },
+    })
+  }
+
   let rawBody: Buffer
 
   try {
     const arrayBuffer = await request.arrayBuffer()
     rawBody = Buffer.from(arrayBuffer)
   } catch {
-    return NextResponse.json({ error: 'Failed to read request body' }, { status: 400 })
+    return respond({ error: 'Failed to read request body' }, 400)
   }
 
   // 1. Convert headers into a standard record
@@ -33,8 +43,13 @@ export async function POST(request: NextRequest) {
   const parsedEvent = await provider.verifyWebhook(rawBody, headersRecord)
 
   if (!parsedEvent) {
-    console.warn('[webhook:didit] Rejected request: missing or invalid signature')
-    return NextResponse.json({ error: 'Invalid or missing signature' }, { status: 401 })
+    logger.warn('kyc.didit.webhook_rejected', {
+      subsystem: 'KYC',
+      requestId,
+      outcome: 'REJECTED',
+      errorCode: 'INVALID_SIGNATURE',
+    })
+    return respond({ error: 'Invalid or missing signature' }, 401)
   }
 
   const { eventId, sessionId, eventType } = parsedEvent
@@ -66,28 +81,46 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       if (fetchError || !existingLedger) {
-        console.error('[webhook:didit] Failed to fetch existing event ledger:', fetchError?.message)
-        return NextResponse.json({ error: 'Internal server error resolving event' }, { status: 500 })
+        logger.error('kyc.didit.webhook_failed', {
+          subsystem: 'KYC',
+          requestId,
+          outcome: 'FAILURE',
+          errorCode: 'FETCH_LEDGER_FAILED',
+          error: fetchError,
+        })
+        return respond({ error: 'Internal server error resolving event' }, 500)
       }
 
       // Idempotent completion: return 200 without duplicate side effects
       if (existingLedger.processing_status === 'PROCESSED') {
-        return NextResponse.json({ message: 'Event already received and processed' }, { status: 200 })
+        return respond({ message: 'Event already received and processed' }, 200)
       }
 
       if (existingLedger.processing_status === 'IGNORED') {
-        return NextResponse.json({ message: 'Event previously ignored' }, { status: 200 })
+        return respond({ message: 'Event previously ignored' }, 200)
       }
 
       // Recoverable states: FAILED (previous attempt failed) or RECEIVED (interrupted execution)
       ledgerId = existingLedger.id
       isReprocessingRetry = true
-      console.info(
-        `[webhook:didit] Reprocessing retry for event ${eventId} in status ${existingLedger.processing_status}`
-      )
+      logger.info('kyc.didit.webhook_recovered', {
+        subsystem: 'KYC',
+        requestId,
+        outcome: 'RECOVERED',
+        metadata: {
+          provider: provider.providerName,
+          processingStatus: existingLedger.processing_status,
+        },
+      })
     } else {
-      console.error('[webhook:didit] Failed to record event ledger:', insertError.message)
-      return NextResponse.json({ error: 'Internal server error recording event' }, { status: 500 })
+      logger.error('kyc.didit.webhook_failed', {
+        subsystem: 'KYC',
+        requestId,
+        outcome: 'FAILURE',
+        errorCode: 'RECORD_LEDGER_FAILED',
+        error: insertError,
+      })
+      return respond({ error: 'Internal server error recording event' }, 500)
     }
   } else if (insertedEvent) {
     ledgerId = insertedEvent.id
@@ -101,16 +134,16 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existingLedger?.processing_status === 'PROCESSED') {
-      return NextResponse.json({ message: 'Event already received and processed' }, { status: 200 })
+      return respond({ message: 'Event already received and processed' }, 200)
     }
     if (existingLedger?.processing_status === 'IGNORED') {
-      return NextResponse.json({ message: 'Event previously ignored' }, { status: 200 })
+      return respond({ message: 'Event previously ignored' }, 200)
     }
     if (existingLedger?.id) {
       ledgerId = existingLedger.id
       isReprocessingRetry = true
     } else {
-      return NextResponse.json({ message: 'Duplicate event ignored' }, { status: 200 })
+      return respond({ message: 'Duplicate event ignored' }, 200)
     }
   }
 
@@ -129,7 +162,12 @@ export async function POST(request: NextRequest) {
     // Correlate with internal verification record
     const verificationRecord = await getVerificationBySessionId(sessionId)
     if (!verificationRecord) {
-      console.warn('[webhook:didit] Session ID not found in database:', sessionId.slice(0, 8) + '***')
+      logger.warn('kyc.didit.webhook_ignored', {
+        subsystem: 'KYC',
+        requestId,
+        outcome: 'SKIPPED',
+        errorCode: 'SESSION_NOT_FOUND',
+      })
       await admin
         .from('verification_webhook_events')
         .update({
@@ -139,12 +177,17 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', ledgerId)
 
-      return NextResponse.json({ message: 'Session not found, event ignored' }, { status: 200 })
+      return respond({ message: 'Session not found, event ignored' }, 200)
     }
 
     // Terminal state protection: Do not degrade VERIFIED records
     if (isTerminalState(verificationRecord.status)) {
-      console.info('[webhook:didit] Terminal state VERIFIED protected against incoming update')
+      logger.info('kyc.didit.webhook_ignored', {
+        subsystem: 'KYC',
+        requestId,
+        outcome: 'SKIPPED',
+        metadata: { reason: 'TERMINAL_STATE_PROTECTED' },
+      })
       await admin
         .from('verification_webhook_events')
         .update({
@@ -154,7 +197,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', ledgerId)
 
-      return NextResponse.json({ message: 'Terminal state protected' }, { status: 200 })
+      return respond({ message: 'Terminal state protected' }, 200)
     }
 
     // Fetch authoritative decision from provider (Zero Trust on webhook payload)
@@ -192,7 +235,12 @@ export async function POST(request: NextRequest) {
         .lt('onboarding_step', 5)
 
       if (accountUpdateError) {
-        console.error('[webhook:didit] Error advancing account onboarding_step:', accountUpdateError.message)
+        logger.error('kyc.didit.account_advance_failed', {
+          subsystem: 'KYC',
+          requestId,
+          outcome: 'FAILURE',
+          error: accountUpdateError,
+        })
       }
     }
 
@@ -206,13 +254,25 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', ledgerId)
 
-    return NextResponse.json({
+    logger.info('kyc.didit.webhook_processed', {
+      subsystem: 'KYC',
+      requestId,
+      outcome: 'SUCCESS',
+      metadata: { status: decision.normalizedStatus },
+    })
+
+    return respond({
       success: true,
       status: decision.normalizedStatus,
-    })
+    }, 200)
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Unknown error during webhook processing'
-    console.error('[webhook:didit] Processing error:', errorMsg)
+    logger.error('kyc.didit.webhook_failed', {
+      subsystem: 'KYC',
+      requestId,
+      outcome: 'FAILURE',
+      error: err,
+    })
 
     await admin
       .from('verification_webhook_events')
@@ -223,6 +283,6 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', ledgerId)
 
-    return NextResponse.json({ error: 'Webhook processing error' }, { status: 500 })
+    return respond({ error: 'Webhook processing error' }, 500)
   }
 }

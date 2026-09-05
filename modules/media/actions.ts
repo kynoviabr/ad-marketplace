@@ -24,6 +24,7 @@ import type { MediaActionResult, ProfileMedia, SignedUploadUrlResponse } from '.
 import { redirect } from 'next/navigation'
 import { resolveEntitlements } from '@/modules/billing/entitlements'
 import { ImageProcessingError, validateAndSanitizeImage } from './processing'
+import { logger } from '@/modules/observability'
 
 const SIGNED_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000
 
@@ -34,8 +35,13 @@ async function markMediaProcessingFailed(mediaId: string): Promise<void> {
       status: 'PROCESSING_FAILED',
       updated_at: new Date().toISOString(),
     }).eq('id', mediaId).in('status', ['UPLOADING', 'PROCESSING'])
-  } catch {
-    console.error('[media:confirmUpload] Unable to persist safe processing failure state')
+  } catch (err) {
+    logger.error('media.photo.failure_state_persist_failed', {
+      subsystem: 'MEDIA',
+      outcome: 'FAILURE',
+      metadata: { mediaId },
+      error: err,
+    })
   }
 }
 
@@ -241,7 +247,13 @@ export async function confirmMediaUploadAction(
     return { success: true, data: updated as ProfileMedia }
   } catch (error) {
     if (processingMediaId) await markMediaProcessingFailed(processingMediaId)
-    console.error('[media:confirmUpload] Image processing failed safely')
+    logger.error('media.photo.processing_failed', {
+      subsystem: 'MEDIA',
+      outcome: 'FAILURE',
+      errorCode: error instanceof ImageProcessingError ? error.code : 'PROCESSING_FAILED',
+      metadata: { mediaId: processingMediaId ?? undefined },
+      error,
+    })
     return { success: false, error: safeImageProcessingError(error) }
   }
 }
