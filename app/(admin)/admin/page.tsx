@@ -86,6 +86,28 @@ export default async function AdminOperationsPage() {
             {isPt ? 'Últimos eventos registrados' : 'Latest recorded events'}
           </span>
         </div>
+
+        <Link
+          href="/admin/health"
+          style={{
+            background: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '.5rem',
+            padding: '1rem',
+            textDecoration: 'none',
+            display: 'block',
+          }}
+        >
+          <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase', fontWeight: 600 }}>
+            {isPt ? 'Saúde do Sistema' : 'System Health'}
+          </span>
+          <strong style={{ display: 'block', color: '#10b981', fontSize: '1.25rem', marginTop: '.35rem' }}>
+            {isPt ? 'Verificar Monitor →' : 'View Monitor →'}
+          </strong>
+          <span style={{ color: '#9ca3af', fontSize: '.75rem' }}>
+            {isPt ? 'Integridade e telemetria' : 'Integrity & telemetry'}
+          </span>
+        </Link>
       </section>
 
       {/* Grid: Profiles Requiring Attention & Media Requiring Attention */}

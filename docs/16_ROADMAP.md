@@ -61,7 +61,8 @@ To deliver compelling professional value and establish deep competitive differen
 - **Sub-phases**:
   - **PX1A — Correlation IDs + Structured Logging Foundation**: **RESOLVED** (Canonical `x-request-id` header, safe regex validation, Next.js `proxy.ts` propagation, structured JSON logger, recursive sensitive data redaction, safe error serializer, targeted adoption across Didit KYC, OAuth, Billing, Media, and Health boundaries; 55/55 dedicated tests PASS).
   - **PX1B — Health Probes & Operational Integrity Foundation**: **RESOLVED** (Typed health probe contracts, subsystem status and criticality models, safe isolated runner with timeouts, 7 subsystem probes [Database, Auth, Storage, Didit KYC, Billing, Email/OTP, App Config], system health snapshot aggregator with structured observability logging, minimal anonymous public `/api/health` hardening, and Backlog Item H canonical operational status alignment; 161/161 test suites and 1,616 tests PASS).
-  - **PX1C — Admin System Health Dashboard (`/admin/health`)**: PENDING (Immediate Next Sub-phase).
+  - **PX1C — Admin System Health Dashboard (`/admin/health`)**: **RESOLVED** (Secure operator dashboard at `/admin/health`, strict `requireAdmin()` server guard, overall status banner & metric counters, dynamic subsystem probe cards with friendly naming, criticality & probe mode guidance, safe metadata allowlist, manual re-check Server Action with correlation IDs, responsive accessible UI, navigation integration, and zero public leakage; 14/14 dedicated tests PASS).
+  - **PX1 Foundation Status**: **COMPLETE (100% RESOLVED)**.
 - **Out of Scope**: Third-party paid APM subscriptions, external telemetry agents.
 - **Dependencies**: R12 admin layout foundation.
 - **Data Model**: `operational_health_probes` (transient probe cache).
@@ -182,7 +183,7 @@ The technical hardening findings identified during R12 analysis are preserved an
 | **Item F** | OAuth callback & auth redirect trusted origin validation | **Continuous Security Guardrail** | **RESOLVED** (Enforced server-authoritative origin, Host spoofing tests PASS) |
 | **Item E** | Media delivery publication gate enforcement | **Continuous Security Guardrail** | **RESOLVED** (Enforced canonical publication eligibility for public media; 12/12 dedicated tests PASS) |
 | **Item I** | CLIENT signup error handling & provisioning atomicity | **Continuous Security Guardrail** | **RESOLVED & DEV VALIDATED** (Database-owned atomic membership provisioning via account_users trigger; 30/30 DEV migrations in sync; dedicated test suite PASS) |
-| **Item H** | Admin operational classification drift vs canonical view | **Continuous Security Guardrail** | **Fix during PX1** (Observability / Health alignment) |
+| **Item H** | Admin operational classification drift vs canonical view | **Continuous Security Guardrail** | **RESOLVED** (Fixed in PX1B; canonical eligibility strictly governs operational classification; verified by dedicated tests) |
 | **Item A** | Canonical publication eligibility in utility helpers | **Continuous Security Guardrail** | **Fix during PX2 / PX4** (Analytics / Agenda gating) |
 | **Item B** | Non-atomic mutation and audit trail pairs | **Continuous Security Guardrail** | **Fix during PX7** (Cybersecurity & Atomic RPCs) |
 | **Item C** | Audit tables lacking DB immutability triggers & FK cascade | **Continuous Security Guardrail** | **Fix during PX7** (Cybersecurity & Ledger Immutability) |
@@ -258,6 +259,8 @@ Executed only **after** the GTM Ready Gate is achieved:
   - **Media Publication Gate Enforcement (Backlog Item E) — RESOLVED** (Enforced canonical publication eligibility view for public media; 12/12 dedicated tests PASS).
   - **CLIENT Provisioning Consistency (Backlog Item I) — RESOLVED & DEV VALIDATED** (Database-owned atomic membership provisioning via `trg_ensure_client_membership` trigger on `account_users`; 30/30 DEV migrations applied and verified in DEV; 233/233 auth suite tests PASS).
 - **All Pre-PX1 Critical Guardrails**: **RESOLVED (100% COMPLETE)**.
-- **Current Product Workstream**: **PX1 — Observability & Telemetry Foundation**.
+- **Completed Product Workstream**: **PX1 — Observability & Telemetry Foundation** (**100% RESOLVED** across PX1A, PX1B, PX1C).
   - **PX1A — Correlation IDs + Structured Logging Foundation**: **RESOLVED** (55/55 tests PASS).
-  - **Immediate Next Development Step**: **PX1B — Health Probes & Operational Integrity Foundation**.
+  - **PX1B — Health Probes & Operational Integrity Foundation**: **RESOLVED** (7/7 subsystem probes; Backlog Item H aligned; 161/161 suites PASS).
+  - **PX1C — Admin System Health Dashboard (`/admin/health`)**: **RESOLVED** (Operator dashboard, strict admin guard, safe metadata, manual re-check; 14/14 tests PASS).
+- **Immediate Next Development Workstream**: **PX2 — Professional Analytics 2.0**.

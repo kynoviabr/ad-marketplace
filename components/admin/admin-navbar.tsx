@@ -19,6 +19,7 @@ export function AdminNavbar() {
     { href: '/admin/billing', label: t('admin.subscriptions') },
     { href: '/admin/boosts', label: t('admin.boosts') },
     { href: '/admin/analytics', label: t('admin.analytics') },
+    { href: '/admin/health', label: t('admin.systemHealth') },
   ]
 
   return (
