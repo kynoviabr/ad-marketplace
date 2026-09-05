@@ -185,4 +185,64 @@ describe('PX2A — Canonical Publication Eligibility & Ingestion Deduplication',
     expect(result.success).toBe(true)
     expect(result.ignored).toBe(true)
   })
+
+  it('assigns deterministic event_key and deduplicates PROFILE_IMPRESSION events per session, placement and page', async () => {
+    vi.mocked(getProfileBySlug).mockResolvedValue({
+      id: 'profile-eligible-id',
+      slug: 'eligible-profile',
+      status: 'ACTIVE',
+    } as any)
+
+    vi.mocked(getCityBySlug).mockResolvedValue({
+      id: 'city-sp-id',
+      name: 'São Paulo',
+      slug: 'sao-paulo',
+    } as any)
+
+    let insertedRow: any = null
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'v_publication_eligible_profiles') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { profile_id: 'profile-eligible-id' },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
+      if (table === 'analytics_events') {
+        return {
+          insert: async (row: any) => {
+            insertedRow = row
+            return { error: null }
+          },
+        }
+      }
+
+      return {}
+    })
+
+    const sessionId = '44444444-4444-4444-a444-444444444444'
+    const occurredAt = '2026-09-05T18:00:00.000Z'
+
+    const result = await ingestClientEvent({
+      event_type: 'PROFILE_IMPRESSION',
+      profile_slug: 'eligible-profile',
+      city_slug: 'sao-paulo',
+      placement_type: 'ORGANIC',
+      result_page: 2,
+      result_position: 5,
+      occurred_at: occurredAt,
+      visitor_session_id: sessionId,
+    })
+
+    expect(result.success).toBe(true)
+    expect(insertedRow).toBeTruthy()
+    expect(insertedRow.event_type).toBe('PROFILE_IMPRESSION')
+    expect(insertedRow.event_key).toBe(`imp:${sessionId}:profile-eligible-id:ORGANIC:2:2026-09-05`)
+  })
 })

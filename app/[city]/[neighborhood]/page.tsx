@@ -7,6 +7,7 @@ import { isReservedSlug, SearchQuerySchema } from '@/modules/search/schemas'
 import { recordSearchPerformedEvent } from '@/modules/analytics/write'
 import { PublicSearchFilters } from '@/components/search/public-search-filters'
 import { PublicProfileCard } from '@/components/public/public-profile-card'
+import { ImpressionTracker } from '@/components/analytics/impression-tracker'
 import { resolveProfilesWithMedia } from '@/modules/media/delivery'
 import {
   getLocationSeoData,
@@ -197,15 +198,24 @@ export default async function NeighborhoodSearchPage({
         ) : (
           <div className="velvet-explore-grid">
             {profilesWithMedia.map((profile, index) => (
-              <PublicProfileCard
+              <ImpressionTracker
                 key={profile.id}
-                profile={profile}
-                mediaUrl={profile.mediaUrl}
-                priority={index < 4}
-                variant="search"
-                cityName={filterOptions.city.name}
-                locale={locale}
-              />
+                profileSlug={profile.slug}
+                citySlug={citySlug}
+                locationSlug={neighborhoodSlug}
+                placementType={profile.isSponsored ? 'SPONSORED' : 'ORGANIC'}
+                resultPage={searchResponse.page}
+                resultPosition={index + 1}
+              >
+                <PublicProfileCard
+                  profile={profile}
+                  mediaUrl={profile.mediaUrl}
+                  priority={index < 4}
+                  variant="search"
+                  cityName={filterOptions.city.name}
+                  locale={locale}
+                />
+              </ImpressionTracker>
             ))}
           </div>
         )}

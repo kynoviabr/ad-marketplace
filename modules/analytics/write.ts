@@ -162,11 +162,15 @@ export async function ingestClientEvent(payload: IngestionEventPayload): Promise
     }
   }
 
-  // 5. Build canonical row with Session Deduplication Key for Profile Views
+  // 5. Build canonical row with Session Deduplication Key for Profile Views and Impressions
   let eventKey: string | null = null
   if (payload.event_type === 'PROFILE_VIEWED') {
     const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(eventTime)
     eventKey = `view:${payload.visitor_session_id}:${profile.id}:${dateStr}`
+  } else if (payload.event_type === 'PROFILE_IMPRESSION') {
+    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(eventTime)
+    const pageNum = 'result_page' in payload && payload.result_page ? payload.result_page : 1
+    eventKey = `imp:${payload.visitor_session_id}:${profile.id}:${finalPlacementType || 'ORGANIC'}:${pageNum}:${dateStr}`
   }
 
   const resultPage = 'result_page' in payload ? payload.result_page ?? null : null
