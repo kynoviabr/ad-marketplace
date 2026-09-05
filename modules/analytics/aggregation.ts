@@ -56,20 +56,21 @@ export async function aggregateDailyMetrics(targetDateStr?: string): Promise<Agg
   const events = rawEvents || []
 
   // 4. Aggregate by Profile
-  const profileMap = new Map<
-    string,
-    {
-      impressions_total: number
-      impressions_organic: number
-      impressions_sponsored: number
-      views_total: number
-      views_organic: number
-      views_sponsored: number
-      whatsapp_clicks: number
-      phone_clicks: number
-      telegram_clicks: number
-    }
-  >()
+  interface ProfileAggregate {
+    impressions_total: number
+    impressions_organic: number
+    impressions_sponsored: number
+    views_total: number
+    views_organic: number
+    views_sponsored: number
+    whatsapp_clicks: number
+    phone_clicks: number
+    telegram_clicks: number
+    hourly: Map<string, { impressions: number; views: number; contacts: number }>
+    locations: Map<string | null, { impressions: number; views: number; contacts: number }>
+  }
+
+  const profileMap = new Map<string, ProfileAggregate>()
 
   // Platform counters
   let searchesTotal = 0
@@ -102,13 +103,41 @@ export async function aggregateDailyMetrics(targetDateStr?: string): Promise<Agg
           whatsapp_clicks: 0,
           phone_clicks: 0,
           telegram_clicks: 0,
+          hourly: new Map(),
+          locations: new Map(),
         })
       }
       const p = profileMap.get(ev.profile_id)!
 
+      // Compute America/Sao_Paulo hour (0..23)
+      let hourKey = '0'
+      try {
+        const rawHour = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Sao_Paulo',
+          hour: 'numeric',
+          hour12: false,
+        }).format(new Date(ev.occurred_at))
+        hourKey = String(parseInt(rawHour, 10))
+      } catch {
+        hourKey = '0'
+      }
+
+      if (!p.hourly.has(hourKey)) {
+        p.hourly.set(hourKey, { impressions: 0, views: 0, contacts: 0 })
+      }
+      const hEntry = p.hourly.get(hourKey)!
+
+      const locKey = ev.location_id ?? null
+      if (!p.locations.has(locKey)) {
+        p.locations.set(locKey, { impressions: 0, views: 0, contacts: 0 })
+      }
+      const locEntry = p.locations.get(locKey)!
+
       if (ev.event_type === 'PROFILE_IMPRESSION') {
         p.impressions_total += 1
         platformImpressionsTotal += 1
+        hEntry.impressions += 1
+        locEntry.impressions += 1
         if (ev.placement_type === 'SPONSORED') {
           p.impressions_sponsored += 1
           platformImpressionsSponsored += 1
@@ -119,6 +148,8 @@ export async function aggregateDailyMetrics(targetDateStr?: string): Promise<Agg
       } else if (ev.event_type === 'PROFILE_VIEWED') {
         p.views_total += 1
         platformViewsTotal += 1
+        hEntry.views += 1
+        locEntry.views += 1
         if (ev.placement_type === 'SPONSORED') {
           p.views_sponsored += 1
         } else {
@@ -127,6 +158,8 @@ export async function aggregateDailyMetrics(targetDateStr?: string): Promise<Agg
       } else if (ev.event_type === 'CONTACT_WHATSAPP_CLICKED') {
         p.whatsapp_clicks += 1
         platformClicksTotal += 1
+        hEntry.contacts += 1
+        locEntry.contacts += 1
         if (ev.placement_type === 'SPONSORED') {
           platformClicksSponsored += 1
         } else {
@@ -134,14 +167,34 @@ export async function aggregateDailyMetrics(targetDateStr?: string): Promise<Agg
         }
       } else if (ev.event_type === 'CONTACT_PHONE_CLICKED') {
         p.phone_clicks += 1
+        hEntry.contacts += 1
+        locEntry.contacts += 1
       } else if (ev.event_type === 'CONTACT_TELEGRAM_CLICKED') {
         p.telegram_clicks += 1
+        hEntry.contacts += 1
+        locEntry.contacts += 1
       }
     }
   }
 
   // 5. Upsert into profile_daily_metrics (Deterministic overwrite)
   for (const [profileId, metrics] of profileMap.entries()) {
+    const locationBreakdown = Array.from(metrics.locations.entries()).map(([locId, d]) => ({
+      location_id: locId,
+      impressions: d.impressions,
+      views: d.views,
+      contacts: d.contacts,
+    }))
+
+    const hourlyBreakdown: Record<string, { impressions: number; views: number; contacts: number }> = {}
+    for (const [hKey, d] of metrics.hourly.entries()) {
+      hourlyBreakdown[hKey] = {
+        impressions: d.impressions,
+        views: d.views,
+        contacts: d.contacts,
+      }
+    }
+
     const { error: pErr } = await admin
       .from('profile_daily_metrics')
       .upsert(
@@ -157,6 +210,8 @@ export async function aggregateDailyMetrics(targetDateStr?: string): Promise<Agg
           whatsapp_clicks: metrics.whatsapp_clicks,
           phone_clicks: metrics.phone_clicks,
           telegram_clicks: metrics.telegram_clicks,
+          location_breakdown: locationBreakdown,
+          hourly_breakdown: hourlyBreakdown,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'profile_id,metric_date' }

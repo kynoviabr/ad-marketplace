@@ -72,13 +72,17 @@ describe('FASE 09 — Live Supabase DEV Analytics Integration Tests', () => {
     }
     expect(testAccountId).toBeTruthy()
 
-    // 3. Create professional profile
+    // 3. Create professional profile with publication prerequisites
     testProfileSlug = `prof-analytics-test-${Date.now()}`
     const { data: prof, error: profErr } = await admin
       .from('professional_profiles')
       .insert({
         account_user_id: testAccountId,
         stage_name: 'Analytics Test Profile',
+        headline: 'Modelo e Acompanhante em Moema',
+        bio: 'Atendimento exclusivo de alto padrão com discrição total e elegância.',
+        show_whatsapp: true,
+        whatsapp_phone: '+5511999999999',
         slug: testProfileSlug,
         status: 'ACTIVE',
         content_moderation_status: 'APPROVED',
@@ -95,6 +99,38 @@ describe('FASE 09 — Live Supabase DEV Analytics Integration Tests', () => {
       location_id: moemaLocationId,
       is_primary: true,
     })
+
+    // 4.1 Satisfy identity verification gate
+    await admin.from('identity_verifications').insert({
+      account_user_id: testAccountId,
+      provider: 'MOCK',
+      provider_session_id: `sess_ana_${Date.now()}`,
+      status: 'VERIFIED',
+      identity_verified: true,
+      age_verified: true,
+      verified_at: new Date().toISOString(),
+    })
+
+    // 4.2 Satisfy approved primary media gate
+    const { error: mediaErr } = await admin.from('profile_media').insert({
+      profile_id: testProfileId,
+      storage_path: `test/${testProfileId}/photo.jpg`,
+      status: 'APPROVED',
+      is_primary: true,
+      position: 1,
+      mime_type: 'image/jpeg',
+      file_size_bytes: 1024,
+    })
+    expect(mediaErr).toBeNull()
+
+    // 4.3 Satisfy entitlement gate via billing override
+    const { error: boErr } = await admin.from('billing_overrides').insert({
+      account_user_id: testAccountId,
+      granted_by: testAccountId,
+      reason: 'PX2A Analytics Integration Test Fixture',
+      expires_at: new Date(Date.now() + 86400000).toISOString(),
+    })
+    expect(boErr).toBeNull()
 
     // 5. Create active boost campaign fixture
     const { data: product } = await admin
@@ -143,8 +179,13 @@ describe('FASE 09 — Live Supabase DEV Analytics Integration Tests', () => {
     if (testProfileId) {
       await admin.from('analytics_events').delete().eq('profile_id', testProfileId)
       await admin.from('profile_daily_metrics').delete().eq('profile_id', testProfileId)
+      await admin.from('profile_media').delete().eq('profile_id', testProfileId)
       await admin.from('professional_profile_locations').delete().eq('profile_id', testProfileId)
       await admin.from('professional_profiles').delete().eq('id', testProfileId)
+    }
+    if (testAccountId) {
+      await admin.from('billing_overrides').delete().eq('account_user_id', testAccountId)
+      await admin.from('identity_verifications').delete().eq('account_user_id', testAccountId)
     }
     if (testAuthUserId) {
       await admin.auth.admin.deleteUser(testAuthUserId)

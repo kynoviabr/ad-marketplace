@@ -105,6 +105,18 @@ export async function ingestClientEvent(payload: IngestionEventPayload): Promise
     return { success: true, ignored: true }
   }
 
+  // 1.1 Check Canonical Publication Eligibility (Gate Enforcement)
+  const { data: eligible } = await admin
+    .from('v_publication_eligible_profiles')
+    .select('profile_id')
+    .eq('profile_id', profile.id)
+    .maybeSingle()
+
+  if (!eligible) {
+    // Non-eligible, draft, suspended, or unverified profiles cannot accumulate public discovery metrics
+    return { success: true, ignored: true }
+  }
+
   // 2. Resolve City
   const city = await getCityBySlug(payload.city_slug)
   if (!city) {
@@ -150,12 +162,19 @@ export async function ingestClientEvent(payload: IngestionEventPayload): Promise
     }
   }
 
-  // 5. Build canonical row
+  // 5. Build canonical row with Session Deduplication Key for Profile Views
+  let eventKey: string | null = null
+  if (payload.event_type === 'PROFILE_VIEWED') {
+    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(eventTime)
+    eventKey = `view:${payload.visitor_session_id}:${profile.id}:${dateStr}`
+  }
+
   const resultPage = 'result_page' in payload ? payload.result_page ?? null : null
   const resultPosition = 'result_position' in payload ? payload.result_position ?? null : null
   const referrerType = 'referrer_type' in payload ? payload.referrer_type ?? null : null
 
   const { error } = await admin.from('analytics_events').insert({
+    event_key: eventKey,
     event_type: payload.event_type,
     occurred_at: payload.occurred_at,
     received_at: nowIso,
@@ -171,6 +190,10 @@ export async function ingestClientEvent(payload: IngestionEventPayload): Promise
   })
 
   if (error) {
+    // 23505 = unique_violation on uq_analytics_server_event_key (idempotent dedupe)
+    if (error.code === '23505') {
+      return { success: true, ignored: true }
+    }
     console.error('[analytics:ingestClientEvent] Database insert error:', error.message)
     return { success: false }
   }

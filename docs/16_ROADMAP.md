@@ -77,14 +77,17 @@ To deliver compelling professional value and establish deep competitive differen
 - **Product Value**: Transforms raw view counts into actionable business intelligence, helping professionals understand conversion rates, high-performing neighborhoods, and return on subscription.
 - **User**: Professional Advertiser.
 - **Scope**: Conversion funnel (Impression → Profile View → WhatsApp/Phone Contact), week-over-week and month-over-month comparative benchmarks, neighborhood/location engagement breakdown, peak engagement days/hours, audience performance (`PUBLIC` vs `VIP_ONLY`), redesigned dashboard analytics UI.
+- **Sub-phases**:
+  - **PX2A — Measurement Integrity + Funnel & Aggregation Foundation**: **RESOLVED** (Additive migration `20260905040000_profile_daily_metrics_extensions.sql` applied to DEV; 31/31 migrations in canonical sync; canonical funnel semantics Impression → Profile View → Contact Intent; session-scoped client and server event_key deduplication; publication eligibility gate enforcement via `v_publication_eligible_profiles`; daily, hourly, location, and peak-time aggregation; zero-baseline safe math in `modules/analytics/funnel.ts`; typed DAL query `getProfessionalAnalyticsOverview` with strict ownership isolation; 63/63 analytics tests PASS; synthetic DEV validation clean with zero residual records).
+  - **PX2B — Professional Analytics Dashboard UI & Insights Surface**: **CURRENT NEXT STEP** (Interactive visual conversion funnel, 7/30/90-day comparative delta indicators, hourly and day-of-week peak time cards, top location performance table, audience mode display, textual accessibility alternatives).
 - **Out of Scope**: Real-time streaming counters, external tracker pixels, competitor deanonymization.
 - **Dependencies**: FASE 09 analytics event foundation, PX1 telemetry.
-- **Data Model**: Extensions to `profile_daily_metrics` (conversion ratios, location breakdown JSONB).
+- **Data Model**: `profile_daily_metrics` (extended with `location_breakdown JSONB` and `hourly_breakdown JSONB`).
 - **Expected Modules**: `modules/analytics/`, `app/(dashboard)/dashboard/analytics/`, `components/dashboard/analytics/`.
-- **Expected Migrations**: 1 additive migration extending daily aggregation schema and query indexes.
-- **Security Considerations**: Zero raw IP persistence; differential privacy; no cross-advertiser data leakage.
+- **Expected Migrations**: `20260905040000_profile_daily_metrics_extensions.sql` (applied in DEV).
+- **Security Considerations**: Zero raw IP persistence; differential privacy; no cross-advertiser data leakage; canonical publication gate enforcement.
 - **Observability Requirements**: Metric aggregation latency telemetry, hourly aggregation job health.
-- **Test Strategy**: Historical aggregate calculation tests, funnel percentage precision tests.
+- **Test Strategy**: Historical aggregate calculation tests, funnel percentage precision tests, zero-baseline comparison math tests, professional ownership authorization tests.
 - **Exit Criteria**: Advertiser dashboard displays interactive funnel, neighborhood breakdown, and weekly trend comparison.
 
 ### PX3 — Agenda & Availability Foundation
