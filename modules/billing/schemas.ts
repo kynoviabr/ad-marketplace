@@ -8,9 +8,7 @@ import { z } from 'zod'
 export const InitiateCheckoutSchema = z.object({
   planId: z.string().uuid('Plan ID inválido.'),
   priceId: z.string().uuid('Price ID inválido.'),
-  successUrl: z.string().url().optional(),
-  cancelUrl: z.string().url().optional(),
-})
+}).strict()
 export type InitiateCheckoutInput = z.infer<typeof InitiateCheckoutSchema>
 
 /** Cancellation request. */

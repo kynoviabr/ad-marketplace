@@ -32,7 +32,7 @@ describe('FASE 07 — Billing Security', () => {
     expect(InitiateCheckoutSchema.safeParse(invalidPrice).success).toBe(false)
   })
 
-  it('InitiateCheckoutSchema does NOT accept amount field (extra fields stripped by Zod)', () => {
+  it('InitiateCheckoutSchema rejects unknown client-controlled billing fields', () => {
     const payloadWithTamperedAmount = {
       planId: validUUID1,
       priceId: validUUID2,
@@ -40,15 +40,7 @@ describe('FASE 07 — Billing Security', () => {
       amountMinor: 1,
     }
 
-    const parsed = InitiateCheckoutSchema.parse(payloadWithTamperedAmount)
-
-    // Zod strips unknown fields by default
-    expect((parsed as any).amount).toBeUndefined()
-    expect((parsed as any).amountMinor).toBeUndefined()
-    expect(parsed).toEqual({
-      planId: validUUID1,
-      priceId: validUUID2,
-    })
+    expect(InitiateCheckoutSchema.safeParse(payloadWithTamperedAmount).success).toBe(false)
   })
 
   it('client cannot send arbitrary amount in checkout (schema validation)', () => {
@@ -59,9 +51,7 @@ describe('FASE 07 — Billing Security', () => {
       currency: 'USD',
     }
 
-    const parsed = InitiateCheckoutSchema.parse(maliciousPayload)
-    expect((parsed as any).custom_price).toBeUndefined()
-    expect((parsed as any).currency).toBeUndefined()
+    expect(InitiateCheckoutSchema.safeParse(maliciousPayload).success).toBe(false)
   })
 
   it('CancelSubscriptionSchema requires valid UUID', () => {

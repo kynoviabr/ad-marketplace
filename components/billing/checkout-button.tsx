@@ -8,8 +8,6 @@ export interface CheckoutButtonProps {
   priceId: string
   label: string
   disabled: boolean
-  successUrl?: string
-  cancelUrl?: string
 }
 
 export function CheckoutButton({
@@ -17,8 +15,6 @@ export function CheckoutButton({
   priceId,
   label,
   disabled,
-  successUrl,
-  cancelUrl,
 }: CheckoutButtonProps) {
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -33,8 +29,6 @@ export function CheckoutButton({
       const result = await initiateCheckoutAction({
         planId,
         priceId,
-        successUrl,
-        cancelUrl,
       })
 
       if (!result.success) {

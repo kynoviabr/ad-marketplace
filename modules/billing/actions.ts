@@ -19,6 +19,7 @@ import { getActiveSubscription, getPriceById, getSubscriptionWithPlan } from './
 import { getPaymentProvider } from './providers/registry'
 import { DEFAULT_CURRENCY } from './constants'
 import { isSubscriptionPublicationEligible } from './subscription-eligibility'
+import { getTrustedCheckoutReturnUrls } from './return-urls'
 
 const FOUNDER_GRANT_SOURCE = 'FOUNDER_LAUNCH'
 
@@ -224,7 +225,10 @@ export async function initiateCheckoutAction(
       return { success: false, error: 'Use a criação gratuita para preços sem custo.' }
     }
 
-    // 4. Create provider customer and checkout session
+    // 4. Return destinations are fixed and derived from the trusted server origin.
+    const { successUrl, cancelUrl } = getTrustedCheckoutReturnUrls()
+
+    // 5. Create provider customer and checkout session
     const provider = getPaymentProvider()
     const customer = await provider.createCustomer(account.id, account.auth_user_id)
     const checkout = await provider.createCheckoutSession({
@@ -233,11 +237,11 @@ export async function initiateCheckoutAction(
       priceAmountMinor: price.amount_minor,
       currency: price.currency,
       billingInterval: price.billing_interval,
-      successUrl: validated.data.successUrl || `${process.env.NEXT_PUBLIC_SITE_URL || ''}/dashboard/billing?success=true`,
-      cancelUrl: validated.data.cancelUrl || `${process.env.NEXT_PUBLIC_SITE_URL || ''}/dashboard/billing?canceled=true`,
+      successUrl,
+      cancelUrl,
     })
 
-    // 5. Create INCOMPLETE subscription
+    // 6. Create INCOMPLETE subscription
     await admin
       .from('subscriptions')
       .insert({
