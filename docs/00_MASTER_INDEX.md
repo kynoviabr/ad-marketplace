@@ -1,24 +1,30 @@
 # Portal — Master Index
-STATUS: ACTIVE
-VERSION: 2.0
-LAST UPDATED: 2026-08-16
+STATUS: ACTIVE — R12 CLOSED & DEV VALIDATED
+VERSION: 3.0
+LAST UPDATED: 2026-09-05
 
 ## Project Status
-- FASE 0 — Product & Architecture: SPEC COMPLETE
-- FASE 1 — Authentication & Account: SPEC COMPLETE
-- FASE 2 — Identity & Age Verification: SPEC COMPLETE
-- FASE 3 — Professional Profile: SPEC COMPLETE
-- FASE 4 — Locations, Search, Filters & Ranking: SPEC COMPLETE
-- FASE 5 — Media / Photos: SPEC COMPLETE
-- FASE 6 — Moderation, Reports & Admin: SPEC COMPLETE
-- FASE 7 — Billing / Founders: SPEC COMPLETE (provider underwriting pending)
-- FASE 8 — Boosts & Additional Monetization: SPEC COMPLETE
-- FASE 9 — Analytics & Business Intelligence: SPEC COMPLETE
-- FASE 10 — SEO, Growth & São Paulo GTM: SPEC COMPLETE
-- FASE 11 — Security, Privacy, LGPD & Production Hardening: SPEC COMPLETE
-- FASE 12 — Closed Beta & Launch Readiness: SPEC COMPLETE
-- PRODUCT SPECIFICATION: COMPLETE
-- NEXT: IMPLEMENTATION PLAN
+- FASE 0 — Product & Architecture: IMPLEMENTED & CLOSED
+- FASE 1 — Authentication & Account: IMPLEMENTED & CLOSED
+- FASE 2 — Identity & Age Verification: IMPLEMENTED & CLOSED
+- FASE 3 — Professional Profile: IMPLEMENTED & CLOSED
+- FASE 4 — Locations, Search, Filters & Ranking: IMPLEMENTED & CLOSED
+- FASE 5 — Media / Photos: IMPLEMENTED & CLOSED
+- FASE 6 — Moderation, Reports & Admin: IMPLEMENTED & CLOSED
+- FASE 7 — Billing / Founders: IMPLEMENTED & CLOSED (provider underwriting pending)
+- FASE 8 — Boosts & Additional Monetization: IMPLEMENTED & CLOSED (v1.1)
+- FASE 9 — Analytics & Business Intelligence: IMPLEMENTED & CLOSED (v1.2)
+- FASE 10 — SEO, Growth & São Paulo GTM: IMPLEMENTED & CLOSED (v1.1)
+- FASE 11 — Security, Privacy, LGPD & Production Hardening: IMPLEMENTED & CLOSED
+- FASE 12 — Closed Beta & Launch Readiness: IN PROGRESS
+  - Public Foundation, Discovery & Home (FASE 12.2A/B): CLOSED
+  - Public Search, Compliance, Offerings, Reviews, Video (Releases R5–R9): INTEGRATED
+  - Monetization Entitlements & Audience Control (Release R10): CLOSED
+  - Professional Hub & Acquisition Funnel (Release R11): CLOSED
+  - Admin Operations & Queues (Release R12 / R12.1–R12.4C2): CLOSED IN DEV
+  - Security Remediation P1-1 through P1-5: CLOSED & DEV VALIDATED (29/29 migrations in DEV)
+- CURRENT STATE: R12 SECURITY REMEDIATION DEV COMPLETE (171/171 targeted tests PASS, DEV transactional runtime PASS)
+- NEXT: Roadmap alignment & selection of next pre-launch milestone (Pre-Launch Hardening / Environment & Secrets Readiness / Closed Beta Operations)
 
 ## Key Decisions
 DEC-001 Modular monolith.
