@@ -41,9 +41,11 @@ export async function getNewProfessionals(accountId: string | null, limit = 8) {
     .is('deleted_at', null)
     .in('profile_id', sortedData.map(p => p.id))
 
+  const eligibleSet = new Set(ids)
+
   return Promise.all(sortedData.map(async p => {
     const m = media?.find(m => m.profile_id === p.id)
-    const url = m ? await getApprovedMediaDeliveryUrl(m) : null
+    const url = m ? await getApprovedMediaDeliveryUrl(m, { profileId: p.id, eligibleProfileIds: eligibleSet }) : null
     return { ...p, mediaUrl: url, mediaWidth: m?.width, mediaHeight: m?.height }
   }))
 }
@@ -92,10 +94,15 @@ export async function getNewContent(accountId: string | null, limit = 8) {
 
   combined = combined.sort((a, b) => new Date(b.approved_at!).getTime() - new Date(a.approved_at!).getTime()).slice(0, limit)
 
+  const eligibleSet = new Set(eligibleIds)
+
   const resolved = await Promise.all(combined.map(async item => {
     let url: string | null = null
     if (item.type === 'PHOTO') {
-      url = await getApprovedMediaDeliveryUrl({ status: 'APPROVED', storage_path: item.storage_path })
+      url = await getApprovedMediaDeliveryUrl(
+        { status: 'APPROVED', storage_path: item.storage_path, profile_id: item.profile_id },
+        { profileId: item.profile_id, eligibleProfileIds: eligibleSet }
+      )
     } else if (item.type === 'VIDEO' && 'poster_storage_path' in item && item.poster_storage_path) {
       url = await getApprovedVideoPosterDeliveryUrl(item.poster_storage_path)
     }

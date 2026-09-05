@@ -1,7 +1,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { hasPublicationEntitlement } from '@/modules/billing/entitlements'
-import { getApprovedMediaDeliveryUrl } from '@/modules/media/delivery'
+import { getPrivateApprovedMediaDeliveryUrl } from '@/modules/media/delivery'
 import type { ProfileMedia } from '@/modules/media/types'
 import { getPublicProfileDTO } from '@/modules/profiles/dal'
 import type { ProfessionalProfile } from '@/modules/profiles/types'
@@ -71,7 +71,7 @@ export async function getPublicationReviewState(account: AccountUser): Promise<P
   const locations = (locationsResult.data ?? []) as ProfileLocation[]
   const media = (mediaResult.data ?? []) as ProfileMedia[]
   const approvedMedia = media.filter((item) => item.status === 'APPROVED')
-  const previewPhotoUrl = await getApprovedMediaDeliveryUrl(approvedMedia.find((item) => item.is_primary) ?? null)
+  const previewPhotoUrl = await getPrivateApprovedMediaDeliveryUrl(approvedMedia.find((item) => item.is_primary) ?? null)
   const hasDataError = Boolean(verificationResult.error || locationsResult.error || mediaResult.error || entitlementResult.error || activationResult.error || publicResult.error)
   const activationEligible = !hasDataError && activationResult.value
   const publiclyEligible = !hasDataError && publicResult.value
