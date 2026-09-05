@@ -20,14 +20,17 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { verifyOAuthIntentCookie } from '@/modules/auth/oauth'
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '@/lib/config/legal-versions'
+import { getTrustedAuthCallbackOrigin, isSafeInternalRedirectPath } from '@/modules/auth/origin'
 
 function isSafeRedirect(next: string | null): next is string {
   if (!next) return false
-  return /^\/[a-zA-Z0-9/_\-?#=&%]*$/.test(next)
+  if (!/^\//.test(next)) return false
+  return isSafeInternalRedirectPath(next)
 }
 
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl?.origin || new URL(request.url).origin
+  // Origin is strictly server-authoritative; request headers (Host, X-Forwarded-Host, Forwarded) are NEVER used.
+  const origin = getTrustedAuthCallbackOrigin()
   const searchParams = request.nextUrl?.searchParams || new URL(request.url).searchParams
   const code = searchParams.get('code')
   const nextParam = searchParams.get('next')

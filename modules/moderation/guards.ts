@@ -54,6 +54,9 @@ export async function requireAdmin(): Promise<AccountUser> {
   }
 
   if (account.role !== 'ADMIN') {
+    if (account.onboarding_status === 'COMPLETED') {
+      redirect('/dashboard')
+    }
     const dest = await resolveAdvertiserDestination(account)
     redirect(dest)
   }

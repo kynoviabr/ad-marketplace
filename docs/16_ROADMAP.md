@@ -175,7 +175,7 @@ The technical hardening findings identified during R12 analysis are preserved an
 | Backlog Item | Finding Description | Strategic Category | Target Phase |
 |---|---|---|---|
 | **Item D** | Didit KYC `FAILED` webhook retry reconciliation | **Continuous Security Guardrail** | **RESOLVED** (Commit validated with retry suite) |
-| **Item F** | OAuth callback & auth redirect trusted origin validation | **Continuous Security Guardrail** | **Fix before PX1** (Host header injection defense) |
+| **Item F** | OAuth callback & auth redirect trusted origin validation | **Continuous Security Guardrail** | **RESOLVED** (Enforced server-authoritative origin, Host spoofing tests PASS) |
 | **Item E** | Media delivery publication gate enforcement | **Continuous Security Guardrail** | **Fix before PX1** (Private photo leakage prevention) |
 | **Item I** | CLIENT signup error handling & provisioning atomicity | **Continuous Security Guardrail** | **Fix before PX1** (Account consistency) |
 | **Item H** | Admin operational classification drift vs canonical view | **Continuous Security Guardrail** | **Fix during PX1** (Observability / Health alignment) |
@@ -248,6 +248,8 @@ Executed only **after** the GTM Ready Gate is achieved:
 
 ## Immediate Next Development Step
 
-- **Completed Pre-PX1 Guardrail**: **Didit FAILED Webhook Retry Reconciliation (Backlog Item D) — RESOLVED**.
-- **Remaining Pre-PX1 Guardrails**: **Backlog Items F (OAuth origin), E (Media delivery gating), I (Client provisioning)**.
+- **Completed Pre-PX1 Guardrails**:
+  - **Didit FAILED Webhook Retry Reconciliation (Backlog Item D) — RESOLVED** (Validated with 15/15 tests).
+  - **OAuth Trusted Origin Validation (Backlog Item F) — RESOLVED** (Server-authoritative origin enforced; header spoofing defense validated with 17/17 tests).
+- **Remaining Pre-PX1 Guardrails**: **Backlog Items E (Media delivery gating), I (Client provisioning)**.
 - **Next Product Workstream**: **PX1 — Observability & Telemetry Foundation**.

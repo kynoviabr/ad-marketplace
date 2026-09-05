@@ -4,9 +4,10 @@
  * Google OAuth Server Actions — R11.5A
  */
 
-import { cookies, headers } from 'next/headers'
+import { cookies } from 'next/headers'
 import { createServerClient } from '@/lib/supabase/server'
 import { createSignedOAuthIntent, type OAuthIntent } from './oauth'
+import { getTrustedAuthCallbackOrigin } from './origin'
 
 /**
  * Server Action: Initiates Google OAuth with strict intent recording.
@@ -23,13 +24,11 @@ export async function startGoogleOAuthAction(intent: OAuthIntent): Promise<{
 
   const token = createSignedOAuthIntent(intent)
   const cookieStore = await cookies()
-  const headersList = await headers()
-  const host = headersList.get('x-forwarded-host') || headersList.get('host')
-  const proto = headersList.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http')
+  const trustedOrigin = getTrustedAuthCallbackOrigin()
 
   cookieStore.set('velvet_oauth_intent', token, {
     httpOnly: true,
-    secure: proto === 'https' || process.env.NODE_ENV === 'production',
+    secure: trustedOrigin.startsWith('https:') || process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
     maxAge: 600, // 10 minutes
@@ -37,9 +36,7 @@ export async function startGoogleOAuthAction(intent: OAuthIntent): Promise<{
 
   try {
     const supabase = await createServerClient()
-    const currentOrigin = host ? `${proto}://${host}` : null
-    const appUrl = currentOrigin || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const redirectTo = `${appUrl}/auth/callback`
+    const redirectTo = `${trustedOrigin}/auth/callback`
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
