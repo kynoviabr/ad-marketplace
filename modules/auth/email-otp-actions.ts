@@ -26,7 +26,6 @@ import {
   type VerifyEmailOtpResult,
 } from './email-otp'
 import type { OAuthIntent } from './oauth'
-import { ensureClientMembership } from './client-provisioning'
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '@/lib/config/legal-versions'
 
 /**
@@ -246,15 +245,6 @@ export async function verifyEmailOtpAction(
       return {
         success: false,
         error: 'Não foi possível provisionar a conta de cliente. Tente novamente.',
-      }
-    }
-
-    const membershipResult = await ensureClientMembership(admin, updatedAccount.id)
-    if (!membershipResult.success) {
-      console.error('[Email OTP] Failed to provision client membership:', membershipResult.error)
-      return {
-        success: false,
-        error: 'Não foi possível provisionar a assinatura do cliente. Tente novamente.',
       }
     }
 

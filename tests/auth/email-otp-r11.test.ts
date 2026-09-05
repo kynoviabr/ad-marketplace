@@ -290,11 +290,9 @@ describe('R11.5C1 Email Passwordless OTP Foundation & Role Safety', () => {
           single: vi.fn().mockResolvedValue({ data: { id: 'client-acc-id' }, error: null }),
         }),
       })
-      const upsertMembershipMock = vi.fn().mockResolvedValue({ error: null })
 
       mockAdmin.from
         .mockReturnValueOnce({ upsert: upsertAccountMock })
-        .mockReturnValueOnce({ upsert: upsertMembershipMock })
 
       const result = await verifyEmailOtpAction('cli@velvet.club', '123456', 'CLIENT')
 
@@ -310,13 +308,6 @@ describe('R11.5C1 Email Passwordless OTP Foundation & Role Safety', () => {
           privacy_version: CURRENT_PRIVACY_VERSION,
         }),
         { onConflict: 'auth_user_id' }
-      )
-      expect(upsertMembershipMock).toHaveBeenCalledWith(
-        {
-          account_id: 'client-acc-id',
-          membership_type: 'FREE',
-        },
-        { onConflict: 'account_id' }
       )
     })
 

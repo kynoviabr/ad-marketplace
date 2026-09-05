@@ -348,13 +348,6 @@ describe('R11.5A Google OAuth & Intent Safety', () => {
           privacy_version: expect.any(String),
         })
       )
-      expect(upsertMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          account_id: 'client-acc-1',
-          membership_type: 'FREE',
-        }),
-        expect.any(Object)
-      )
     })
 
     it('FAIL CLOSED: ambiguous new user with LOGIN intent rolls back and redirects to /login?error=signup_intent_required', async () => {

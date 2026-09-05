@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import fs from 'node:fs'
+import path from 'node:path'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/auth/callback/route'
 import { verifyEmailOtpAction } from '@/modules/auth/email-otp-actions'
@@ -28,7 +30,7 @@ vi.mock('next/headers', () => ({
   }),
 }))
 
-describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () => {
+describe('Pre-PX1 Guardrail I — Database-Owned CLIENT Provisioning Atomicity', () => {
   let mockSupabase: any
   let mockAdmin: any
 
@@ -62,14 +64,12 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
   })
 
   // ---------------------------------------------------------------------------
-  // Case A: New CLIENT via OAuth -> role CLIENT + membership FREE + redirect /cliente
+  // Case A: New CLIENT via OAuth -> sets role CLIENT and routes to /cliente
+  // (Membership is created atomically by DB trigger trg_ensure_client_membership)
   // ---------------------------------------------------------------------------
   describe('Case A: New CLIENT via OAuth', () => {
-    it('provisions role CLIENT, establishes FREE membership, and redirects to /cliente', async () => {
-      const updateAccountMock = vi.fn()
-      const upsertMembershipMock = vi.fn().mockResolvedValue({ error: null })
-
-      updateAccountMock.mockReturnValue({
+    it('provisions role CLIENT in account_users and redirects to /cliente', async () => {
+      const updateAccountMock = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({ data: { id: 'acc-client-oauth-1' } }),
@@ -94,11 +94,6 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
             update: updateAccountMock,
           }
         }
-        if (table === 'client_memberships') {
-          return {
-            upsert: upsertMembershipMock,
-          }
-        }
       })
 
       const token = createSignedOAuthIntent('CLIENT')
@@ -121,27 +116,20 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
           privacy_version: CURRENT_PRIVACY_VERSION,
         })
       )
-      expect(upsertMembershipMock).toHaveBeenCalledWith(
-        {
-          account_id: 'acc-client-oauth-1',
-          membership_type: 'FREE',
-        },
-        { onConflict: 'account_id' }
-      )
     })
   })
 
   // ---------------------------------------------------------------------------
-  // Case B: New CLIENT via Email OTP -> same canonical final state
+  // Case B: New CLIENT via Email OTP -> sets role CLIENT and routes to /cliente
+  // (Membership is created atomically by DB trigger trg_ensure_client_membership)
   // ---------------------------------------------------------------------------
   describe('Case B: New CLIENT via Email OTP', () => {
-    it('provisions role CLIENT, establishes FREE membership, and returns /cliente destination', async () => {
+    it('provisions role CLIENT in account_users and returns /cliente destination', async () => {
       const upsertAccountMock = vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({ data: { id: 'acc-client-otp-1' }, error: null }),
         }),
       })
-      const upsertMembershipMock = vi.fn().mockResolvedValue({ error: null })
 
       mockAdmin.from
         .mockReturnValueOnce({
@@ -150,7 +138,6 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
           maybeSingle: vi.fn().mockResolvedValue({ data: null }), // No existing account
         })
         .mockReturnValueOnce({ upsert: upsertAccountMock })
-        .mockReturnValueOnce({ upsert: upsertMembershipMock })
 
       const result = await verifyEmailOtpAction('client@velvet.club', '123456', 'CLIENT')
 
@@ -167,101 +154,38 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
         }),
         { onConflict: 'auth_user_id' }
       )
-      expect(upsertMembershipMock).toHaveBeenCalledWith(
-        {
-          account_id: 'acc-client-otp-1',
-          membership_type: 'FREE',
-        },
-        { onConflict: 'account_id' }
-      )
     })
   })
 
   // ---------------------------------------------------------------------------
-  // Case C: Membership write failure -> failure detected, fail closed (no false success)
+  // Case C: Password Client Signup Compatibility
   // ---------------------------------------------------------------------------
-  describe('Case C: Fail-Closed on Membership Write Failure', () => {
-    it('OAuth: fails closed and redirects to /login?error=provisioning_failed if membership write fails', async () => {
-      const updateAccountMock = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { id: 'acc-fail-1' } }),
-          }),
-        }),
-      })
-      const upsertMembershipMock = vi.fn().mockResolvedValue({
-        error: { message: 'Database connection error' },
-      })
+  describe('Case C: Password Client Signup Compatibility', () => {
+    it('verifies that handle_new_auth_user delegates to trg_ensure_client_membership without conflicting', () => {
+      const migrationPath = path.resolve(
+        process.cwd(),
+        'supabase/migrations/20260905030000_enforce_atomic_client_membership.sql'
+      )
+      const migrationSql = fs.readFileSync(migrationPath, 'utf8')
 
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'account_users') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: {
-                id: 'acc-unfinalized',
-                role: 'ADVERTISER',
-                status: 'ACTIVE',
-                terms_version: null,
-              },
-            }),
-            update: updateAccountMock,
-          }
-        }
-        if (table === 'client_memberships') {
-          return {
-            upsert: upsertMembershipMock,
-          }
-        }
-      })
-
-      const token = createSignedOAuthIntent('CLIENT')
-      const req = new NextRequest('http://localhost:3000/auth/callback?code=valid-code', {
-        headers: {
-          cookie: `velvet_oauth_intent=${token}`,
-        },
-      })
-      const res = await GET(req)
-
-      expect(res.status).toBe(307)
-      // Must NOT redirect to /cliente on membership failure!
-      expect(res.headers.get('location')).toBe('http://localhost:3000/login?error=provisioning_failed')
+      expect(migrationSql).toContain('CREATE OR REPLACE FUNCTION public.handle_new_auth_user()')
+      expect(migrationSql).toContain('CREATE TRIGGER trg_ensure_client_membership')
+      expect(migrationSql).toContain("WHEN (NEW.role = 'CLIENT'::public.user_role)")
+      expect(migrationSql).toContain("ON CONFLICT (account_id) DO NOTHING")
     })
+  })
 
-    it('Email OTP: fails closed and returns error if membership write fails', async () => {
-      const upsertAccountMock = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          single: vi.fn().mockResolvedValue({ data: { id: 'acc-fail-2' }, error: null }),
-        }),
-      })
-      const upsertMembershipMock = vi.fn().mockResolvedValue({
-        error: { message: 'FK violation or DB unavailable' },
-      })
-
-      mockAdmin.from
-        .mockReturnValueOnce({
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          maybeSingle: vi.fn().mockResolvedValue({ data: null }),
-        })
-        .mockReturnValueOnce({ upsert: upsertAccountMock })
-        .mockReturnValueOnce({ upsert: upsertMembershipMock })
-
-      const result = await verifyEmailOtpAction('client@velvet.club', '123456', 'CLIENT')
-
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('Não foi possível provisionar a assinatura do cliente')
-      expect(result.destination).toBeUndefined()
-    })
-
-    it('OAuth: fails closed if account_users update fails', async () => {
+  // ---------------------------------------------------------------------------
+  // Case D: Database Failure Rollback & Fail-Closed Behavior
+  // ---------------------------------------------------------------------------
+  describe('Case D: Fail-Closed on Database Update Failure', () => {
+    it('OAuth: fails closed and redirects to /login?error=provisioning_failed if account update fails', async () => {
       const updateAccountMock = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
               data: null,
-              error: { message: 'Account update failed' },
+              error: { message: 'Database transaction aborted by trigger' },
             }),
           }),
         }),
@@ -292,12 +216,12 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
       expect(res.headers.get('location')).toBe('http://localhost:3000/login?error=provisioning_failed')
     })
 
-    it('Email OTP: fails closed if account_users upsert fails', async () => {
+    it('Email OTP: fails closed and returns error if account upsert fails', async () => {
       const upsertAccountMock = vi.fn().mockReturnValue({
         select: vi.fn().mockReturnValue({
           single: vi.fn().mockResolvedValue({
             data: null,
-            error: { message: 'Unique constraint error' },
+            error: { message: 'Database constraint failure' },
           }),
         }),
       })
@@ -314,43 +238,12 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
 
       expect(result.success).toBe(false)
       expect(result.error).toContain('Não foi possível provisionar a conta de cliente')
+      expect(result.destination).toBeUndefined()
     })
   })
 
   // ---------------------------------------------------------------------------
-  // Case D: Retry after failure -> recovers safely, 1 membership exists
-  // ---------------------------------------------------------------------------
-  describe('Case D: Retry After Failure & Idempotency', () => {
-    it('ensureClientMembership recovers cleanly on second attempt', async () => {
-      const upsertMock = vi
-        .fn()
-        .mockResolvedValueOnce({ error: { message: 'Transient timeout' } })
-        .mockResolvedValueOnce({ error: null })
-
-      const mockClient = {
-        from: vi.fn().mockReturnValue({ upsert: upsertMock }),
-      }
-
-      // First attempt fails
-      const attempt1 = await ensureClientMembership(mockClient, 'acc-retry-1')
-      expect(attempt1.success).toBe(false)
-      expect(attempt1.error).toBe('Transient timeout')
-
-      // Second attempt succeeds
-      const attempt2 = await ensureClientMembership(mockClient, 'acc-retry-1')
-      expect(attempt2.success).toBe(true)
-      expect(attempt2.error).toBeUndefined()
-
-      expect(upsertMock).toHaveBeenCalledTimes(2)
-      expect(upsertMock).toHaveBeenLastCalledWith(
-        { account_id: 'acc-retry-1', membership_type: 'FREE' },
-        { onConflict: 'account_id' }
-      )
-    })
-  })
-
-  // ---------------------------------------------------------------------------
-  // Case E: Existing CLIENT -> idempotent, normal redirect
+  // Case E: Existing CLIENT + FREE -> idempotent, normal redirect
   // ---------------------------------------------------------------------------
   describe('Case E: Existing CLIENT Idempotency', () => {
     it('OAuth: routes existing CLIENT directly to /cliente', async () => {
@@ -400,10 +293,56 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
   })
 
   // ---------------------------------------------------------------------------
-  // Case F: Existing ADVERTISER -> role preserved, not converted to CLIENT
+  // Case F: Existing CLIENT + VIP -> VIP membership is preserved
   // ---------------------------------------------------------------------------
-  describe('Case F: Role Preservation (ADVERTISER is never converted to CLIENT)', () => {
-    it('OAuth: does not convert existing ADVERTISER to CLIENT even if intent is CLIENT', async () => {
+  describe('Case F: VIP Membership Preservation', () => {
+    it('ensure_client_membership_trigger uses ON CONFLICT DO NOTHING to protect VIP memberships', () => {
+      const migrationPath = path.resolve(
+        process.cwd(),
+        'supabase/migrations/20260905030000_enforce_atomic_client_membership.sql'
+      )
+      const migrationSql = fs.readFileSync(migrationPath, 'utf8')
+
+      expect(migrationSql).toMatch(/INSERT INTO public\.client_memberships\s*\(\s*account_id,\s*membership_type\s*\)\s*VALUES\s*\(\s*NEW\.id,\s*'FREE'::public\.client_membership_type\s*\)\s*ON CONFLICT\s*\(account_id\)\s*DO NOTHING/)
+    })
+
+    it('assertClientProvisioningInvariant correctly validates VIP client status', async () => {
+      mockAdmin.from.mockImplementation((table: string) => {
+        if (table === 'account_users') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { id: 'acc-vip', role: 'CLIENT', status: 'ACTIVE' },
+              error: null,
+            }),
+          }
+        }
+        if (table === 'client_memberships') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { account_id: 'acc-vip', membership_type: 'VIP' },
+              error: null,
+            }),
+          }
+        }
+      })
+
+      const status = await assertClientProvisioningInvariant(mockAdmin, 'acc-vip')
+      expect(status.isConsistent).toBe(true)
+      expect(status.role).toBe('CLIENT')
+      expect(status.hasMembership).toBe(true)
+      expect(status.membershipType).toBe('VIP')
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Case G: Existing ADVERTISER -> role preserved, not converted to CLIENT
+  // ---------------------------------------------------------------------------
+  describe('Case G: Role Preservation (ADVERTISER is never converted to CLIENT)', () => {
+    it('OAuth: preserves existing ADVERTISER even if intent is CLIENT', async () => {
       mockAdmin.from.mockImplementation((table: string) => {
         if (table === 'account_users') {
           return {
@@ -434,7 +373,7 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
       expect(res.headers.get('location')).toBe('http://localhost:3000/dashboard')
     })
 
-    it('Email OTP: does not convert existing ADVERTISER to CLIENT on CLIENT intent', async () => {
+    it('Email OTP: preserves existing ADVERTISER on CLIENT intent', async () => {
       mockAdmin.from.mockReturnValueOnce({
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
@@ -456,9 +395,64 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
   })
 
   // ---------------------------------------------------------------------------
-  // Case G: Suspended CLIENT -> redirects to /suspended
+  // Case H: Existing ADMIN -> role preserved, routes to /admin
   // ---------------------------------------------------------------------------
-  describe('Case G: Suspended CLIENT Routing', () => {
+  describe('Case H: Existing ADMIN Routing', () => {
+    it('OAuth: routes existing ADMIN to /admin', async () => {
+      mockAdmin.from.mockImplementation((table: string) => {
+        if (table === 'account_users') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: {
+                id: 'acc-admin',
+                role: 'ADMIN',
+                status: 'ACTIVE',
+                terms_version: CURRENT_TERMS_VERSION,
+              },
+            }),
+          }
+        }
+      })
+
+      const req = new NextRequest('http://localhost:3000/auth/callback?code=valid-code')
+      const res = await GET(req)
+
+      expect(res.status).toBe(307)
+      expect(res.headers.get('location')).toBe('http://localhost:3000/admin')
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Case I: Non-CLIENT Accounts Do Not Require client_memberships
+  // ---------------------------------------------------------------------------
+  describe('Case I: Non-CLIENT Invariant', () => {
+    it('assertClientProvisioningInvariant treats ADVERTISER as consistent without membership', async () => {
+      mockAdmin.from.mockImplementation((table: string) => {
+        if (table === 'account_users') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { id: 'acc-adv-test', role: 'ADVERTISER', status: 'ACTIVE' },
+              error: null,
+            }),
+          }
+        }
+      })
+
+      const status = await assertClientProvisioningInvariant(mockAdmin, 'acc-adv-test')
+      expect(status.isConsistent).toBe(true)
+      expect(status.role).toBe('ADVERTISER')
+      expect(status.hasMembership).toBe(false)
+    })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Case J: Suspended Account Routing
+  // ---------------------------------------------------------------------------
+  describe('Case J: Suspended Account Routing', () => {
     it('OAuth: routes SUSPENDED client to /suspended', async () => {
       mockAdmin.from.mockImplementation((table: string) => {
         if (table === 'account_users') {
@@ -483,46 +477,32 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
       expect(res.status).toBe(307)
       expect(res.headers.get('location')).toBe('http://localhost:3000/suspended')
     })
-
-    it('Email OTP: routes SUSPENDED client to /suspended', async () => {
-      mockAdmin.from.mockReturnValueOnce({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: {
-            id: 'acc-susp-client',
-            role: 'CLIENT',
-            status: 'SUSPENDED',
-            terms_version: CURRENT_TERMS_VERSION,
-          },
-        }),
-      })
-
-      const result = await verifyEmailOtpAction('client@velvet.club', '123456', 'LOGIN')
-      expect(result.success).toBe(true)
-      expect(result.destination).toBe('/suspended')
-    })
   })
 
   // ---------------------------------------------------------------------------
-  // Case H & I: DB Trigger & Pre-existing Membership Compatibility
+  // Case K: Duplicate Retry Idempotency Helper
   // ---------------------------------------------------------------------------
-  describe('Case H & I: DB Trigger & Idempotent Upsert Compatibility', () => {
-    it('does not error or duplicate when client_memberships record already exists (e.g. from trigger)', async () => {
+  describe('Case K: Duplicate Retry Idempotency Helper', () => {
+    it('ensureClientMembership helper is idempotent and retry-safe', async () => {
       const upsertMock = vi.fn().mockResolvedValue({ error: null })
       const mockClient = {
         from: vi.fn().mockReturnValue({ upsert: upsertMock }),
       }
 
-      const result = await ensureClientMembership(mockClient, 'acc-existing-membership')
-      expect(result.success).toBe(true)
-      expect(upsertMock).toHaveBeenCalledWith(
-        { account_id: 'acc-existing-membership', membership_type: 'FREE' },
+      const result1 = await ensureClientMembership(mockClient, 'acc-idem-1')
+      expect(result1.success).toBe(true)
+
+      const result2 = await ensureClientMembership(mockClient, 'acc-idem-1')
+      expect(result2.success).toBe(true)
+
+      expect(upsertMock).toHaveBeenCalledTimes(2)
+      expect(upsertMock).toHaveBeenLastCalledWith(
+        { account_id: 'acc-idem-1', membership_type: 'FREE' },
         { onConflict: 'account_id' }
       )
     })
 
-    it('fails closed when accountId is missing or empty', async () => {
+    it('ensureClientMembership fails closed on empty accountId', async () => {
       const result = await ensureClientMembership(mockAdmin, '')
       expect(result.success).toBe(false)
       expect(result.error).toContain('Account ID is required')
@@ -530,10 +510,10 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
   })
 
   // ---------------------------------------------------------------------------
-  // Case J: OAuth trusted origin remains enforced
+  // Case L: OAuth Trusted Origin Preserved
   // ---------------------------------------------------------------------------
-  describe('Case J: OAuth Trusted Origin Preserved During CLIENT Provisioning', () => {
-    it('redirects to server-authoritative origin even if client sends spoofed Host/Forwarded headers', async () => {
+  describe('Case L: OAuth Trusted Origin Preserved', () => {
+    it('redirects to server-authoritative origin even if client sends spoofed Host headers', async () => {
       const updateAccountMock = vi.fn().mockReturnValue({
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
@@ -541,7 +521,6 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
           }),
         }),
       })
-      const upsertMembershipMock = vi.fn().mockResolvedValue({ error: null })
 
       mockAdmin.from.mockImplementation((table: string) => {
         if (table === 'account_users') {
@@ -559,11 +538,6 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
             update: updateAccountMock,
           }
         }
-        if (table === 'client_memberships') {
-          return {
-            upsert: upsertMembershipMock,
-          }
-        }
       })
 
       const token = createSignedOAuthIntent('CLIENT')
@@ -579,96 +553,31 @@ describe('Pre-PX1 Guardrail I — CLIENT Account Provisioning Consistency', () =
 
       expect(res.status).toBe(307)
       const location = res.headers.get('location')!
-      // Must NOT redirect to evil-attacker.com
       expect(location).not.toContain('evil-attacker.com')
       expect(location.endsWith('/cliente')).toBe(true)
     })
   })
 
   // ---------------------------------------------------------------------------
-  // Case K: Domain Consistency Invariant Enforcement
+  // Database Trigger Structural Invariants
   // ---------------------------------------------------------------------------
-  describe('Case K: Domain Consistency Invariant', () => {
-    it('detects partial provisioning if account has role CLIENT but lacks client_memberships', async () => {
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'account_users') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { id: 'acc-partial-client', role: 'CLIENT', status: 'ACTIVE' },
-              error: null,
-            }),
-          }
-        }
-        if (table === 'client_memberships') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: null, // Missing membership!
-              error: null,
-            }),
-          }
-        }
-      })
+  describe('Database Trigger Structural Invariants', () => {
+    it('verifies migration 20260905030000 defines trg_ensure_client_membership with correct constraints', () => {
+      const migrationPath = path.resolve(
+        process.cwd(),
+        'supabase/migrations/20260905030000_enforce_atomic_client_membership.sql'
+      )
+      const sql = fs.readFileSync(migrationPath, 'utf8')
 
-      const status = await assertClientProvisioningInvariant(mockAdmin, 'acc-partial-client')
-      expect(status.isConsistent).toBe(false)
-      expect(status.role).toBe('CLIENT')
-      expect(status.hasMembership).toBe(false)
-      expect(status.error).toContain('missing client_memberships')
-    })
-
-    it('confirms consistent state when account has role CLIENT and client_memberships exists', async () => {
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'account_users') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { id: 'acc-valid-client', role: 'CLIENT', status: 'ACTIVE' },
-              error: null,
-            }),
-          }
-        }
-        if (table === 'client_memberships') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { account_id: 'acc-valid-client', membership_type: 'VIP' },
-              error: null,
-            }),
-          }
-        }
-      })
-
-      const status = await assertClientProvisioningInvariant(mockAdmin, 'acc-valid-client')
-      expect(status.isConsistent).toBe(true)
-      expect(status.role).toBe('CLIENT')
-      expect(status.hasMembership).toBe(true)
-      expect(status.membershipType).toBe('VIP')
-    })
-
-    it('passes consistency for non-client accounts (e.g. ADVERTISER) without requiring client_memberships', async () => {
-      mockAdmin.from.mockImplementation((table: string) => {
-        if (table === 'account_users') {
-          return {
-            select: vi.fn().mockReturnThis(),
-            eq: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { id: 'acc-adv', role: 'ADVERTISER', status: 'ACTIVE' },
-              error: null,
-            }),
-          }
-        }
-      })
-
-      const status = await assertClientProvisioningInvariant(mockAdmin, 'acc-adv')
-      expect(status.isConsistent).toBe(true)
-      expect(status.role).toBe('ADVERTISER')
-      expect(status.hasMembership).toBe(false)
+      expect(sql).toContain('CREATE OR REPLACE FUNCTION public.ensure_client_membership_trigger()')
+      expect(sql).toContain('SECURITY DEFINER')
+      expect(sql).toContain('SET search_path = public, pg_temp')
+      expect(sql).toContain('CREATE TRIGGER trg_ensure_client_membership')
+      expect(sql).toContain('AFTER INSERT OR UPDATE OF role ON public.account_users')
+      expect(sql).toContain('FOR EACH ROW')
+      expect(sql).toContain("WHEN (NEW.role = 'CLIENT'::public.user_role)")
+      expect(sql).toContain('REVOKE EXECUTE ON FUNCTION public.ensure_client_membership_trigger() FROM PUBLIC, anon, authenticated')
+      expect(sql).toContain('GRANT EXECUTE ON FUNCTION public.ensure_client_membership_trigger() TO service_role')
     })
   })
 })

@@ -1,16 +1,18 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 
 /**
- * CLIENT Provisioning Helper — Guardrail I
+ * CLIENT Provisioning & Domain Consistency Helpers — Guardrail I
  *
- * Enforces the domain invariant that any account with role = 'CLIENT'
- * must have a canonical, valid client_memberships record.
+ * NOTE: Production CLIENT membership creation is database-owned via
+ * `trg_ensure_client_membership` on `public.account_users`. Whenever
+ * an account enters role = 'CLIENT', the canonical FREE membership is
+ * created atomically within the same PostgreSQL transaction.
  *
- * Invariants:
- * 1. Fail-closed: database errors on membership creation are surfaced and never ignored.
- * 2. Idempotent: safe to run multiple times without duplicating or corrupting state.
- * 3. Preserves existing VIP status: does not downgrade VIP memberships.
- * 4. Verifiable: provides assertion helpers to detect partially provisioned states.
+ * `ensureClientMembership`: Maintained as an operational repair / idempotency
+ * helper for out-of-band data maintenance, diagnostic scripts, or backfills.
+ *
+ * `assertClientProvisioningInvariant`: Verifies that an account with role = 'CLIENT'
+ * has a valid client_memberships record (used in diagnostics, audits, and tests).
  */
 
 export interface EnsureClientMembershipResult {
