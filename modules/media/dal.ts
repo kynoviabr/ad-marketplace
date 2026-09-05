@@ -86,7 +86,7 @@ export async function getActivePhotoCount(profileId: string): Promise<number> {
   return count
 }
 
-/** Marks abandoned upload attempts as retryable without deleting their canonical record. */
+/** Marks abandoned upload/processing attempts as retryable without deleting their canonical record. */
 export async function reconcileStaleUploadingMedia(profileId: string): Promise<void> {
   const admin = createAdminClient()
   const staleBefore = new Date(Date.now() - STALE_UPLOAD_AGE_MS).toISOString()
@@ -94,7 +94,7 @@ export async function reconcileStaleUploadingMedia(profileId: string): Promise<v
     .from('profile_media')
     .update({ status: 'PROCESSING_FAILED', updated_at: new Date().toISOString() })
     .eq('profile_id', profileId)
-    .eq('status', 'UPLOADING')
+    .in('status', ['UPLOADING', 'PROCESSING'])
     .is('deleted_at', null)
     .lt('updated_at', staleBefore)
 }

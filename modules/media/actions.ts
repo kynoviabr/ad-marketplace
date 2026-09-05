@@ -10,6 +10,7 @@ import {
   SetPrimaryMediaSchema,
   DeleteMediaSchema,
   RetryUploadSchema,
+  MAX_FILE_SIZE_BYTES,
   type RequestUploadInput,
   type ConfirmUploadInput,
   type ReorderMediaInput,
@@ -22,8 +23,30 @@ import { submitOwnedProfileForReview } from '@/modules/profiles/submission'
 import type { MediaActionResult, ProfileMedia, SignedUploadUrlResponse } from './types'
 import { redirect } from 'next/navigation'
 import { resolveEntitlements } from '@/modules/billing/entitlements'
+import { ImageProcessingError, validateAndSanitizeImage } from './processing'
 
 const SIGNED_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000
+
+async function markMediaProcessingFailed(mediaId: string): Promise<void> {
+  try {
+    const admin = createAdminClient()
+    await admin.from('profile_media').update({
+      status: 'PROCESSING_FAILED',
+      updated_at: new Date().toISOString(),
+    }).eq('id', mediaId).in('status', ['UPLOADING', 'PROCESSING'])
+  } catch {
+    console.error('[media:confirmUpload] Unable to persist safe processing failure state')
+  }
+}
+
+function safeImageProcessingError(error: unknown): string {
+  if (!(error instanceof ImageProcessingError)) return 'Não foi possível processar a foto enviada.'
+  if (error.code === 'IMAGE_TOO_LARGE') return 'A foto excede o limite de 15 MB.'
+  if (error.code === 'INVALID_DIMENSIONS') return 'As dimensões da foto não são permitidas.'
+  if (error.code === 'UNSUPPORTED_FORMAT') return 'O arquivo não corresponde a um formato de imagem permitido.'
+  if (error.code === 'INVALID_IMAGE') return 'O arquivo enviado não é uma imagem válida.'
+  return 'Não foi possível processar a foto enviada.'
+}
 
 /**
  * Server Action: Request Signed Upload URL for a new photo.
@@ -118,6 +141,7 @@ export async function requestMediaUploadUrlAction(
 export async function confirmMediaUploadAction(
   input: ConfirmUploadInput
 ): Promise<MediaActionResult<ProfileMedia>> {
+  let processingMediaId: string | null = null
   try {
     const { account } = await requireVerifiedAdvertiser()
 
@@ -154,31 +178,71 @@ export async function confirmMediaUploadAction(
     const { data: storedObjects, error: storageError } = await admin.storage
       .from('profile-media')
       .list(folder, { search: filename, limit: 2 })
-    if (storageError || !storedObjects?.some((object) => object.name === filename)) {
+    const storedObject = storedObjects?.find((object) => object.name === filename)
+    if (storageError || !storedObject) {
       return { success: false, error: 'O arquivo ainda não foi recebido pelo armazenamento seguro.' }
     }
 
-    // Advance to PENDING_MODERATION idempotently.
+    const authoritativeStoredSize = Number(storedObject.metadata?.size)
+    if (!Number.isFinite(authoritativeStoredSize) || authoritativeStoredSize < 1) {
+      await markMediaProcessingFailed(media.id)
+      return { success: false, error: 'Não foi possível validar o tamanho da foto enviada.' }
+    }
+    if (authoritativeStoredSize > MAX_FILE_SIZE_BYTES) {
+      await markMediaProcessingFailed(media.id)
+      return { success: false, error: 'A foto excede o limite de 15 MB.' }
+    }
+
+    const { data: claimed, error: claimError } = await admin.from('profile_media')
+      .update({ status: 'PROCESSING', updated_at: new Date().toISOString() })
+      .eq('id', media.id)
+      .eq('status', media.status)
+      .select('id')
+      .maybeSingle()
+    if (claimError || !claimed) {
+      return { success: false, error: 'Esta foto já está sendo processada.' }
+    }
+    processingMediaId = media.id
+
+    const { data: rawObject, error: downloadError } = await admin.storage
+      .from('profile-media')
+      .download(media.storage_path)
+    if (downloadError || !rawObject) throw new ImageProcessingError('PROCESSING_FAILED')
+
+    const rawBytes = Buffer.from(await rawObject.arrayBuffer())
+    const sanitized = await validateAndSanitizeImage(rawBytes)
+
+    // Replace the private object in place. Downstream moderation and public
+    // delivery can therefore only reference the decoded, metadata-free bytes.
+    const { error: replaceError } = await admin.storage.from('profile-media').upload(
+      media.storage_path,
+      sanitized.buffer,
+      { contentType: sanitized.mimeType, cacheControl: '3600', upsert: true }
+    )
+    if (replaceError) throw new ImageProcessingError('PROCESSING_FAILED')
+
     const { data: updated, error } = await admin
       .from('profile_media')
       .update({
         status: 'PENDING_MODERATION',
-        width: validated.data.width || null,
-        height: validated.data.height || null,
+        mime_type: sanitized.mimeType,
+        file_size_bytes: sanitized.fileSizeBytes,
+        width: sanitized.width,
+        height: sanitized.height,
         updated_at: new Date().toISOString(),
       })
       .eq('id', media.id)
+      .eq('status', 'PROCESSING')
       .select('*')
       .single()
 
-    if (error || !updated) {
-      return { success: false, error: 'Erro ao confirmar a foto enviada.' }
-    }
+    if (error || !updated) throw new ImageProcessingError('PROCESSING_FAILED')
 
     return { success: true, data: updated as ProfileMedia }
-  } catch (err) {
-    console.error('[media:confirmUpload] Unexpected error:', err instanceof Error ? err.message : err)
-    return { success: false, error: 'Ocorreu um erro ao confirmar a foto.' }
+  } catch (error) {
+    if (processingMediaId) await markMediaProcessingFailed(processingMediaId)
+    console.error('[media:confirmUpload] Image processing failed safely')
+    return { success: false, error: safeImageProcessingError(error) }
   }
 }
 

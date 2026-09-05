@@ -72,7 +72,7 @@ describe('Velvet onboarding Step 05 — Fotos', () => {
     const dal = read('modules/media/dal.ts')
     expect(dal).toContain('STALE_UPLOAD_AGE_MS = 60 * 60 * 1000')
     expect(dal).toContain("status: 'PROCESSING_FAILED'")
-    expect(dal).toContain(".eq('status', 'UPLOADING')")
+    expect(dal).toContain(".in('status', ['UPLOADING', 'PROCESSING'])")
   })
 
   it('continues with one persisted successful upload into the implemented Step 06 review', () => {
