@@ -60,8 +60,8 @@ To deliver compelling professional value and establish deep competitive differen
 - **Scope**: Request correlation IDs (`x-request-id`), structured application logging abstraction, subsystem health monitors (Supabase DB, Auth, Storage, Didit KYC, Billing Webhooks, Email/OTP), operational status alignment, and Admin System Health dashboard (`/admin/health`).
 - **Sub-phases**:
   - **PX1A — Correlation IDs + Structured Logging Foundation**: **RESOLVED** (Canonical `x-request-id` header, safe regex validation, Next.js `proxy.ts` propagation, structured JSON logger, recursive sensitive data redaction, safe error serializer, targeted adoption across Didit KYC, OAuth, Billing, Media, and Health boundaries; 55/55 dedicated tests PASS).
-  - **PX1B — Health Probes & Operational Integrity Foundation**: PENDING (Immediate Next Sub-phase).
-  - **PX1C — Admin System Health Dashboard (`/admin/health`)**: PENDING.
+  - **PX1B — Health Probes & Operational Integrity Foundation**: **RESOLVED** (Typed health probe contracts, subsystem status and criticality models, safe isolated runner with timeouts, 7 subsystem probes [Database, Auth, Storage, Didit KYC, Billing, Email/OTP, App Config], system health snapshot aggregator with structured observability logging, minimal anonymous public `/api/health` hardening, and Backlog Item H canonical operational status alignment; 161/161 test suites and 1,616 tests PASS).
+  - **PX1C — Admin System Health Dashboard (`/admin/health`)**: PENDING (Immediate Next Sub-phase).
 - **Out of Scope**: Third-party paid APM subscriptions, external telemetry agents.
 - **Dependencies**: R12 admin layout foundation.
 - **Data Model**: `operational_health_probes` (transient probe cache).

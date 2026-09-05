@@ -4,22 +4,22 @@ import { logger, getRequestId } from '@/modules/observability'
 /**
  * GET /api/health
  *
- * Health check endpoint for the AD-Marketplace application.
+ * Public health check endpoint for the Velvet application.
  *
- * SECURITY:
- * - Never returns secrets, credentials, or service role keys.
- * - Never returns database connection strings.
- * - Only returns safe operational status information.
- * - Emits canonical x-request-id response header.
+ * SECURITY & HARDENING (PX1B):
+ * - Minimal anonymous contract: status, timestamp, requestId.
+ * - Zero leakage of internal provider names, database topology, or secrets.
+ * - Zero latency breakdown or internal subsystem details exposed publicly.
+ * - Emits canonical x-request-id response header and payload correlation.
  *
  * Response shape:
- *   { status: 'ok' | 'degraded', timestamp: string, configuration: { supabase: string } }
+ *   { status: 'ok' | 'degraded', timestamp: string, requestId: string }
  */
 export async function GET(request?: Request): Promise<NextResponse> {
   const requestId = getRequestId(request)
 
   try {
-    // Check if essential public configuration exists (without revealing values)
+    // Check baseline public configuration readiness without leaking provider specifics
     const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL)
     const hasSupabaseAnonKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
     const configurationReady = hasSupabaseUrl && hasSupabaseAnonKey
@@ -42,9 +42,7 @@ export async function GET(request?: Request): Promise<NextResponse> {
       {
         status,
         timestamp: new Date().toISOString(),
-        configuration: {
-          supabase: configurationReady ? 'configured' : 'missing-env-vars',
-        },
+        requestId,
       },
       {
         status: 200,
@@ -66,9 +64,7 @@ export async function GET(request?: Request): Promise<NextResponse> {
       {
         status: 'degraded',
         timestamp: new Date().toISOString(),
-        configuration: {
-          supabase: 'check-failed',
-        },
+        requestId,
       },
       {
         status: 200,

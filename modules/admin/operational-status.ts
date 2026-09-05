@@ -50,11 +50,17 @@ export function classifyOperationalStatus(params: ClassifyOperationalStatusParam
     return 'PAUSED'
   }
 
-  // 4. Active: profile active, account active, and canonically eligible or approved
+  // 4. Active: profile active, account active, and canonically eligible.
+  // When isCanonicallyEligible is explicitly provided, it strictly governs.
+  // Fallback to contentModerationStatus === 'APPROVED' only when canonical eligibility is not evaluated.
+  const isEligible = params.isCanonicallyEligible !== undefined
+    ? params.isCanonicallyEligible
+    : params.contentModerationStatus === 'APPROVED'
+
   if (
     params.profileStatus === 'ACTIVE' &&
     params.accountStatus === 'ACTIVE' &&
-    (params.isCanonicallyEligible || params.contentModerationStatus === 'APPROVED')
+    isEligible
   ) {
     return 'ACTIVE'
   }
