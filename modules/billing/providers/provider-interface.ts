@@ -18,6 +18,8 @@ export interface PaymentProviderCheckout {
 
 export interface PaymentProviderSubscription {
   providerSubscriptionId: string
+  providerCustomerId: string
+  stateUpdatedAt: string
   status: string
   currentPeriodStart: string
   currentPeriodEnd: string

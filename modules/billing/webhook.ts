@@ -16,33 +16,17 @@ import {
   updateWebhookEventStatus,
 } from './dal'
 import type { SubscriptionStatus } from './types'
-import { GRACE_PERIOD_DAYS } from './constants'
 
-/**
- * Monotonic state ordering for stale-event protection.
- * Higher ordinal = further in lifecycle. Used to detect regressions.
- */
-const STATE_ORDINAL: Record<SubscriptionStatus, number> = {
-  INCOMPLETE: 0,
-  ACTIVE: 1,
-  PAST_DUE: 2,
-  GRACE_PERIOD: 3,
-  EXPIRED: 4,
-}
-
-/** Valid state transitions. */
-const VALID_TRANSITIONS: Record<SubscriptionStatus, SubscriptionStatus[]> = {
-  INCOMPLETE: ['ACTIVE', 'EXPIRED'],
-  ACTIVE: ['PAST_DUE', 'EXPIRED'],
-  PAST_DUE: ['ACTIVE', 'GRACE_PERIOD'],
-  GRACE_PERIOD: ['ACTIVE', 'EXPIRED'],
-  EXPIRED: [], // Terminal — new subscription row for re-subscribe
-}
+const VALID_SUBSCRIPTION_EVENT_TYPES = new Set([
+  'subscription.created',
+  'subscription.updated',
+  'subscription.deleted',
+])
 
 /**
  * Normalize provider-specific status to our canonical status.
  */
-function normalizeProviderStatus(providerStatus: string): SubscriptionStatus {
+function normalizeProviderStatus(providerStatus: string): SubscriptionStatus | null {
   const mapping: Record<string, SubscriptionStatus> = {
     active: 'ACTIVE',
     paid: 'ACTIVE',
@@ -53,90 +37,7 @@ function normalizeProviderStatus(providerStatus: string): SubscriptionStatus {
     canceled: 'EXPIRED',
     expired: 'EXPIRED',
   }
-  return mapping[providerStatus.toLowerCase()] || 'EXPIRED'
-}
-
-/**
- * Validates whether a state transition is allowed.
- */
-function isValidTransition(
-  currentStatus: SubscriptionStatus,
-  newStatus: SubscriptionStatus
-): boolean {
-  if (currentStatus === newStatus) return true // No-op is valid
-  return VALID_TRANSITIONS[currentStatus]?.includes(newStatus) ?? false
-}
-
-/**
- * Checks if a new state would be a regression (stale event).
- */
-function isStaleEvent(
-  currentStatus: SubscriptionStatus,
-  newStatus: SubscriptionStatus
-): boolean {
-  return STATE_ORDINAL[newStatus] < STATE_ORDINAL[currentStatus]
-}
-
-/**
- * Apply a subscription state transition with validation.
- */
-export async function applySubscriptionTransition(
-  subscriptionId: string,
-  newStatus: SubscriptionStatus,
-  periodStart?: string,
-  periodEnd?: string
-): Promise<{ applied: boolean; reason?: string }> {
-  const admin = createAdminClient()
-
-  const { data: sub, error } = await admin
-    .from('subscriptions')
-    .select('status')
-    .eq('id', subscriptionId)
-    .single()
-
-  if (error || !sub) {
-    return { applied: false, reason: 'SUBSCRIPTION_NOT_FOUND' }
-  }
-
-  const currentStatus = sub.status as SubscriptionStatus
-
-  if (isStaleEvent(currentStatus, newStatus)) {
-    return { applied: false, reason: 'STALE_EVENT' }
-  }
-
-  if (!isValidTransition(currentStatus, newStatus)) {
-    return { applied: false, reason: 'INVALID_TRANSITION' }
-  }
-
-  if (currentStatus === newStatus && !periodEnd) {
-    return { applied: true, reason: 'NO_OP' }
-  }
-
-  const updatePayload: Record<string, unknown> = {
-    status: newStatus,
-    subscription_state: newStatus === 'INCOMPLETE' ? 'TRIAL' : newStatus === 'GRACE_PERIOD' ? 'PAST_DUE' : newStatus,
-    updated_at: new Date().toISOString(),
-  }
-
-  if (periodStart) updatePayload.current_period_start = periodStart
-  if (periodEnd) updatePayload.current_period_end = periodEnd
-
-  if (newStatus === 'GRACE_PERIOD') {
-    const graceEnd = new Date()
-    graceEnd.setDate(graceEnd.getDate() + GRACE_PERIOD_DAYS)
-    updatePayload.grace_period_end = graceEnd.toISOString()
-  }
-
-  if (newStatus === 'ACTIVE') {
-    updatePayload.grace_period_end = null
-  }
-
-  await admin
-    .from('subscriptions')
-    .update(updatePayload)
-    .eq('id', subscriptionId)
-
-  return { applied: true }
+  return mapping[providerStatus.toLowerCase()] ?? null
 }
 
 /**
@@ -161,7 +62,7 @@ export async function processBillingWebhook(
 
   // 2. Normalize event
   const event = await provider.normalizeWebhookEvent(rawBody)
-  if (!event.isValid || !event.eventId) {
+  if (!event.isValid || !event.eventId || !VALID_SUBSCRIPTION_EVENT_TYPES.has(event.eventType)) {
     return { status: 400, message: 'Invalid webhook event' }
   }
 
@@ -176,7 +77,7 @@ export async function processBillingWebhook(
   }
 
   // 4. Log to ledger (idempotency check)
-  const { id: eventDbId, isDuplicate } = await insertWebhookEvent({
+  const { id: eventDbId, isDuplicate, status: eventStatus } = await insertWebhookEvent({
     provider: provider.providerId,
     provider_event_id: event.eventId,
     event_type: event.eventType,
@@ -185,7 +86,7 @@ export async function processBillingWebhook(
     error_code: null,
   })
 
-  if (isDuplicate) {
+  if (isDuplicate && (eventStatus === 'PROCESSED' || eventStatus === 'IGNORED')) {
     return { status: 200, message: 'Duplicate event — already processed' }
   }
 
@@ -198,24 +99,39 @@ export async function processBillingWebhook(
   try {
     const authoritative = await provider.getSubscription(event.providerSubscriptionId)
     const newStatus = normalizeProviderStatus(authoritative.status)
-
-    const result = await applySubscriptionTransition(
-      subscriptionId,
-      newStatus,
-      authoritative.currentPeriodStart,
-      authoritative.currentPeriodEnd
-    )
-
-    if (result.applied) {
-      await updateWebhookEventStatus(eventDbId, 'PROCESSED')
-    } else {
-      await updateWebhookEventStatus(eventDbId, 'IGNORED', result.reason)
+    if (!newStatus || !authoritative.providerCustomerId || !authoritative.stateUpdatedAt ||
+        authoritative.providerSubscriptionId !== event.providerSubscriptionId) {
+      throw new Error('RECONCILIATION_MISMATCH')
     }
 
-    return { status: 200, message: `Processed: ${result.reason || 'OK'}` }
-  } catch (err) {
-    const errorCode = err instanceof Error ? err.message.slice(0, 100) : 'UNKNOWN'
-    await updateWebhookEventStatus(eventDbId, 'FAILED', errorCode)
+    const admin = createAdminClient()
+    const { data, error } = await admin.rpc('finalize_billing_webhook_transition', {
+      p_event_id: eventDbId,
+      p_provider: provider.providerId,
+      p_provider_event_id: event.eventId,
+      p_subscription_id: subscriptionId,
+      p_provider_subscription_id: event.providerSubscriptionId,
+      p_provider_customer_id: authoritative.providerCustomerId,
+      p_provider_state_updated_at: authoritative.stateUpdatedAt,
+      p_new_status: newStatus,
+      p_period_start: authoritative.currentPeriodStart || null,
+      p_period_end: authoritative.currentPeriodEnd || null,
+    })
+    if (error || !data || typeof data !== 'object' || !('outcome' in data)) {
+      throw new Error('ATOMIC_TRANSITION_FAILED')
+    }
+    const outcome = String(data.outcome)
+    if (!['APPLIED', 'NO_OP', 'IGNORED', 'ALREADY_PROCESSED', 'ALREADY_IGNORED'].includes(outcome)) {
+      throw new Error('INVALID_TRANSITION_RESULT')
+    }
+    return { status: 200, message: `Processed: ${outcome}` }
+  } catch {
+    try {
+      await updateWebhookEventStatus(eventDbId, 'FAILED', 'PROCESSING_FAILED')
+    } catch {
+      // The atomic RPC may already have committed before a transport failure.
+      // Never overwrite a terminal PROCESSED/IGNORED event.
+    }
     return { status: 500, message: 'Webhook processing failed' }
   }
 }

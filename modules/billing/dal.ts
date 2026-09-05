@@ -267,7 +267,7 @@ export async function getAdminFounderEntitlementSummaries(): Promise<AdminFounde
 
 export async function insertWebhookEvent(
   event: Omit<BillingWebhookEvent, 'id' | 'received_at' | 'processed_at'>
-): Promise<{ id: string; isDuplicate: boolean }> {
+): Promise<{ id: string; isDuplicate: boolean; status: BillingWebhookEvent['processing_status'] }> {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('billing_webhook_events')
@@ -285,11 +285,18 @@ export async function insertWebhookEvent(
   if (error) {
     // Unique constraint violation = duplicate event
     if (error.code === '23505') {
-      return { id: '', isDuplicate: true }
+      const { data: existing, error: existingError } = await admin
+        .from('billing_webhook_events')
+        .select('id, processing_status')
+        .eq('provider', event.provider)
+        .eq('provider_event_id', event.provider_event_id)
+        .single()
+      if (existingError || !existing) throw existingError ?? new Error('WEBHOOK_EVENT_LOOKUP_FAILED')
+      return { id: existing.id, isDuplicate: true, status: existing.processing_status }
     }
     throw error
   }
-  return { id: data.id, isDuplicate: false }
+  return { id: data.id, isDuplicate: false, status: 'RECEIVED' }
 }
 
 export async function updateWebhookEventStatus(
@@ -298,7 +305,7 @@ export async function updateWebhookEventStatus(
   errorCode?: string
 ): Promise<void> {
   const admin = createAdminClient()
-  await admin
+  const { data, error } = await admin
     .from('billing_webhook_events')
     .update({
       processing_status: status,
@@ -306,4 +313,9 @@ export async function updateWebhookEventStatus(
       error_code: errorCode || null,
     })
     .eq('id', eventId)
+    .in('processing_status', ['RECEIVED', 'FAILED'])
+    .select('id')
+    .maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('WEBHOOK_EVENT_STATUS_NOT_UPDATED')
 }

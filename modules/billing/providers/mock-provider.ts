@@ -38,7 +38,8 @@ export class MockPaymentProvider implements PaymentProvider {
     successUrl: string
     cancelUrl: string
   }): Promise<PaymentProviderCheckout> {
-    const subId = `mock_sub_${Date.now()}`
+    const customerToken = Buffer.from(params.providerCustomerId, 'utf8').toString('base64url')
+    const subId = `mock_sub_${customerToken}_${Date.now()}`
     return {
       checkoutUrl: `https://mock-gateway.test/checkout/${subId}`,
       providerSubscriptionId: subId,
@@ -49,12 +50,18 @@ export class MockPaymentProvider implements PaymentProvider {
   async getSubscription(
     providerSubscriptionId: string
   ): Promise<PaymentProviderSubscription> {
+    const customerToken = providerSubscriptionId.slice('mock_sub_'.length, providerSubscriptionId.lastIndexOf('_'))
+    if (!providerSubscriptionId.startsWith('mock_sub_') || !customerToken) {
+      throw new Error('Unknown mock subscription')
+    }
     const now = new Date()
     const periodEnd = new Date(now)
     periodEnd.setMonth(periodEnd.getMonth() + 1)
 
     return {
       providerSubscriptionId,
+      providerCustomerId: Buffer.from(customerToken, 'base64url').toString('utf8'),
+      stateUpdatedAt: now.toISOString(),
       status: 'active',
       currentPeriodStart: now.toISOString(),
       currentPeriodEnd: periodEnd.toISOString(),

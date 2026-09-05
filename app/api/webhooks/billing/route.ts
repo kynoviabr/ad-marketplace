@@ -18,8 +18,8 @@ export async function POST(request: NextRequest) {
       { message: result.message },
       { status: result.status }
     )
-  } catch (err) {
-    console.error('[webhook:billing] Unhandled error:', err instanceof Error ? err.message : err)
+  } catch {
+    console.error('[webhook:billing] Unhandled processing failure')
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }
