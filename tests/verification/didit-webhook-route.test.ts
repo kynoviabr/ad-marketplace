@@ -8,15 +8,23 @@ import {
 const mocks = vi.hoisted(() => ({
   verifyWebhook: vi.fn(),
   maybeSingle: vi.fn(),
+  insertMaybeSingle: vi.fn(),
+  selectMaybeSingle: vi.fn(),
 }))
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => ({
-    from: () => ({
-      insert: () => ({
-        select: () => ({ maybeSingle: mocks.maybeSingle }),
-      }),
-    }),
+    from: () => {
+      const chain: any = {
+        insert: () => ({
+          select: () => ({ maybeSingle: mocks.maybeSingle }),
+        }),
+        select: () => chain,
+        eq: () => chain,
+        maybeSingle: mocks.selectMaybeSingle,
+      }
+      return chain
+    },
   }),
 }))
 
@@ -77,11 +85,13 @@ describe('Didit webhook route idempotency', () => {
 
   it('returns 200 for a duplicate test event only after a valid v3 signature', async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: { code: '23505' } })
+    mocks.selectMaybeSingle.mockResolvedValue({ data: { id: 'evt_dup_1', processing_status: 'PROCESSED' }, error: null })
     const response = await POST(requestFor(payload, sign(payload), undefined, true) as never)
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ message: 'Event already received and processed' })
     expect(mocks.maybeSingle).toHaveBeenCalledOnce()
+    expect(mocks.selectMaybeSingle).toHaveBeenCalledOnce()
   })
 
   it('preserves ledger idempotency for an authenticated Try Webhook without event_id', async () => {
@@ -95,6 +105,7 @@ describe('Didit webhook route idempotency', () => {
       decision: { id_verifications: [], reviews: [] },
     }
     mocks.maybeSingle.mockResolvedValue({ data: null, error: { code: '23505' } })
+    mocks.selectMaybeSingle.mockResolvedValue({ data: { id: 'evt_dup_2', processing_status: 'PROCESSED' }, error: null })
 
     const response = await POST(
       requestFor(tryWebhookPayload, sign(tryWebhookPayload), undefined, true) as never
@@ -102,6 +113,7 @@ describe('Didit webhook route idempotency', () => {
 
     expect(response.status).toBe(200)
     expect(mocks.maybeSingle).toHaveBeenCalledOnce()
+    expect(mocks.selectMaybeSingle).toHaveBeenCalledOnce()
   })
 
   it.each([

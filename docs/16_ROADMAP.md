@@ -174,7 +174,7 @@ The technical hardening findings identified during R12 analysis are preserved an
 
 | Backlog Item | Finding Description | Strategic Category | Target Phase |
 |---|---|---|---|
-| **Item D** | Didit KYC `FAILED` webhook retry reconciliation | **Continuous Security Guardrail** | **Fix before PX1** (Critical event loss prevention) |
+| **Item D** | Didit KYC `FAILED` webhook retry reconciliation | **Continuous Security Guardrail** | **RESOLVED** (Commit validated with retry suite) |
 | **Item F** | OAuth callback & auth redirect trusted origin validation | **Continuous Security Guardrail** | **Fix before PX1** (Host header injection defense) |
 | **Item E** | Media delivery publication gate enforcement | **Continuous Security Guardrail** | **Fix before PX1** (Private photo leakage prevention) |
 | **Item I** | CLIENT signup error handling & provisioning atomicity | **Continuous Security Guardrail** | **Fix before PX1** (Account consistency) |
@@ -248,5 +248,6 @@ Executed only **after** the GTM Ready Gate is achieved:
 
 ## Immediate Next Development Step
 
-- **First Implementation Workstream**: **PX1 — Observability & Telemetry Foundation** (preceded by critical guardrail fixes: Items D, F, E, I).
-- **First Implementation Task**: **Didit FAILED Webhook Retry Reconciliation (Backlog Item D)**.
+- **Completed Pre-PX1 Guardrail**: **Didit FAILED Webhook Retry Reconciliation (Backlog Item D) — RESOLVED**.
+- **Remaining Pre-PX1 Guardrails**: **Backlog Items F (OAuth origin), E (Media delivery gating), I (Client provisioning)**.
+- **Next Product Workstream**: **PX1 — Observability & Telemetry Foundation**.

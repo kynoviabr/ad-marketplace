@@ -8,7 +8,8 @@ import { isTerminalState } from '@/modules/verification/state-machine'
  * Route Handler: POST /api/webhooks/didit
  *
  * Implements strict event ledger idempotency, HMAC-SHA256 signature verification,
- * authoritative server-to-server decision retrieval, and terminal state protection.
+ * authoritative server-to-server decision retrieval, terminal state protection,
+ * and recovery reprocessing for FAILED or interrupted RECEIVED events.
  */
 export async function POST(request: NextRequest) {
   const admin = createAdminClient()
@@ -38,7 +39,10 @@ export async function POST(request: NextRequest) {
 
   const { eventId, sessionId, eventType } = parsedEvent
 
-  // 3. Database-enforced idempotency via Event Ledger (ON CONFLICT DO NOTHING)
+  // 3. Acquire or create ledger record
+  let ledgerId: string
+  let isReprocessingRetry = false
+
   const { data: insertedEvent, error: insertError } = await admin
     .from('verification_webhook_events')
     .insert({
@@ -52,24 +56,77 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   if (insertError) {
-    // Unique constraint violation or DB error
+    // Unique constraint violation: duplicate event delivery or provider retry
     if (insertError.code === '23505') {
-      // 23505 = unique_violation
+      const { data: existingLedger, error: fetchError } = await admin
+        .from('verification_webhook_events')
+        .select('id, processing_status, provider_session_id')
+        .eq('provider', provider.providerName)
+        .eq('provider_event_id', eventId)
+        .maybeSingle()
+
+      if (fetchError || !existingLedger) {
+        console.error('[webhook:didit] Failed to fetch existing event ledger:', fetchError?.message)
+        return NextResponse.json({ error: 'Internal server error resolving event' }, { status: 500 })
+      }
+
+      // Idempotent completion: return 200 without duplicate side effects
+      if (existingLedger.processing_status === 'PROCESSED') {
+        return NextResponse.json({ message: 'Event already received and processed' }, { status: 200 })
+      }
+
+      if (existingLedger.processing_status === 'IGNORED') {
+        return NextResponse.json({ message: 'Event previously ignored' }, { status: 200 })
+      }
+
+      // Recoverable states: FAILED (previous attempt failed) or RECEIVED (interrupted execution)
+      ledgerId = existingLedger.id
+      isReprocessingRetry = true
+      console.info(
+        `[webhook:didit] Reprocessing retry for event ${eventId} in status ${existingLedger.processing_status}`
+      )
+    } else {
+      console.error('[webhook:didit] Failed to record event ledger:', insertError.message)
+      return NextResponse.json({ error: 'Internal server error recording event' }, { status: 500 })
+    }
+  } else if (insertedEvent) {
+    ledgerId = insertedEvent.id
+  } else {
+    // Fallback in case of conflict without explicit error code
+    const { data: existingLedger } = await admin
+      .from('verification_webhook_events')
+      .select('id, processing_status')
+      .eq('provider', provider.providerName)
+      .eq('provider_event_id', eventId)
+      .maybeSingle()
+
+    if (existingLedger?.processing_status === 'PROCESSED') {
       return NextResponse.json({ message: 'Event already received and processed' }, { status: 200 })
     }
-    console.error('[webhook:didit] Failed to record event ledger:', insertError.message)
-    return NextResponse.json({ error: 'Internal server error recording event' }, { status: 500 })
+    if (existingLedger?.processing_status === 'IGNORED') {
+      return NextResponse.json({ message: 'Event previously ignored' }, { status: 200 })
+    }
+    if (existingLedger?.id) {
+      ledgerId = existingLedger.id
+      isReprocessingRetry = true
+    } else {
+      return NextResponse.json({ message: 'Duplicate event ignored' }, { status: 200 })
+    }
   }
 
-  if (!insertedEvent) {
-    // In case of conflict with DO NOTHING
-    return NextResponse.json({ message: 'Duplicate event ignored' }, { status: 200 })
-  }
-
-  const ledgerId = insertedEvent.id
-
+  // 4. Authoritative event processing
   try {
-    // 4. Correlate with internal verification record
+    // If reprocessing a retry, reset error_message
+    if (isReprocessingRetry) {
+      await admin
+        .from('verification_webhook_events')
+        .update({
+          error_message: null,
+        })
+        .eq('id', ledgerId)
+    }
+
+    // Correlate with internal verification record
     const verificationRecord = await getVerificationBySessionId(sessionId)
     if (!verificationRecord) {
       console.warn('[webhook:didit] Session ID not found in database:', sessionId.slice(0, 8) + '***')
@@ -85,7 +142,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Session not found, event ignored' }, { status: 200 })
     }
 
-    // 5. Terminal state protection: Do not degrade VERIFIED records
+    // Terminal state protection: Do not degrade VERIFIED records
     if (isTerminalState(verificationRecord.status)) {
       console.info('[webhook:didit] Terminal state VERIFIED protected against incoming update')
       await admin
@@ -100,11 +157,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Terminal state protected' }, { status: 200 })
     }
 
-    // 6. Fetch authoritative decision from provider (Zero Trust on webhook payload)
+    // Fetch authoritative decision from provider (Zero Trust on webhook payload)
     const decision = await provider.fetchAuthoritativeDecision(sessionId)
     const now = new Date().toISOString()
 
-    // 7. Update verification record with authoritative results
+    // Update verification record with authoritative results
     const { error: updateError } = await admin
       .from('identity_verifications')
       .update({
@@ -123,7 +180,7 @@ export async function POST(request: NextRequest) {
       throw new Error(`Failed to update identity verification: ${updateError.message}`)
     }
 
-    // 8. Advance only when both identity and adult-age checks are authoritative.
+    // Advance only when both identity and adult-age checks are authoritative
     if (decision.normalizedStatus === 'VERIFIED' && decision.identityVerified && decision.ageVerified) {
       const { error: accountUpdateError } = await admin
         .from('account_users')
@@ -139,11 +196,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 9. Mark ledger as PROCESSED
+    // Mark ledger as PROCESSED
     await admin
       .from('verification_webhook_events')
       .update({
         processing_status: 'PROCESSED',
+        error_message: null,
         processed_at: now,
       })
       .eq('id', ledgerId)
