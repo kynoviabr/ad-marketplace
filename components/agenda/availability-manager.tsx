@@ -675,7 +675,7 @@ export function AvailabilityManager({ initialData, locale = 'pt-BR' }: Availabil
             </div>
 
             <div className="velvet-form-group">
-              <label htmlFor="max-advance" className="velvet-label">{isPt ? 'Mostrar disponibilidade até' : 'Maximum advance days'}</label>
+              <label htmlFor="max-advance" className="velvet-label">{isPt ? 'Mostrar disponibilidade até' : 'Maximum availability window'}</label>
               <select
                 id="max-advance"
                 className="velvet-select"
