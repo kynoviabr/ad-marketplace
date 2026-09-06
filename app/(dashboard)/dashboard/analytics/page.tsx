@@ -1,8 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ProfessionalDashboardHeader } from '@/components/dashboard/professional-dashboard-header'
-import { getProfessionalAnalyticsOverview } from '@/modules/analytics/dal'
-import type { AnalyticsPeriodDays, ProfessionalAnalyticsOverviewDTO } from '@/modules/analytics/types'
+import { getProfessionalAnalyticsOverview, getProfessionalBenchmark } from '@/modules/analytics/dal'
+import { generateProfessionalInsights } from '@/modules/analytics/insights'
+import type {
+  AnalyticsPeriodDays,
+  ProfessionalAnalyticsOverviewDTO,
+  ProfessionalBenchmarkDTO,
+} from '@/modules/analytics/types'
 import { requireAccount } from '@/modules/auth/dal'
 import { isProfileCanonicallyEligible } from '@/modules/publication/dal'
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
@@ -18,6 +23,8 @@ import { AnalyticsPlacementBreakdown } from '@/components/dashboard/analytics/an
 import { AnalyticsAudienceBadge } from '@/components/dashboard/analytics/analytics-audience-badge'
 import { AnalyticsDefinitionsGuide } from '@/components/dashboard/analytics/analytics-definitions-guide'
 import { AnalyticsEmptyState } from '@/components/dashboard/analytics/analytics-empty-state'
+import { AnalyticsInsights } from '@/components/dashboard/analytics/analytics-insights'
+import { AnalyticsBenchmark } from '@/components/dashboard/analytics/analytics-benchmark'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Analytics 2.0 | velvet.', robots: 'noindex, nofollow' }
@@ -73,22 +80,36 @@ export default async function AdvertiserAnalyticsPage({ searchParams }: Advertis
   const rawParam = resolvedParams.days ?? resolvedParams.period
   const days: AnalyticsPeriodDays = rawParam === '7' ? 7 : rawParam === '90' ? 90 : 30
 
-  // 4. Fetch Canonical Analytics Overview & Eligibility
+  // 4. Fetch Canonical Analytics Overview, Benchmark & Eligibility
   // Canonical query: getProfessionalAnalyticsOverview (supersedes legacy getAdvertiserMetrics(profile.id, days))
   let overview: ProfessionalAnalyticsOverviewDTO | null = null
+  let benchmark: ProfessionalBenchmarkDTO | null = null
   let isCanonicallyPublic = false
   let loadError: Error | null = null
 
   try {
-    const [fetchedOverview, isEligible] = await Promise.all([
+    const [fetchedOverview, isEligible, fetchedBenchmark] = await Promise.all([
       getProfessionalAnalyticsOverview({
         profileId: profile.id,
         accountId: account.id,
         periodDays: days,
       }),
       isProfileCanonicallyEligible(account.id, profile.id).catch(() => false),
+      getProfessionalBenchmark({
+        profileId: profile.id,
+        accountId: account.id,
+        periodDays: days,
+      }).catch((err) => {
+        logger.error('analytics.professional.benchmark_failed', {
+          subsystem: 'SYSTEM',
+          error: err instanceof Error ? err : new Error(String(err)),
+          metadata: { profileId: profile.id, accountId: account.id, periodDays: days },
+        })
+        return null
+      }),
     ])
     overview = fetchedOverview
+    benchmark = fetchedBenchmark
     const canonicallyEligible = isEligible
     isCanonicallyPublic = profile.status === 'ACTIVE' && canonicallyEligible
   } catch (err) {
@@ -137,6 +158,7 @@ export default async function AdvertiserAnalyticsPage({ searchParams }: Advertis
     overview.funnel.contacts.total
 
   const hasActivity = totalActivity > 0
+  const insights = overview ? generateProfessionalInsights(overview) : []
 
   return (
     <div className="velvet-dashboard velvet-analytics">
@@ -178,6 +200,8 @@ export default async function AdvertiserAnalyticsPage({ searchParams }: Advertis
         {!hasActivity ? (
           <>
             <AnalyticsKpiGrid overview={overview} locale={locale} />
+            <AnalyticsInsights insights={insights} locale={locale} />
+            {benchmark && <AnalyticsBenchmark benchmark={benchmark} locale={locale} />}
             <AnalyticsEmptyState
               isPublic={isCanonicallyPublic}
               profileSlug={profile.slug}
@@ -190,35 +214,41 @@ export default async function AdvertiserAnalyticsPage({ searchParams }: Advertis
             {/* 1. Top KPI Cards */}
             <AnalyticsKpiGrid overview={overview} locale={locale} />
 
-            {/* 2. Visual Conversion Funnel */}
+            {/* 2. Deterministic Performance Insights */}
+            <AnalyticsInsights insights={insights} locale={locale} />
+
+            {/* 3. Visual Conversion Funnel */}
             <AnalyticsFunnelCard overview={overview} locale={locale} />
 
-            {/* 3. Daily Trend SVG Chart */}
+            {/* 4. Privacy-Safe Cohort Benchmark */}
+            {benchmark && <AnalyticsBenchmark benchmark={benchmark} locale={locale} />}
+
+            {/* 5. Daily Trend SVG Chart */}
             <AnalyticsDailyTrend
               dailyTrend={overview.dailyTrend}
               periodDays={days}
               locale={locale}
             />
 
-            {/* 4. Performance by Service Area */}
+            {/* 6. Performance by Service Area */}
             <AnalyticsLocationBreakdown
               topLocations={overview.topLocations}
               locale={locale}
             />
 
-            {/* 5. Peak Engagement Times & Distributions */}
+            {/* 7. Peak Engagement Times & Distributions */}
             <AnalyticsPeakTimes
               peakTimes={overview.peakTimes}
               locale={locale}
             />
 
-            {/* 6. Placement Type (Organic vs Sponsored) */}
+            {/* 8. Placement Type (Organic vs Sponsored) */}
             <AnalyticsPlacementBreakdown
               overview={overview}
               locale={locale}
             />
 
-            {/* 7. Metric Definitions & Privacy Guide */}
+            {/* 9. Metric Definitions & Privacy Guide */}
             <AnalyticsDefinitionsGuide locale={locale} />
           </>
         )}

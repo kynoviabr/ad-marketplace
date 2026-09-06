@@ -48,6 +48,7 @@ vi.mock('@/modules/profiles/dal', () => ({
 
 vi.mock('@/modules/analytics/dal', () => ({
   getProfessionalAnalyticsOverview: vi.fn(),
+  getProfessionalBenchmark: vi.fn().mockResolvedValue(null),
 }))
 
 vi.mock('@/modules/publication/dal', () => ({

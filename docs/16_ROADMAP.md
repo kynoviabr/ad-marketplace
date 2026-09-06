@@ -1,7 +1,7 @@
 # Roadmap
 STATUS: ACTIVE — PRODUCT-FIRST PRE-GTM ROADMAP ADOPTED (R12 CLOSED IN DEV)
 VERSION: 4.0
-LAST UPDATED: 2026-09-05
+LAST UPDATED: 2026-09-06
 
 ## Strategic Direction Note (2026-09-05)
 
@@ -80,8 +80,8 @@ To deliver compelling professional value and establish deep competitive differen
 - **Scope**: Conversion funnel (Impression → Profile View → WhatsApp/Phone Contact), week-over-week and month-over-month comparative benchmarks, neighborhood/location engagement breakdown, peak engagement days/hours, audience performance (`PUBLIC` vs `VIP_ONLY`), redesigned dashboard analytics UI.
 - **Sub-phases**:
   - **PX2A — Measurement Integrity + Funnel & Aggregation Foundation**: **RESOLVED** (Additive migration `20260905040000_profile_daily_metrics_extensions.sql` applied to DEV; 31/31 migrations in canonical sync; canonical funnel semantics Impression → Profile View → Contact Intent; session-scoped client and server event_key deduplication; publication eligibility gate enforcement via `v_publication_eligible_profiles`; daily, hourly, location, and peak-time aggregation; zero-baseline safe math in `modules/analytics/funnel.ts`; typed DAL query `getProfessionalAnalyticsOverview` with strict ownership isolation; 63/63 analytics tests PASS; synthetic DEV validation clean with zero residual records).
-  - **PX2B — Professional Analytics Dashboard 2.0**: **COMPLETE** (Modular componentized architecture in `components/dashboard/analytics/`, canonical 7/30/90-day period selector, top KPI cards with previous-period comparison and zero-safe delta badges, 3-stage visual conversion funnel with asymmetry resilience for direct contacts, accessible SVG daily trend polyline with data-table alternative, service area breakdown with zero UUID leakage, peak engagement times with Brasília timezone attribution, organic vs sponsored placement breakdown, current audience mode context badge, transparent metric definitions guide, zero-data empty state guidance, strict ADVERTISER ownership and role protection; 16/16 UI tests PASS, 167/167 project test suites PASS).
-  - **PX2C — Insights, Comparisons & Privacy-Safe Benchmarks**: **CURRENT NEXT STEP** (Comparative cohort benchmarks, trend annotations, market segment comparisons with k-anonymity privacy protection).
+  - **PX2C — Insights, Comparisons & Privacy-Safe Benchmarks**: **RESOLVED** (Pure domain deterministic performance & funnel insight engine in `modules/analytics/insights.ts`; privacy-safe cohort benchmark engine in `modules/analytics/benchmark.ts` using canonical publication eligibility `v_publication_eligible_profiles`, mathematical median, strict privacy threshold $\ge 5$ distinct active profiles and $\ge 25$ aggregate impressions, target profile exclusion, zero competitor deanonymization or rankings; client UI surfaces `<AnalyticsInsights />` and `<AnalyticsBenchmark />` integrated in `/dashboard/analytics`; bot filtering methodology copy corrected; 21/21 dedicated PX2C tests PASS, 168/168 project test suites PASS).
+  - **PX2 Foundation Status**: **COMPLETE (100% RESOLVED)**.
 - **Out of Scope**: Real-time streaming counters, external tracker pixels, competitor deanonymization.
 - **Dependencies**: FASE 09 analytics event foundation, PX1 telemetry.
 - **Data Model**: `profile_daily_metrics` (extended with `location_breakdown JSONB` and `hourly_breakdown JSONB`).
@@ -263,9 +263,11 @@ Executed only **after** the GTM Ready Gate is achieved:
   - **OAuth Trusted Origin Validation (Backlog Item F) — RESOLVED** (Server-authoritative origin enforced; header spoofing defense validated with 17/17 tests).
   - **Media Publication Gate Enforcement (Backlog Item E) — RESOLVED** (Enforced canonical publication eligibility view for public media; 12/12 dedicated tests PASS).
   - **CLIENT Provisioning Consistency (Backlog Item I) — RESOLVED & DEV VALIDATED** (Database-owned atomic membership provisioning via `trg_ensure_client_membership` trigger on `account_users`; 30/30 DEV migrations applied and verified in DEV; 233/233 auth suite tests PASS).
-- **All Pre-PX1 Critical Guardrails**: **RESOLVED (100% COMPLETE)**.
-- **Completed Product Workstream**: **PX1 — Observability & Telemetry Foundation** (**100% RESOLVED** across PX1A, PX1B, PX1C).
-  - **PX1A — Correlation IDs + Structured Logging Foundation**: **RESOLVED** (55/55 tests PASS).
-  - **PX1B — Health Probes & Operational Integrity Foundation**: **RESOLVED** (7/7 subsystem probes; Backlog Item H aligned; 161/161 suites PASS).
-  - **PX1C — Admin System Health Dashboard (`/admin/health`)**: **RESOLVED** (Operator dashboard, strict admin guard, safe metadata, manual re-check; 14/14 tests PASS).
-- **Active Workstream**: **PX2 — Professional Analytics 2.0** (PX2A and PX2B COMPLETE; 167/167 test suites PASS; Next: **PX2C — Insights, Comparisons & Privacy-Safe Benchmarks**).
+- **Completed Product Workstreams**:
+  - **PX1 — Observability & Telemetry Foundation**: **COMPLETE (100% RESOLVED)** across PX1A, PX1B, PX1C.
+  - **PX2 — Professional Analytics 2.0**: **COMPLETE (100% RESOLVED)** across PX2A, PX2B, PX2C.
+    - **PX2A — Measurement Integrity + Funnel Foundation**: **RESOLVED** (Funnel integrity, migration 20260905040000, deduplication, safe math).
+    - **PX2B — Professional Analytics Dashboard 2.0**: **RESOLVED** (Componentized dashboard UI, period comparison, 3-stage visual funnel, hourly & location attribution).
+    - **PX2C — Insights, Comparisons & Safe Benchmarks**: **RESOLVED** (Deterministic performance diagnostics, privacy-safe cohort medians, zero competitor leakage).
+- **Product Next**: **PX3 — Agenda & Availability Foundation** (Recurring weekly availability rules, time slot intervals, buffer times, minimum notice, exception dates, and multi-location availability scoping).
+- **Operational Next**: **Hosted DEV stabilization & deploy checkpoint** (Commit/push verification and update existing stable Vercel hosted DEV target at `https://velvetgirls.club`).

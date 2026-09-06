@@ -257,3 +257,64 @@ export interface ProfessionalAnalyticsOverviewDTO {
   topLocations: TopLocationMetric[]
   peakTimes: PeakTimesMetric
 }
+
+// ---------------------------------------------------------------------------
+// PX2C — Insights & Privacy-Safe Benchmarks Contracts
+// ---------------------------------------------------------------------------
+
+export type InsightCategory =
+  | 'PERFORMANCE_CHANGE'
+  | 'FUNNEL'
+  | 'SERVICE_AREA'
+  | 'TIMING'
+  | 'PLACEMENT'
+  | 'DATA_QUALITY'
+
+export type InsightPriority = 'HIGH' | 'MEDIUM' | 'LOW'
+
+export type InsightDirection = 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL'
+
+export type InsightActionType =
+  | 'REVIEW_PROFILE_PRESENTATION'
+  | 'REVIEW_CONTACT_INFO'
+  | 'MAINTAIN_SERVICE_AREA'
+  | 'BE_RESPONSIVE'
+  | 'EXPLORE_PROMOTIONS'
+  | 'NONE'
+
+export type InsightDataState = 'CONFIDENT' | 'INSUFFICIENT_DATA'
+
+export interface ProfessionalAnalyticsInsight {
+  id: string
+  category: InsightCategory
+  priority: InsightPriority
+  direction: InsightDirection
+  titleKey: string
+  bodyKey: string
+  params?: Record<string, string | number>
+  actionType: InsightActionType
+  actionHref?: string
+  dataState: InsightDataState
+}
+
+export type BenchmarkStatus = 'AVAILABLE' | 'INSUFFICIENT_DATA' | 'INSUFFICIENT_COHORT'
+
+export type ComparisonBand = 'ABOVE_COHORT' | 'NEAR_COHORT' | 'BELOW_COHORT' | 'INSUFFICIENT_DATA'
+
+export interface BenchmarkMetric {
+  professionalValue: number
+  cohortMedian: number | null
+  comparisonBand: ComparisonBand
+}
+
+export interface ProfessionalBenchmarkDTO {
+  status: BenchmarkStatus
+  periodDays: AnalyticsPeriodDays
+  cohortClass: 'CITY_ACTIVE_PROFILES'
+  openRate: BenchmarkMetric
+  contactRate: BenchmarkMetric
+  visibility: BenchmarkMetric
+  eligibleCohortSize: number
+  qualifyingCohortSize: number
+  reason?: 'INSUFFICIENT_COHORT' | 'INSUFFICIENT_DATA' | 'OK'
+}

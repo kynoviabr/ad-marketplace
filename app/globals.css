@@ -2277,8 +2277,50 @@ body:has(.profile-detail-page) { overflow-x: clip; }
 .analytics-audience-badge-wrapper { display: flex; align-items: center; gap: 12px; }
 .analytics-audience-pill { display: inline-block; padding: 3px 10px; border-radius: 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
 .analytics-audience-pill--public { background: #eef7f0; color: #1e5a2d; }
-.analytics-audience-pill--vip { background: #f7effd; color: #62208a; }
-.analytics-audience-note { font-size: 11px; color: var(--velvet-muted); line-height: 1.5; }
+/* DETERMINISTIC INSIGHTS */
+.analytics-insights-section { margin-top: clamp(48px, 6vw, 80px); }
+.analytics-insights-grid { margin-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.analytics-insight-card { padding: 24px 20px; border: 1px solid var(--velvet-line); background: rgba(255, 255, 255, 0.45); display: flex; flex-direction: column; transition: border-color 0.2s ease; }
+.analytics-insight-card:hover { border-color: var(--velvet-aubergine-deep); }
+.analytics-insight-card--positive { border-left: 3px solid #2e7d32; }
+.analytics-insight-card--negative { border-left: 3px solid #c62828; }
+.analytics-insight-card--neutral { border-left: 3px solid var(--velvet-muted); }
+.analytics-insight-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.analytics-insight-badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.analytics-insight-card--positive .analytics-insight-badge { color: #1e5a2d; }
+.analytics-insight-card--negative .analytics-insight-badge { color: #8e1b1b; }
+.analytics-insight-card--neutral .analytics-insight-badge { color: var(--velvet-muted); }
+.analytics-insight-category { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--velvet-muted); }
+.analytics-insight-title { font: 400 18px/1.25 var(--velvet-serif); color: var(--velvet-aubergine-deep); margin-bottom: 8px; }
+.analytics-insight-body { font-size: 13px; line-height: 1.55; color: var(--velvet-muted); flex-grow: 1; }
+.analytics-insight-action { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--velvet-line); }
+.analytics-insight-link { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--velvet-aubergine-deep); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.analytics-insight-link:hover { text-decoration: underline; }
+
+/* PRIVACY-SAFE COHORT BENCHMARK */
+.analytics-benchmark-section { margin-top: clamp(48px, 6vw, 80px); }
+.analytics-benchmark-privacy-note { margin-top: 18px; margin-bottom: 24px; padding: 12px 18px; background: rgba(0, 0, 0, 0.02); border: 1px solid var(--velvet-line); display: flex; align-items: center; gap: 12px; }
+.analytics-benchmark-privacy-icon { font-size: 14px; opacity: 0.8; }
+.analytics-benchmark-privacy-note p { font-size: 12px; line-height: 1.5; color: var(--velvet-muted); margin: 0; }
+.analytics-benchmark-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.analytics-benchmark-card { padding: 28px 24px; border: 1px solid var(--velvet-line); background: rgba(255, 255, 255, 0.45); display: flex; flex-direction: column; }
+.analytics-benchmark-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.analytics-benchmark-card-header h3 { font: 400 19px/1.2 var(--velvet-serif); color: var(--velvet-aubergine-deep); margin: 0; }
+.analytics-benchmark-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+.analytics-benchmark-badge--above { background: #eef7f0; color: #1e5a2d; }
+.analytics-benchmark-badge--below { background: #fdf2f2; color: #991b1b; }
+.analytics-benchmark-badge--near { background: #f4f4f6; color: #4b5563; }
+.analytics-benchmark-badge--neutral { background: #f3f4f6; color: #6b7280; }
+.analytics-benchmark-values { display: flex; gap: 28px; margin-bottom: 14px; }
+.analytics-benchmark-val-group { display: flex; flex-direction: column; gap: 4px; }
+.analytics-benchmark-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--velvet-muted); }
+.analytics-benchmark-main-val { font: 400 clamp(24px, 2.5vw, 32px)/1 var(--velvet-serif); color: var(--velvet-aubergine-deep); }
+.analytics-benchmark-median-val { font: 400 clamp(18px, 2vw, 22px)/1.2 var(--velvet-serif); color: var(--velvet-muted); }
+.analytics-benchmark-desc { font-size: 12px; line-height: 1.5; color: var(--velvet-muted); margin-top: auto; }
+.analytics-benchmark-empty-card { padding: 36px 28px; border: 1px solid var(--velvet-line); background: rgba(255, 255, 255, 0.4); max-width: 720px; }
+.analytics-benchmark-empty-card h3 { font: 400 22px/1.2 var(--velvet-serif); color: var(--velvet-aubergine-deep); margin-bottom: 12px; }
+.analytics-benchmark-empty-card p { font-size: 13px; line-height: 1.6; color: var(--velvet-muted); margin-bottom: 16px; }
+.analytics-benchmark-cohort-info { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--velvet-aubergine-deep); }
 
 /* DEFINITIONS GUIDE */
 .analytics-definitions-section { margin-top: clamp(64px, 8vw, 108px); padding: 48px 36px; border: 1px solid var(--velvet-line); background: rgba(255, 255, 255, 0.4); }
@@ -2300,7 +2342,7 @@ body:has(.profile-detail-page) { overflow-x: clip; }
   .analytics-kpis-grid { grid-template-columns: repeat(2, 1fr); }
   .analytics-funnel-container { grid-template-columns: 1fr; }
   .analytics-funnel-connector { transform: rotate(90deg); margin: 8px 0; }
-  .analytics-peak-highlights, .analytics-placement-grid, .analytics-definitions-grid { grid-template-columns: 1fr; }
+  .analytics-peak-highlights, .analytics-placement-grid, .analytics-definitions-grid, .analytics-benchmark-grid { grid-template-columns: 1fr; }
   .analytics-bars-hourly { height: 90px; }
   .analytics-bars-days { height: 110px; }
 }

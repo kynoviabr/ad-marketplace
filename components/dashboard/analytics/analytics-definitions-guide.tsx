@@ -19,8 +19,8 @@ export function AnalyticsDefinitionsGuide({ locale }: AnalyticsDefinitionsGuideP
           <h3>{isPt ? 'Impressões Qualificadas' : 'Qualified Impressions'}</h3>
           <p>
             {isPt
-              ? 'Registrada quando seu cartão de perfil aparece na busca e permanece visível na tela por pelo menos 500ms (meio segundo) com no mínimo 50% de sua área exibida. Rolagens rápidas e prefetch de robôs não contam.'
-              : 'Recorded when your card appears in search results and stays visible on screen for at least 500ms covering at least 50% of the card area. Fast scrolling and bots are ignored.'}
+              ? 'Registrada quando seu cartão de perfil aparece na busca e permanece visível na tela por pelo menos 500ms (meio segundo) com no mínimo 50% de sua área exibida. Rolagens rápidas e prefetch SSR não contam. Embora robôs comuns sem renderização não acionem impressões, nenhuma tecnologia web elimina integralmente todo tráfego automatizado residual.'
+              : 'Recorded when your card appears in search results and stays visible on screen for at least 500ms covering at least 50% of the card area. Fast scrolling and SSR prefetch are excluded. While non-rendered crawler requests do not trigger impressions, residual automated traffic cannot be 100% eliminated by any platform.'}
           </p>
         </div>
 
@@ -28,8 +28,8 @@ export function AnalyticsDefinitionsGuide({ locale }: AnalyticsDefinitionsGuideP
           <h3>{isPt ? 'Visitas Únicas ao Perfil' : 'Unique Profile Visits'}</h3>
           <p>
             {isPt
-              ? 'Contabilizada no máximo uma vez por dia por visitante/sessão que acessa a página completa do seu perfil. Atualizações de página e navegações repetidas no mesmo dia não inflam esse número.'
-              : 'Counted at most once per day per visitor/session who views your full profile page. Page refreshes and repeat visits within the same calendar day do not inflate this metric.'}
+              ? 'Contabilizada no máximo uma vez por dia por visitante/sessão que acessa a página completa do seu perfil. Requisições prefetch e navegações repetidas no mesmo dia não inflam esse número.'
+              : 'Counted at most once per day per visitor/session who views your full profile page. Prefetch requests and repeat visits within the same calendar day do not inflate this metric.'}
           </p>
         </div>
 

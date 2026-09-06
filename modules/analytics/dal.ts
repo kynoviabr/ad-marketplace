@@ -486,3 +486,5 @@ export async function getProfessionalAnalyticsOverview(
     peakTimes,
   }
 }
+
+export { getProfessionalBenchmark } from './benchmark'
