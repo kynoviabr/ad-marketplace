@@ -93,18 +93,26 @@ To deliver compelling professional value and establish deep competitive differen
 - **Exit Criteria**: Advertiser dashboard displays interactive funnel, neighborhood breakdown, and weekly trend comparison.
 
 ### PX3 — Agenda & Availability Foundation
+- **Status**: **COMPLETE (100% RESOLVED IN DEV)**.
 - **Product Value**: Enables professionals to define recurring working hours, time blocks, and service locations, establishing the foundation for client scheduling and AI Concierge availability lookup.
 - **User**: Professional Advertiser.
 - **Scope**: Recurring weekly availability rules, time slot intervals, buffer times, minimum notice, maximum advance booking, exception dates (time-off / holidays), multi-location availability scoping.
-- **Out of Scope**: Visitor-to-advertiser payment intermediation, booking escrow, automated calendar sync (Google/iCal).
+- **Delivered**:
+  - Additive migration `20260906010000_professional_availability.sql` applied to DEV Supabase (`mwzlunkkyigxzjpnybxj`); 32/32 migrations aligned in canonical sync.
+  - Tables: `professional_availability_settings`, `professional_weekly_availability`, `professional_availability_exceptions` with full constraints and RLS.
+  - Transactional RPC: `save_professional_weekly_availability` with interval overlap validation and atomic schedule replacement.
+  - Pure Availability Engine: `modules/agenda/engine.ts` implementing deterministic slot generation, timezone offset derivation (`America/Sao_Paulo`), bounded iteration ($\le 90$ days), notice/advance boundaries, and strict override precedence (`CLOSED_DAY` > `CUSTOM_HOURS` > Weekly Rules - `BLOCKED_INTERVAL`).
+  - Server DAL & Actions: `modules/agenda/dal.ts` and `modules/agenda/actions.ts` with strict advertiser ownership validation (`account_user_id` / `ADMIN`), location validation, and fail-closed public availability query gated by canonical view `v_publication_eligible_profiles`.
+  - Tests & Verification: Dedicated test suite in `tests/agenda/availability-foundation.test.ts` (21/21 tests PASS) and live synthetic PL/pgSQL validation in DEV.
+- **Out of Scope**: Visitor-to-advertiser payment intermediation, booking escrow, automated calendar sync (Google/iCal), UI surfaces (deferred to PX4).
 - **Dependencies**: Professional profile domain, locations domain.
-- **Data Model**: `professional_availability_rules`, `professional_availability_exceptions`.
-- **Expected Modules**: `modules/agenda/`, `modules/agenda/types.ts`, `modules/agenda/dal.ts`.
-- **Expected Migrations**: 1 additive migration creating availability rules and exception tables with strict RLS.
-- **Security Considerations**: Strict ownership RLS; time slots cannot leak unapproved service locations.
+- **Data Model**: `professional_availability_settings`, `professional_weekly_availability`, `professional_availability_exceptions`.
+- **Expected Modules**: `modules/agenda/` (`types.ts`, `engine.ts`, `dal.ts`, `actions.ts`, `index.ts`).
+- **Applied Migrations**: `20260906010000_professional_availability.sql`.
+- **Security Considerations**: Strict ownership RLS; time slots cannot leak unapproved service locations; fail-closed public lookup against `v_publication_eligible_profiles`.
 - **Observability Requirements**: Availability calculation performance telemetry (<20ms resolution).
-- **Test Strategy**: Recurrent schedule expansion unit tests, exception override precedence tests.
-- **Exit Criteria**: Professional can persist and resolve weekly schedules and time-off exceptions via domain DAL.
+- **Test Strategy**: Pure slot generation tests, exception override precedence tests, overlap rejection tests, fail-closed publication checks, owner authorization tests.
+- **Exit Criteria**: Professional can persist and resolve weekly schedules and time-off exceptions via domain DAL and RPC. (MET)
 
 ### PX4 — Agenda UX & Public Availability Surface
 - **Product Value**: Displays privacy-safe availability indicators on public profiles (e.g., "Atende hoje até as 22h", "Próximo horário disponível") and provides a fast schedule editor in the advertiser dashboard.
