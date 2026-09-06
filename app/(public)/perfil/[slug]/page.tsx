@@ -10,10 +10,12 @@ import { ReviewForm } from '@/components/reviews/review-form'
 import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 import { VelvetBadge } from '@/components/ui/velvet-badge'
+import { PublicAvailabilityBadge } from '@/components/agenda/public-availability-badge'
 import { localizePathname } from '@/lib/i18n/routing'
 import { OFFERING_GROUPS } from '@/modules/offerings/types'
 import { getTranslations } from '@/lib/i18n/server'
 import { getEligiblePublicProfileBySlug } from '@/modules/profiles/public-detail'
+import { getPublicAvailabilitySignal } from '@/modules/agenda/dal'
 import { getAccount } from '@/modules/auth/dal'
 import { getPublicReviews, getReviewAccess, PUBLIC_REVIEW_PREVIEW_LIMIT } from '@/modules/reviews/dal'
 import { constructProfileMetadata } from '@/modules/seo/metadata'
@@ -61,7 +63,10 @@ export default async function PublicProfilePage({ params }: Props) {
   const [{ locale, t }, { slug }, account] = await Promise.all([getTranslations(), params, getAccount()])
   const offeringText = (key: string) => t(key as Parameters<typeof t>[0])
   const labels = locale === 'en' ? labelsEn : labelsPtBR
-  const detail = await getEligiblePublicProfileBySlug(slug, account?.id)
+  const [detail, availabilitySignal] = await Promise.all([
+    getEligiblePublicProfileBySlug(slug, account?.id),
+    getPublicAvailabilitySignal(slug),
+  ])
   if (!detail) notFound()
 
   const { profile, city, locations, media, videos } = detail
@@ -121,9 +126,12 @@ export default async function PublicProfilePage({ params }: Props) {
         </div>
 
         <div className="profile-hero-identity">
-          <VelvetBadge variant="verified" className="profile-verification-badge" icon="✓">
-            {t('profile.verificationBadge')}
-          </VelvetBadge>
+          <div className="profile-badge-group">
+            <VelvetBadge variant="verified" className="profile-verification-badge" icon="✓">
+              {t('profile.verificationBadge')}
+            </VelvetBadge>
+            <PublicAvailabilityBadge signal={availabilitySignal} locale={locale} />
+          </div>
           <h1 id="profile-title">
             {profile.stageName}{profile.publicAge ? <>, <span>{profile.publicAge}</span></> : null}
           </h1>

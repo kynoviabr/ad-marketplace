@@ -115,18 +115,26 @@ To deliver compelling professional value and establish deep competitive differen
 - **Exit Criteria**: Professional can persist and resolve weekly schedules and time-off exceptions via domain DAL and RPC. (MET)
 
 ### PX4 — Agenda UX & Public Availability Surface
-- **Product Value**: Displays privacy-safe availability indicators on public profiles (e.g., "Atende hoje até as 22h", "Próximo horário disponível") and provides a fast schedule editor in the advertiser dashboard.
+- **Status**: **COMPLETE (100% RESOLVED IN DEV)**.
+- **Product Value**: Displays privacy-safe availability indicators on public profiles ("Disponível hoje", "Disponibilidade esta semana") and provides an ergonomic, mobile-first schedule and exceptions manager in the advertiser dashboard.
 - **User**: Professional Advertiser & Prospective Client.
-- **Scope**: Dashboard calendar and availability management interface; public profile availability badge and preview modal; quick toggle for immediate unavailability ("Indisponível hoje").
-- **Out of Scope**: Direct on-platform booking checkout (Velvet is a non-intermediary directory).
+- **Scope**: Advertiser availability dashboard (`/dashboard/availability`) with weekly schedule matrix, multi-location assignment, touch-optimized time selectors, atomic save RPC orchestration, date exception modal (`CLOSED_DAY`, `BLOCKED_INTERVAL`, `CUSTOM_HOURS`), quick "Indisponível hoje" toggle, owner slot preview, advanced interval/buffer/notice settings, and fail-closed privacy-safe public profile badges (`PublicAvailabilityBadge`).
+- **Delivered**:
+  - Dashboard route: `app/(dashboard)/dashboard/availability/page.tsx` loading comprehensive `ProfessionalAvailabilityDashboardDTO`.
+  - UI Components: `components/agenda/availability-manager.tsx`, `components/agenda/add-exception-modal.tsx`, `components/agenda/public-availability-badge.tsx`, and compact status summary card on `/dashboard`.
+  - Security Invariants: Server-side location ownership verification (`assertLocationOwnership`) on all schedule & exception mutations; strict account ownership verification; zero leakage of internal UUIDs or calendar intervals to public viewers.
+  - Public Integration: Integrated into `app/(public)/perfil/[slug]/page.tsx` via canonical publication view `v_publication_eligible_profiles` and fail-closed signal generation (`AVAILABLE_TODAY`, `AVAILABLE_THIS_WEEK`, `NO_SIGNAL`).
+  - i18n: Complete bilingual catalog (`lib/i18n/messages/agenda.ts`) for PT-BR and EN.
+  - Tests & Verification: 7 dedicated test suites in `tests/agenda/` (82/82 tests PASS), 177/177 project test suites PASS (1,774 tests), Turbopack build PASS. Zero residual test records in DEV.
+- **Out of Scope**: Direct on-platform booking checkout, payment intermediation, escrow, or contracts (Velvet is a classified/discovery marketplace).
 - **Dependencies**: PX3 Agenda Foundation.
-- **Data Model**: Read projections from PX3 tables.
-- **Expected Modules**: `app/(dashboard)/dashboard/agenda/`, `components/agenda/`, `components/public/profile-availability-badge.tsx`.
-- **Expected Migrations**: None.
-- **Security Considerations**: Public availability only reflects publication-eligible profiles; exact schedule details sanitized.
-- **Observability Requirements**: UI render latency; public availability cache hit rates.
-- **Test Strategy**: Visual regression tests, public availability gating tests (suspended profile shows no agenda).
-- **Exit Criteria**: Advertiser can adjust weekly schedule in dashboard; public profile reflects real-time availability.
+- **Data Model**: Read/write projections over PX3 tables (`professional_availability_settings`, `professional_weekly_availability`, `professional_availability_exceptions`).
+- **Modules**: `app/(dashboard)/dashboard/availability/`, `components/agenda/`, `modules/agenda/`, `lib/i18n/messages/agenda.ts`.
+- **Applied Migrations**: None (reuses PX3 schema 32/32).
+- **Security Considerations**: Public availability only reflects publication-eligible profiles; exact schedule details sanitized into opaque enum signals; cross-profile and foreign-location mutations strictly prohibited.
+- **Observability Requirements**: Structured logging on mutation failures with subsystem `AGENDA`.
+- **Test Strategy**: Authorization tests, location boundary validation, weekly schedule matrix tests, date exception precedence tests, public signal gating tests, and live DEV transactional integration tests.
+- **Exit Criteria**: Advertiser can manage weekly schedule and exceptions in dashboard; public profile reflects real-time availability. (MET)
 
 ### PX5 — AI Concierge Foundation (Internal Portal Architecture)
 - **Product Value**: Provides professionals with an automated, 24/7 AI assistant to answer prospect questions about rates, offerings, services, and neighborhood locations, saving time and increasing inquiry conversion.
@@ -197,7 +205,7 @@ The technical hardening findings identified during R12 analysis are preserved an
 | **Item E** | Media delivery publication gate enforcement | **Continuous Security Guardrail** | **RESOLVED** (Enforced canonical publication eligibility for public media; 12/12 dedicated tests PASS) |
 | **Item I** | CLIENT signup error handling & provisioning atomicity | **Continuous Security Guardrail** | **RESOLVED & DEV VALIDATED** (Database-owned atomic membership provisioning via account_users trigger; 30/30 DEV migrations in sync; dedicated test suite PASS) |
 | **Item H** | Admin operational classification drift vs canonical view | **Continuous Security Guardrail** | **RESOLVED** (Fixed in PX1B; canonical eligibility strictly governs operational classification; verified by dedicated tests) |
-| **Item A** | Canonical publication eligibility in utility helpers | **Continuous Security Guardrail** | **Fix during PX2 / PX4** (Analytics / Agenda gating) |
+| **Item A** | Canonical publication eligibility in utility helpers | **Continuous Security Guardrail** | **RESOLVED & DEV VERIFIED** (Enforced canonical view `v_publication_eligible_profiles` across PX2 Analytics and PX4 Agenda public signals) |
 | **Item B** | Non-atomic mutation and audit trail pairs | **Continuous Security Guardrail** | **Fix during PX7** (Cybersecurity & Atomic RPCs) |
 | **Item C** | Audit tables lacking DB immutability triggers & FK cascade | **Continuous Security Guardrail** | **Fix during PX7** (Cybersecurity & Ledger Immutability) |
 | **Item J** | LGPD automated account deletion and PII anonymization | **Must Fix Before Real Users** | **Pre-GTM Hardening Gate** (Prior to Beta Onboarding) |

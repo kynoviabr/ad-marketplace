@@ -279,6 +279,23 @@ export function getDayOfWeekInTimezone(
   return dow
 }
 
+/** Returns the local date (YYYY-MM-DD) for a given Date in the target IANA timezone. */
+export function getLocalDateInTimezone(
+  date: Date,
+  timezone: string = DEFAULT_TIMEZONE
+): string {
+  const targetTz = isValidIanaTimezone(timezone) ? timezone.trim() : DEFAULT_TIMEZONE
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: targetTz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const map: Record<string, string> = {}
+  for (const part of parts) map[part.type] = part.value
+  return `${map.year}-${map.month}-${map.day}`
+}
+
 /**
  * Generates a deterministic, opaque reference for a candidate inquiry slot.
  * Format: 24-character hex hash of (profileSlug + startIso + endIso).

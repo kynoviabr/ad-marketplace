@@ -5,17 +5,21 @@ import {
   DEFAULT_TIMEZONE,
   generateAvailableSlots,
   generateOpaqueSlotRef,
+  getLocalDateInTimezone,
   hasOverlappingWindows,
   isValidIanaTimezone,
   normalizeTime,
 } from './engine'
+import { getProfileLocations } from '@/modules/locations/dal'
 import type {
   AvailabilityException,
   AvailabilitySettings,
   DayOfWeek,
   InternalInquirySlot,
+  ProfessionalAvailabilityDashboardDTO,
   ProfessionalScheduleSummary,
   PublicAvailabilityQuery,
+  PublicAvailabilitySignal,
   PublicAvailabilitySlot,
   WeeklyAvailabilityRule,
 } from './types'
@@ -457,4 +461,127 @@ export async function revalidateSlotAvailability(params: {
   }
 
   return { available: true, slot: matching }
+}
+
+/**
+ * Derives a privacy-safe, high-level public availability signal for a profile.
+ * Fail-closed: returns NO_SIGNAL if profile is ineligible, availability is disabled,
+ * or no candidate slots are found within the upcoming 7 days.
+ *
+ * Exposes ZERO dates, ZERO slots, ZERO times, ZERO UUIDs to the caller.
+ */
+export async function getPublicAvailabilitySignal(
+  profileSlug: string
+): Promise<PublicAvailabilitySignal> {
+  try {
+    const now = new Date()
+    const todayStr = getLocalDateInTimezone(now, DEFAULT_TIMEZONE)
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const in7DaysStr = getLocalDateInTimezone(in7Days, DEFAULT_TIMEZONE)
+
+    const slots = await getPublicAvailableSlots({
+      profileSlug,
+      startDate: todayStr,
+      endDate: in7DaysStr,
+    })
+
+    if (!slots || slots.length === 0) {
+      return { status: 'NO_SIGNAL' }
+    }
+
+    const hasSlotToday = slots.some((slot) => slot.localDate === todayStr)
+    if (hasSlotToday) {
+      return {
+        status: 'AVAILABLE_TODAY',
+        labelPt: 'Disponível hoje',
+        labelEn: 'Available today',
+      }
+    }
+
+    return {
+      status: 'AVAILABLE_THIS_WEEK',
+      labelPt: 'Disponibilidade esta semana',
+      labelEn: 'Available this week',
+    }
+  } catch {
+    // Fail-closed on any unexpected failure or missing profile
+    return { status: 'NO_SIGNAL' }
+  }
+}
+
+/**
+ * Aggregates complete availability state for the authenticated professional dashboard.
+ * Executes bounded parallel reads (summary + service areas) and generates owner preview slots.
+ */
+export async function getProfessionalAvailabilityDashboardDTO(
+  profileId: string
+): Promise<ProfessionalAvailabilityDashboardDTO> {
+  const [summary, profileLocations] = await Promise.all([
+    getProfessionalScheduleSummary(profileId),
+    getProfileLocations(profileId),
+  ])
+
+  const timezone = summary.settings.timezone || DEFAULT_TIMEZONE
+  const now = new Date()
+  const todayDate = getLocalDateInTimezone(now, timezone)
+  const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const in7DaysStr = getLocalDateInTimezone(in7Days, timezone)
+
+  // Map service areas with public-safe names and active status
+  const serviceAreas = profileLocations
+    .filter((pl) => pl.location?.active)
+    .map((pl) => ({
+      id: pl.location_id,
+      name: pl.location?.name ?? 'Região',
+      slug: pl.location?.slug ?? '',
+      isPrimary: Boolean(pl.is_primary),
+    }))
+
+  const locationNameMap = new Map<string, string>()
+  for (const sa of serviceAreas) {
+    locationNameMap.set(sa.id, sa.name)
+  }
+
+  // Upcoming exceptions (date >= today in professional timezone)
+  const upcomingExceptions = summary.exceptions.filter(
+    (ex) => ex.exceptionDate >= todayDate
+  )
+
+  // Check if today is marked CLOSED_DAY (all areas or global)
+  const isUnavailableToday = upcomingExceptions.some(
+    (ex) => ex.exceptionDate === todayDate && ex.exceptionType === 'CLOSED_DAY' && !ex.locationId
+  )
+
+  // Generate bounded owner preview slots (next 7 days, up to 10 slots)
+  let previewSlots: ProfessionalAvailabilityDashboardDTO['previewSlots'] = []
+  if (summary.settings.enabled) {
+    const rawSlots = generateAvailableSlots({
+      settings: summary.settings,
+      weeklyRules: summary.weeklyRules,
+      exceptions: summary.exceptions,
+      startDate: todayDate,
+      endDate: in7DaysStr,
+      now,
+    })
+
+    previewSlots = rawSlots.slice(0, 10).map((s) => ({
+      startIso: s.startIso,
+      endIso: s.endIso,
+      localDate: s.localDate,
+      localStartTime: s.localStartTime,
+      localEndTime: s.localEndTime,
+      locationName: s.locationId ? locationNameMap.get(s.locationId) ?? null : null,
+    }))
+  }
+
+  return {
+    profileId,
+    settings: summary.settings,
+    weeklyRules: summary.weeklyRules,
+    upcomingExceptions,
+    serviceAreas,
+    todayDate,
+    isUnavailableToday,
+    previewSlots,
+  }
 }

@@ -2,13 +2,16 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAccount } from '@/modules/auth/dal'
+import { logger } from '@/modules/observability/logger'
 import {
   createAvailabilityException,
   deleteAvailabilityException,
+  getAvailabilityExceptions,
+  getAvailabilitySettings,
   saveWeeklyAvailability,
   updateAvailabilitySettings,
 } from './dal'
-import { isValidIanaTimezone } from './engine'
+import { getLocalDateInTimezone, isValidIanaTimezone } from './engine'
 import type { AvailabilityException, AvailabilitySettings, DayOfWeek, WeeklyAvailabilityRule } from './types'
 
 export interface AgendaActionResult<T = void> {
@@ -41,6 +44,24 @@ async function assertProfileOwnership(profileId: string): Promise<{ accountId: s
   }
 
   return { accountId: account.id, isAdmin: false }
+}
+
+/**
+ * Asserts that a specified locationId belongs to the professional profile's active service areas.
+ */
+async function assertLocationOwnership(profileId: string, locationId: string | null | undefined): Promise<void> {
+  if (!locationId) return
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('professional_profile_locations')
+    .select('location_id')
+    .eq('profile_id', profileId)
+    .eq('location_id', locationId)
+    .maybeSingle()
+
+  if (error || !data) {
+    throw new Error('Região de atendimento não associada ao seu perfil.')
+  }
 }
 
 /**
@@ -84,6 +105,11 @@ export async function saveAvailabilitySettingsAction(
     const updated = await updateAvailabilitySettings(profileId, settings)
     return { success: true, data: updated }
   } catch (err: unknown) {
+    logger.error('agenda.availability.settings_save_failed', {
+      subsystem: 'AGENDA',
+      metadata: { profileId },
+      error: err,
+    })
     const msg = err instanceof Error ? err.message : 'Erro ao atualizar configurações de disponibilidade.'
     return { success: false, error: msg }
   }
@@ -99,6 +125,12 @@ export async function saveWeeklyScheduleAction(
   try {
     await assertProfileOwnership(profileId)
 
+    // Validate that all referenced locationIds belong to this profile's active service areas
+    const locationIds = Array.from(new Set(rules.map((r) => r.locationId).filter(Boolean))) as string[]
+    for (const locId of locationIds) {
+      await assertLocationOwnership(profileId, locId)
+    }
+
     for (const rule of rules) {
       if (rule.dayOfWeek < 0 || rule.dayOfWeek > 6) {
         return { success: false, error: 'Dia da semana inválido.' }
@@ -111,6 +143,11 @@ export async function saveWeeklyScheduleAction(
     const saved = await saveWeeklyAvailability(profileId, rules)
     return { success: true, data: saved }
   } catch (err: unknown) {
+    logger.error('agenda.availability.weekly_save_failed', {
+      subsystem: 'AGENDA',
+      metadata: { profileId, ruleCount: rules.length },
+      error: err,
+    })
     const msg = err instanceof Error ? err.message : 'Erro ao salvar horários da semana.'
     return { success: false, error: msg }
   }
@@ -131,6 +168,10 @@ export async function createAvailabilityExceptionAction(
 ): Promise<AgendaActionResult<AvailabilityException>> {
   try {
     await assertProfileOwnership(profileId)
+
+    if (exceptionInput.locationId) {
+      await assertLocationOwnership(profileId, exceptionInput.locationId)
+    }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(exceptionInput.exceptionDate)) {
       return { success: false, error: 'Data da exceção inválida (formato esperado: YYYY-MM-DD).' }
@@ -157,6 +198,11 @@ export async function createAvailabilityExceptionAction(
 
     return { success: true, data: created }
   } catch (err: unknown) {
+    logger.error('agenda.availability.exception_save_failed', {
+      subsystem: 'AGENDA',
+      metadata: { profileId, exceptionType: exceptionInput.exceptionType },
+      error: err,
+    })
     const msg = err instanceof Error ? err.message : 'Erro ao criar exceção de disponibilidade.'
     return { success: false, error: msg }
   }
@@ -178,6 +224,75 @@ export async function deleteAvailabilityExceptionAction(
     return { success: true }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Erro ao remover exceção.'
+    return { success: false, error: msg }
+  }
+}
+
+/**
+ * Quick Action: Marks TODAY as unavailable (CLOSED_DAY) in the professional's timezone.
+ * Idempotent: if a CLOSED_DAY already exists for today, returns existing exception without error.
+ */
+export async function setUnavailableTodayAction(
+  profileId: string
+): Promise<AgendaActionResult<AvailabilityException>> {
+  try {
+    await assertProfileOwnership(profileId)
+    const settings = await getAvailabilitySettings(profileId)
+    const todayDate = getLocalDateInTimezone(new Date(), settings.timezone)
+
+    const existingExceptions = await getAvailabilityExceptions(profileId, todayDate, todayDate)
+    const existingClosedDay = existingExceptions.find(
+      (ex) => ex.exceptionDate === todayDate && ex.exceptionType === 'CLOSED_DAY' && !ex.locationId
+    )
+
+    if (existingClosedDay) {
+      return { success: true, data: existingClosedDay }
+    }
+
+    const created = await createAvailabilityException({
+      profileId,
+      exceptionDate: todayDate,
+      exceptionType: 'CLOSED_DAY',
+      locationId: null,
+    })
+
+    return { success: true, data: created }
+  } catch (err: unknown) {
+    logger.error('agenda.availability.quick_unavailable_failed', {
+      subsystem: 'AGENDA',
+      metadata: { profileId },
+      error: err,
+    })
+    const msg = err instanceof Error ? err.message : 'Erro ao marcar hoje como indisponível.'
+    return { success: false, error: msg }
+  }
+}
+
+/**
+ * Quick Action: Restores TODAY's availability by removing any global CLOSED_DAY exception for today.
+ */
+export async function restoreTodayAvailabilityAction(
+  profileId: string
+): Promise<AgendaActionResult<void>> {
+  try {
+    await assertProfileOwnership(profileId)
+    const settings = await getAvailabilitySettings(profileId)
+    const todayDate = getLocalDateInTimezone(new Date(), settings.timezone)
+
+    const existingExceptions = await getAvailabilityExceptions(profileId, todayDate, todayDate)
+    const todayClosedDays = existingExceptions.filter(
+      (ex) => ex.exceptionDate === todayDate && ex.exceptionType === 'CLOSED_DAY' && !ex.locationId
+    )
+
+    for (const ex of todayClosedDays) {
+      if (ex.id) {
+        await deleteAvailabilityException(ex.id, profileId)
+      }
+    }
+
+    return { success: true }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Erro ao restaurar disponibilidade de hoje.'
     return { success: false, error: msg }
   }
 }

@@ -4,6 +4,7 @@ import { authOnboardingPtBR, authOnboardingEn } from './messages/auth-onboarding
 import { adminPtBR, adminEn } from './messages/admin'
 import { seoPtBR, seoEn } from './messages/seo'
 import { analyticsPtBR, analyticsEn } from './messages/analytics'
+import { agendaPtBR, agendaEn } from './messages/agenda'
 import type { Locale } from './config'
 
 export const ptBRMessages = {
@@ -13,6 +14,7 @@ export const ptBRMessages = {
   ...adminPtBR,
   ...seoPtBR,
   ...analyticsPtBR,
+  ...agendaPtBR,
 } as const
 
 export type MessageKey = keyof typeof ptBRMessages
@@ -25,6 +27,7 @@ export const enMessages = {
   ...adminEn,
   ...seoEn,
   ...analyticsEn,
+  ...agendaEn,
 } satisfies Messages
 
 export const catalogs: Record<Locale, Messages> = {

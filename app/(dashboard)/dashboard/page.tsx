@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { ProfessionalDashboardHeader } from '@/components/dashboard/professional-dashboard-header'
 import { requireAccount } from '@/modules/auth/dal'
 import { getProfessionalDashboardOverview } from '@/modules/dashboard/dal'
+import { getAvailabilitySettings } from '@/modules/agenda/dal'
 import { getRequestLocale } from '@/lib/i18n/server'
 
 export const dynamic = 'force-dynamic'
@@ -15,7 +16,18 @@ export default async function DashboardPage() {
   if (account.onboarding_status !== 'COMPLETED') redirect('/onboarding')
   const locale = await getRequestLocale()
   const isPt = locale === 'pt-BR'
-  const { review, status, billing, metrics } = await getProfessionalDashboardOverview(account)
+  const [{ review, status, billing, metrics }, availabilitySettings] = await Promise.all([
+    getProfessionalDashboardOverview(account),
+    // getAvailabilitySettings handles missing row gracefully by returning defaults
+    account.id ? (async () => {
+      const { data: prof } = await (await import('@/lib/supabase/admin')).createAdminClient()
+        .from('professional_profiles')
+        .select('id')
+        .eq('account_user_id', account.id)
+        .maybeSingle()
+      return prof ? getAvailabilitySettings(prof.id).catch(() => null) : null
+    })() : Promise.resolve(null),
+  ])
   const profile = review.preview
   const name = profile?.stageName ?? 'profissional'
   const actionHref = review.isPublic && review.slug ? `/perfil/${review.slug}` : '/onboarding/revisar'
@@ -67,6 +79,15 @@ export default async function DashboardPage() {
       </section>
       <section className="dashboard-secondary-grid">
         <article className="dashboard-plan"><p className="dashboard-eyebrow">PLANO E PUBLICAÇÃO</p><h2>{billing.planName}</h2><p>{billing.statusLabel}</p><strong>{billing.hasPublicationEntitlement ? 'Direito de publicação ativo' : 'Sem direito de publicação ativo'}</strong>{billing.manageHref ? <Link href={billing.manageHref}>Ver plano <span aria-hidden="true">→</span></Link> : null}</article>
+        <article className="dashboard-availability-summary">
+          <p className="dashboard-eyebrow">{isPt ? 'DISPONIBILIDADE' : 'AVAILABILITY'}</p>
+          <h2>{isPt ? 'Sua agenda.' : 'Your schedule.'}</h2>
+          <p>{availabilitySettings?.enabled ? (isPt ? 'Disponibilidade ativa' : 'Availability active') : (isPt ? 'Disponibilidade pausada' : 'Availability paused')}</p>
+          <strong>{availabilitySettings?.enabled ? (isPt ? 'Sinais de atendimento no ar' : 'Public signals active') : (isPt ? 'Horários em pausa' : 'Schedule paused')}</strong>
+          <Link href="/dashboard/availability">
+            {isPt ? 'Gerenciar disponibilidade' : 'Manage availability'} <span aria-hidden="true">→</span>
+          </Link>
+        </article>
         <article className="dashboard-analytics-summary"><p className="dashboard-eyebrow">ÚLTIMOS 30 DIAS</p><h2>Seu alcance.</h2>{metrics ? <dl><div><dt>Impressões</dt><dd>{metrics.impressionsTotal.toLocaleString('pt-BR')}</dd></div><div><dt>WhatsApp</dt><dd>{metrics.whatsappClicks.toLocaleString('pt-BR')}</dd></div><div><dt>CTR</dt><dd>{metrics.ctr}%</dd></div></dl> : <p>As métricas aparecem depois que seu perfil começa a circular.</p>}<Link href="/dashboard/analytics">Ver analytics <span aria-hidden="true">→</span></Link></article>
       </section>
     </main>

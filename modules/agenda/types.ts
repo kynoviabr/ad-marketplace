@@ -149,3 +149,33 @@ export interface ProfessionalScheduleSummary {
   weeklyRules: WeeklyAvailabilityRule[]
   exceptions: AvailabilityException[]
 }
+
+/**
+ * Privacy-safe public availability signal for public profile detail pages.
+ * Strictly derives broad, high-level availability status without exposing full schedule or raw slots.
+ */
+export type PublicAvailabilitySignal =
+  | { status: 'AVAILABLE_TODAY'; labelPt: string; labelEn: string }
+  | { status: 'AVAILABLE_THIS_WEEK'; labelPt: string; labelEn: string }
+  | { status: 'NO_SIGNAL' }
+
+/**
+ * Aggregated dashboard DTO for the authenticated professional availability management view.
+ */
+export interface ProfessionalAvailabilityDashboardDTO {
+  profileId: string
+  settings: AvailabilitySettings
+  weeklyRules: WeeklyAvailabilityRule[]
+  upcomingExceptions: AvailabilityException[]
+  serviceAreas: Array<{ id: string; name: string; slug: string; isPrimary: boolean }>
+  todayDate: string
+  isUnavailableToday: boolean
+  previewSlots: Array<{
+    startIso: string
+    endIso: string
+    localDate: string
+    localStartTime: string
+    localEndTime: string
+    locationName?: string | null
+  }>
+}
