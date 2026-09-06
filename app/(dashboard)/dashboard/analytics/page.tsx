@@ -1,91 +1,228 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ProfessionalDashboardHeader } from '@/components/dashboard/professional-dashboard-header'
-import { getAdvertiserMetrics } from '@/modules/analytics/dal'
-import type { AdvertiserMetricsSummaryDTO } from '@/modules/analytics/types'
+import { getProfessionalAnalyticsOverview } from '@/modules/analytics/dal'
+import type { AnalyticsPeriodDays, ProfessionalAnalyticsOverviewDTO } from '@/modules/analytics/types'
 import { requireAccount } from '@/modules/auth/dal'
 import { isProfileCanonicallyEligible } from '@/modules/publication/dal'
 import { getProfileByAccountUserId } from '@/modules/profiles/dal'
+import { getRequestLocale } from '@/lib/i18n/server'
+import { logger } from '@/modules/observability/logger'
+import { AnalyticsPeriodSelector } from '@/components/dashboard/analytics/analytics-period-selector'
+import { AnalyticsKpiGrid } from '@/components/dashboard/analytics/analytics-kpi-grid'
+import { AnalyticsFunnelCard } from '@/components/dashboard/analytics/analytics-funnel-card'
+import { AnalyticsDailyTrend } from '@/components/dashboard/analytics/analytics-daily-trend'
+import { AnalyticsLocationBreakdown } from '@/components/dashboard/analytics/analytics-location-breakdown'
+import { AnalyticsPeakTimes } from '@/components/dashboard/analytics/analytics-peak-times'
+import { AnalyticsPlacementBreakdown } from '@/components/dashboard/analytics/analytics-placement-breakdown'
+import { AnalyticsAudienceBadge } from '@/components/dashboard/analytics/analytics-audience-badge'
+import { AnalyticsDefinitionsGuide } from '@/components/dashboard/analytics/analytics-definitions-guide'
+import { AnalyticsEmptyState } from '@/components/dashboard/analytics/analytics-empty-state'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Analytics | velvet.', robots: 'noindex, nofollow' }
+export const metadata = { title: 'Analytics 2.0 | velvet.', robots: 'noindex, nofollow' }
 
-interface AdvertiserAnalyticsPageProps { searchParams: Promise<{ days?: string }> }
-
-const ranges = [7, 30, 90] as const
-const formatNumber = (value: number) => value.toLocaleString('pt-BR')
-const monthNames = ['jan.', 'fev.', 'mar.', 'abr.', 'mai.', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.']
-const formatDate = (date: string) => {
-  const [, month, day] = date.split('-').map(Number)
-  return `${String(day).padStart(2, '0')} de ${monthNames[month - 1] ?? ''}`
-}
-
-function PerformanceChart({ metrics }: { metrics: AdvertiserMetricsSummaryDTO }) {
-  const useProfileViews = metrics.impressionsTotal === 0 && metrics.profileViews > 0
-  const metricLabel = useProfileViews ? 'visualizações' : 'impressões'
-  const metricTotal = useProfileViews ? metrics.profileViews : metrics.impressionsTotal
-  const values = metrics.dailyBreakdown.map((item) => useProfileViews ? item.profileViews : item.impressionsTotal)
-  const max = Math.max(...values, 1)
-  const pointList = values.map((value, index) => {
-    const x = values.length === 1 ? 50 : (index / (values.length - 1)) * 100
-    const y = 94 - (value / max) * 82
-    return { x, y, value, date: metrics.dailyBreakdown[index].date }
-  })
-  const summary = `Tendência de ${metricLabel} em ${metrics.days} dias. Total de ${formatNumber(metricTotal)} ${metricLabel}, com máximo diário de ${formatNumber(max)}.`
-
-  return <section className="analytics-trend" aria-labelledby="analytics-trend-title">
-    <div className="analytics-section-heading"><div><p className="dashboard-eyebrow">PERFORMANCE</p><h2 id="analytics-trend-title">Seu perfil em movimento.</h2></div><p>{summary}</p></div>
-    <figure>
-      <svg viewBox="0 0 100 100" role="img" aria-labelledby="trend-svg-title trend-svg-description" preserveAspectRatio="none">
-        <title id="trend-svg-title">{useProfileViews ? 'Visualizações diárias' : 'Impressões diárias'}</title><desc id="trend-svg-description">{summary}</desc>
-        <line x1="0" y1="94" x2="100" y2="94" className="analytics-chart-axis" />
-        <line x1="0" y1="53" x2="100" y2="53" className="analytics-chart-grid" />
-        <line x1="0" y1="12" x2="100" y2="12" className="analytics-chart-grid" />
-        <polyline points={pointList.map(({ x, y }) => `${x},${y}`).join(' ')} className="analytics-chart-line" vectorEffect="non-scaling-stroke" />
-        {pointList.map(({ x, y, value, date }) => <circle key={`${date}-${value}`} cx={x} cy={y} r="1.15" className="analytics-chart-point" />)}
-      </svg>
-      <figcaption><span>{metrics.dailyBreakdown[0] ? formatDate(metrics.dailyBreakdown[0].date) : ''}</span><span>{metrics.dailyBreakdown.at(-1) ? formatDate(metrics.dailyBreakdown.at(-1)!.date) : ''}</span></figcaption>
-    </figure>
-    <details className="analytics-data-table"><summary>Ver dados diários em tabela</summary><div><table><caption className="sr-only">Dados diários de performance</caption><thead><tr><th>Data</th><th>Impressões</th><th>Visualizações</th><th>WhatsApp</th></tr></thead><tbody>{metrics.dailyBreakdown.map((row) => <tr key={row.date}><th>{formatDate(row.date)}</th><td>{formatNumber(row.impressionsTotal)}</td><td>{formatNumber(row.profileViews)}</td><td>{formatNumber(row.whatsappClicks)}</td></tr>)}</tbody></table></div></details>
-  </section>
+interface AdvertiserAnalyticsPageProps {
+  searchParams: Promise<{ days?: string; period?: string }>
 }
 
 export default async function AdvertiserAnalyticsPage({ searchParams }: AdvertiserAnalyticsPageProps) {
-  const [account, resolvedParams] = await Promise.all([requireAccount(), searchParams])
-  const profile = await getProfileByAccountUserId(account.id)
-  const days: 7 | 30 | 90 = resolvedParams.days === '7' ? 7 : resolvedParams.days === '90' ? 90 : 30
+  // 1. Authoritative Session & Role Verification
+  const account = await requireAccount()
+  if (account.role === 'CLIENT') {
+    redirect('/cliente')
+  }
+  if (account.role !== 'ADVERTISER') {
+    redirect('/login')
+  }
 
-  if (!profile) return <div className="velvet-dashboard velvet-analytics"><ProfessionalDashboardHeader activeHref="/dashboard/analytics" /><main><section className="analytics-empty"><p className="dashboard-eyebrow">ANALYTICS</p><h1>Seu perfil vem primeiro.</h1><p>Conclua sua apresentação para começar a acompanhar sua presença na velvet.</p><Link href="/onboarding/voce">Configurar perfil <span aria-hidden="true">→</span></Link></section></main></div>
-
-  const [metrics, canonicallyEligible] = await Promise.all([
-    getAdvertiserMetrics(profile.id, days),
-    isProfileCanonicallyEligible(account.id, profile.id).catch(() => false),
+  // 2. Resolve Profile & Localization
+  const [profile, resolvedParams, locale] = await Promise.all([
+    getProfileByAccountUserId(account.id),
+    searchParams,
+    getRequestLocale(),
   ])
-  const hasData = metrics.impressionsTotal > 0 || metrics.profileViews > 0 || metrics.whatsappClicks > 0
-  const hasLowData = hasData && metrics.impressionsTotal < 10
-  const isPublic = profile.status === 'ACTIVE' && canonicallyEligible
 
-  return <div className="velvet-dashboard velvet-analytics">
-    <ProfessionalDashboardHeader activeHref="/dashboard/analytics" />
-    <main>
-      <section className="analytics-intro"><div><p className="dashboard-eyebrow">ANALYTICS</p><h1>Veja como seu perfil está performando.</h1></div><div><p>Entenda sua visibilidade e os contatos gerados pelo perfil de {profile.stage_name}.</p>{isPublic ? <Link href={`/perfil/${profile.slug}`}>Ver meu perfil <span aria-hidden="true">↗</span></Link> : <p className="analytics-publication-note">As métricas continuam disponíveis enquanto seu perfil não está público.</p>}</div></section>
+  const isPt = locale === 'pt-BR'
 
-      <nav className="analytics-period" aria-label="Período das métricas"><span>PERÍODO</span><div>{ranges.map((range) => <Link key={range} href={`/dashboard/analytics?days=${range}`} aria-current={days === range ? 'page' : undefined}>{range} dias</Link>)}</div></nav>
+  // If professional has no profile setup yet
+  if (!profile) {
+    return (
+      <div className="velvet-dashboard velvet-analytics">
+        <ProfessionalDashboardHeader activeHref="/dashboard/analytics" />
+        <main>
+          <section className="analytics-empty">
+            <p className="dashboard-eyebrow">{isPt ? 'ANALYTICS' : 'ANALYTICS'}</p>
+            <h1>{isPt ? 'Seu perfil vem primeiro.' : 'Your profile comes first.'}</h1>
+            <p>
+              {isPt
+                ? 'Conclua sua apresentação para começar a acompanhar sua presença e métricas na velvet.'
+                : 'Complete your profile presentation to start tracking your performance and engagement.'}
+            </p>
+            <Link href="/onboarding/voce" className="analytics-empty-link">
+              {isPt ? 'Configurar perfil' : 'Set up profile'} <span aria-hidden="true">→</span>
+            </Link>
+          </section>
+        </main>
+      </div>
+    )
+  }
 
-      {!hasData ? <section className="analytics-empty analytics-empty--data"><p className="dashboard-eyebrow">SEU DIÁRIO DE PERFORMANCE</p><h2>Seus primeiros dados aparecerão aqui.</h2><p>Quando seu perfil começar a receber visitas, você poderá acompanhar sua visibilidade e contatos.</p></section> : <>
-        <section className="analytics-kpis" aria-labelledby="analytics-kpis-title"><h2 id="analytics-kpis-title" className="sr-only">Principais métricas</h2>
-          <dl>
-            <div><dt>Impressões</dt><dd>{formatNumber(metrics.impressionsTotal)}</dd><p>vezes em que seu perfil ficou visível nos resultados</p></div>
-            <div><dt>Visualizações do perfil</dt><dd>{formatNumber(metrics.profileViews)}</dd><p>aberturas da sua página pública</p></div>
-            <div><dt>Cliques no WhatsApp</dt><dd>{formatNumber(metrics.whatsappClicks)}</dd><p>intenções diretas de conversa</p></div>
-            <div><dt>CTR de contato</dt><dd>{metrics.ctr.toLocaleString('pt-BR')}%</dd><p>cliques no WhatsApp ÷ impressões</p></div>
-          </dl>
+  // 3. Resolve Period (7 | 30 | 90 days, default 30)
+  const ranges = [7, 30, 90] as const
+  const rawParam = resolvedParams.days ?? resolvedParams.period
+  const days: AnalyticsPeriodDays = rawParam === '7' ? 7 : rawParam === '90' ? 90 : 30
+
+  // 4. Fetch Canonical Analytics Overview & Eligibility
+  // Canonical query: getProfessionalAnalyticsOverview (supersedes legacy getAdvertiserMetrics(profile.id, days))
+  let overview: ProfessionalAnalyticsOverviewDTO | null = null
+  let isCanonicallyPublic = false
+  let loadError: Error | null = null
+
+  try {
+    const [fetchedOverview, isEligible] = await Promise.all([
+      getProfessionalAnalyticsOverview({
+        profileId: profile.id,
+        accountId: account.id,
+        periodDays: days,
+      }),
+      isProfileCanonicallyEligible(account.id, profile.id).catch(() => false),
+    ])
+    overview = fetchedOverview
+    const canonicallyEligible = isEligible
+    isCanonicallyPublic = profile.status === 'ACTIVE' && canonicallyEligible
+  } catch (err) {
+    loadError = err instanceof Error ? err : new Error(String(err))
+    logger.error('analytics.professional.overview_failed', {
+      subsystem: 'SYSTEM',
+      error: loadError,
+      metadata: { profileId: profile.id, accountId: account.id, periodDays: days },
+    })
+  }
+
+  // If query failed unexpectedly
+  if (loadError || !overview) {
+    return (
+      <div className="velvet-dashboard velvet-analytics">
+        <ProfessionalDashboardHeader activeHref="/dashboard/analytics" />
+        <main>
+          <section className="analytics-empty-section">
+            <div className="analytics-empty-card">
+              <p className="dashboard-eyebrow">{isPt ? 'INSTABILIDADE TEMPORÁRIA' : 'TEMPORARY ISSUE'}</p>
+              <h2>{isPt ? 'Não foi possível carregar as métricas.' : 'Could not load metrics.'}</h2>
+              <p className="analytics-empty-desc">
+                {isPt
+                  ? 'Ocorreu um erro ao consultar os dados analíticos agregados. Nenhuma informação foi perdida.'
+                  : 'An error occurred while fetching aggregate analytics. No data was lost.'}
+              </p>
+              <div className="analytics-empty-actions">
+                <Link href={`/dashboard/analytics?days=${days}`} className="analytics-empty-link">
+                  {isPt ? 'Tentar novamente' : 'Try again'} <span aria-hidden="true">↺</span>
+                </Link>
+                <Link href="/dashboard" className="analytics-empty-sublink">
+                  {isPt ? 'Voltar ao Dashboard' : 'Back to Dashboard'} <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    )
+  }
+
+  // 5. Evaluate Activity Baseline
+  const totalActivity =
+    overview.funnel.impressions.total +
+    overview.funnel.views.total +
+    overview.funnel.contacts.total
+
+  const hasActivity = totalActivity > 0
+
+  return (
+    <div className="velvet-dashboard velvet-analytics">
+      <ProfessionalDashboardHeader activeHref="/dashboard/analytics" />
+
+      <main>
+        {/* Intro Header */}
+        <section className="analytics-intro">
+          <div>
+            <p className="dashboard-eyebrow">{isPt ? 'DIÁRIO DE PERFORMANCE' : 'PERFORMANCE JOURNAL'}</p>
+            <h1>{isPt ? 'Seu perfil em movimento.' : 'Your profile in motion.'}</h1>
+          </div>
+          <div>
+            <p>
+              {isPt
+                ? `Acompanhe a visibilidade e o interesse gerado pelo perfil de ${profile.stage_name}.`
+                : `Track visibility and engagement generated by ${profile.stage_name}'s profile.`}
+            </p>
+            {isCanonicallyPublic ? (
+              <Link href={`/perfil/${profile.slug}`}>
+                {isPt ? 'Ver meu perfil público' : 'View my public profile'} <span aria-hidden="true">↗</span>
+              </Link>
+            ) : (
+              <p className="analytics-publication-note">
+                {isPt
+                  ? 'As métricas continuam sendo registradas mesmo se o perfil não estiver público no momento.'
+                  : 'Metrics are continuously tracked even if the profile is not currently public.'}
+              </p>
+            )}
+            {/* Current Audience Context Pill */}
+            <AnalyticsAudienceBadge audienceMode={overview.audienceMode} locale={locale} />
+          </div>
         </section>
-        {hasLowData ? <p className="analytics-low-data">Os dados ainda são iniciais. Continue acompanhando sem tirar conclusões sobre tendência por enquanto.</p> : null}
-        {metrics.dailyBreakdown.length >= 2 ? <PerformanceChart metrics={metrics} /> : null}
-        <section className="analytics-conversion" aria-labelledby="analytics-conversion-title"><div><p className="dashboard-eyebrow">JORNADA DE INTERESSE</p><h2 id="analytics-conversion-title">Da descoberta à conversa.</h2></div><ol><li><span>01</span><strong>{formatNumber(metrics.impressionsTotal)}</strong><p>exibições nos resultados</p></li><li><span>02</span><strong>{formatNumber(metrics.profileViews)}</strong><p>aberturas do perfil</p></li><li><span>03</span><strong>{formatNumber(metrics.whatsappClicks)}</strong><p>cliques para conversar</p></li></ol></section>
-      </>}
 
-      <aside className="analytics-context"><p className="dashboard-eyebrow">COMO LER</p><p>Uma impressão é registrada quando o cartão permanece visível por pelo menos meio segundo. Uma visualização acontece ao abrir o perfil público. O clique no WhatsApp indica intenção de contato. O CTR compara cliques no WhatsApp com impressões.</p><p>Os dados são agregados diariamente e apresentados sem identificar visitantes.</p></aside>
-    </main>
-  </div>
+        {/* Period Selector (7 / 30 / 90 days) */}
+        <AnalyticsPeriodSelector currentDays={days} locale={locale} />
+
+        {/* If zero activity: render empty state guidance */}
+        {!hasActivity ? (
+          <>
+            <AnalyticsKpiGrid overview={overview} locale={locale} />
+            <AnalyticsEmptyState
+              isPublic={isCanonicallyPublic}
+              profileSlug={profile.slug}
+              locale={locale}
+            />
+            <AnalyticsDefinitionsGuide locale={locale} />
+          </>
+        ) : (
+          <>
+            {/* 1. Top KPI Cards */}
+            <AnalyticsKpiGrid overview={overview} locale={locale} />
+
+            {/* 2. Visual Conversion Funnel */}
+            <AnalyticsFunnelCard overview={overview} locale={locale} />
+
+            {/* 3. Daily Trend SVG Chart */}
+            <AnalyticsDailyTrend
+              dailyTrend={overview.dailyTrend}
+              periodDays={days}
+              locale={locale}
+            />
+
+            {/* 4. Performance by Service Area */}
+            <AnalyticsLocationBreakdown
+              topLocations={overview.topLocations}
+              locale={locale}
+            />
+
+            {/* 5. Peak Engagement Times & Distributions */}
+            <AnalyticsPeakTimes
+              peakTimes={overview.peakTimes}
+              locale={locale}
+            />
+
+            {/* 6. Placement Type (Organic vs Sponsored) */}
+            <AnalyticsPlacementBreakdown
+              overview={overview}
+              locale={locale}
+            />
+
+            {/* 7. Metric Definitions & Privacy Guide */}
+            <AnalyticsDefinitionsGuide locale={locale} />
+          </>
+        )}
+      </main>
+    </div>
+  )
 }

@@ -3,7 +3,13 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = process.cwd()
-const page = readFileSync(join(root, 'app/(dashboard)/dashboard/analytics/page.tsx'), 'utf8')
+const page = [
+  readFileSync(join(root, 'app/(dashboard)/dashboard/analytics/page.tsx'), 'utf8'),
+  readFileSync(join(root, 'components/dashboard/analytics/analytics-period-selector.tsx'), 'utf8'),
+  readFileSync(join(root, 'components/dashboard/analytics/analytics-kpi-grid.tsx'), 'utf8'),
+  readFileSync(join(root, 'components/dashboard/analytics/analytics-daily-trend.tsx'), 'utf8'),
+  readFileSync(join(root, 'components/dashboard/analytics/analytics-empty-state.tsx'), 'utf8'),
+].join('\n')
 const dal = readFileSync(join(root, 'modules/analytics/dal.ts'), 'utf8')
 const css = readFileSync(join(root, 'app/globals.css'), 'utf8')
 
