@@ -137,6 +137,27 @@ To deliver compelling professional value and establish deep competitive differen
 - **Test Strategy**: Authorization tests, location boundary validation, weekly schedule matrix tests, date exception precedence tests, public signal gating tests, and live DEV transactional integration tests.
 - **Exit Criteria**: Advertiser can manage weekly schedule and exceptions in dashboard; public profile reflects real-time availability. (MET)
 
+### PX4.5 — PWA & Installable Experience
+- **Status**: **COMPLETE (100% RESOLVED IN DEV)**.
+- **Product Value**: Transforms Velvet into a fast, standalone installable PWA for iOS and Android while preserving privacy, security, and the non-intermediary classifieds boundary.
+- **User**: Professional Advertiser & Prospective Client.
+- **Scope**:
+  - Web App Manifest: Next.js App Router canonical manifest (`app/manifest.ts` served as `/manifest.webmanifest`) with standalone display mode, `#3B203F` brand theme color, `#F5F1E8` background, and full icon suite.
+  - Icon Suite: Crisp, platform-compliant 192x192, 512x512, maskable (192/512), and apple-touch-icon (180x180) generated with `sharp`.
+  - Service Worker (`public/sw.js`): Security-first caching architecture:
+    - Strictly blocks caching for private/authenticated routes (`/dashboard*`, `/cliente*`, `/admin*`, `/onboarding*`, `/auth*`, `/api*`, `/login`, `/signup*`). Responses are NEVER stored in Cache Storage.
+    - Strictly blocks caching for signed media URLs (`token=`, `/sign/profile-media`, `/sign/profile-videos`).
+    - Bypasses external communication schemes (`wa.me`, `whatsapp:`, `tel:`, `mailto:`).
+    - Public HTML navigation uses Network-First with fallback to pre-cached `/offline` to ensure real-time availability accuracy.
+    - Immutable static assets (`/_next/static/*`, `/icons/*`, fonts) use Cache-First with background fill.
+    - Cache versioning with automatic cleanup of obsolete caches on activation.
+  - Offline Experience: Editorial offline fallback page at `/offline` with reconnection action and no private data exposure.
+  - Standalone UX: iOS safe-area support (`env(safe-area-inset-*)`), viewport-fit=cover, status bar customization (`black-translucent`), and lifecycle component (`PwaLifecycle`).
+  - Tests & Verification: Dedicated PWA test suite (`tests/pwa/pwa-manifest-and-cache-policy.test.ts`, 10/10 PASS); 178/178 test suites PASS (1,784 tests); Turbopack build PASS.
+- **Out of Scope**: Web push notifications, background sync of private mutations, native-app rewrites.
+- **Data Model**: None (0 database migrations, 32/32 aligned).
+- **Modules**: `app/manifest.ts`, `public/sw.js`, `public/icons/`, `app/(public)/offline/`, `components/pwa/pwa-lifecycle.tsx`.
+
 ### PX5 — AI Concierge Foundation (Internal Portal Architecture)
 - **Product Value**: Provides professionals with an automated, 24/7 AI assistant to answer prospect questions about rates, offerings, services, and neighborhood locations, saving time and increasing inquiry conversion.
 - **User**: Professional Advertiser & Prospective Client.

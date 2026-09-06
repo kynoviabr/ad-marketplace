@@ -1,4 +1,12 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
+
+export const viewport: Viewport = {
+  themeColor: '#3B203F',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+}
 import { getSeoConfig } from './config'
 import { buildCanonicalUrl, buildLanguageAlternates } from './canonical'
 import { isCityIndexable, isLocationIndexable, getRobotsDirective } from './indexability'
@@ -144,6 +152,18 @@ export function constructRootMetadata(locale: Locale = DEFAULT_LOCALE): Metadata
   const t = createTranslator(locale)
   const title = t('seo.defaultTitle', { brand: config.siteName })
   const description = t('seo.defaultDescription')
+  const pwaMetadata: Partial<Metadata> = {
+    manifest: '/manifest.webmanifest',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: 'Velvet',
+    },
+    icons: {
+      icon: '/favicon.ico',
+      apple: '/icons/apple-touch-icon.png',
+    },
+  }
 
   if (!config.isProduction) {
     return {
@@ -157,6 +177,7 @@ export function constructRootMetadata(locale: Locale = DEFAULT_LOCALE): Metadata
         index: false,
         follow: false,
       },
+      ...pwaMetadata,
     }
   }
 
@@ -171,5 +192,6 @@ export function constructRootMetadata(locale: Locale = DEFAULT_LOCALE): Metadata
       canonical: buildCanonicalUrl('/', undefined, locale),
       languages: buildLanguageAlternates('/'),
     },
+    ...pwaMetadata,
   }
 }

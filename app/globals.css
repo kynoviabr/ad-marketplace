@@ -3723,3 +3723,114 @@ body:has(.profile-detail-page) { overflow-x: clip; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   PWA & OFFLINE EXPERIENCE (PX4.5)
+   ============================================================ */
+.velvet-offline-container {
+  min-height: calc(100vh - 140px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background: var(--color-bg, #F5F1E8);
+}
+
+.velvet-offline-card {
+  max-width: 480px;
+  width: 100%;
+  padding: clamp(28px, 5vw, 44px) clamp(20px, 4vw, 36px);
+  background: var(--color-surface, #FCFAF5);
+  border: 1px solid var(--color-border, #CDC5B8);
+  border-radius: 2px;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(59, 32, 63, 0.05);
+}
+
+.velvet-offline-eyebrow {
+  display: block;
+  font: 600 11px/1.2 var(--font-body-loaded, sans-serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-brand, #754381);
+}
+
+.velvet-offline-title {
+  margin: 16px 0 12px;
+  font: 400 clamp(24px, 3.5vw, 32px)/1.2 var(--font-editorial-loaded, serif);
+  color: var(--color-brand-deep, #3B203F);
+}
+
+.velvet-offline-desc {
+  margin: 0 0 28px;
+  font: 400 14px/1.65 var(--font-body-loaded, sans-serif);
+  color: var(--color-text-secondary, #6A625B);
+}
+
+.velvet-offline-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.velvet-offline-btn-primary {
+  min-height: 48px;
+  padding: 0 24px;
+  background: var(--color-brand-deep, #3B203F);
+  color: #FCFAF5;
+  border: 0;
+  border-radius: 2px;
+  font: 600 13px/1 var(--font-body-loaded, sans-serif);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.18s ease;
+}
+
+.velvet-offline-btn-primary:hover {
+  opacity: 0.92;
+}
+
+.velvet-offline-btn-secondary {
+  min-height: 48px;
+  padding: 0 24px;
+  background: transparent;
+  color: var(--color-text-primary, #1F1A18);
+  border: 1px solid var(--color-border, #CDC5B8);
+  border-radius: 2px;
+  font: 500 13px/1 var(--font-body-loaded, sans-serif);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.18s ease;
+}
+
+.velvet-offline-btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+@media (min-width: 480px) {
+  .velvet-offline-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}
+
+/* Standalone PWA adjustments for iOS safe areas */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media all and (display-mode: standalone) {
+    .velvet-public-header,
+    .velvet-dashboard-header,
+    .velvet-client-header,
+    .onboarding-header {
+      padding-top: max(0px, env(safe-area-inset-top));
+    }
+  }
+}
+
