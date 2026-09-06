@@ -126,6 +126,7 @@ To deliver compelling professional value and establish deep competitive differen
   - Public Integration: Integrated into `app/(public)/perfil/[slug]/page.tsx` via canonical publication view `v_publication_eligible_profiles` and fail-closed signal generation (`AVAILABLE_TODAY`, `AVAILABLE_THIS_WEEK`, `NO_SIGNAL`).
   - i18n: Complete bilingual catalog (`lib/i18n/messages/agenda.ts`) for PT-BR and EN.
   - Tests & Verification: 7 dedicated test suites in `tests/agenda/` (82/82 tests PASS), 177/177 project test suites PASS (1,774 tests), Turbopack build PASS. Zero residual test records in DEV.
+  - Hosted DEV Deployment: Deployed to existing Vercel Production target (`https://velvetgirls.club`, deployment `dpl_8bKAfN5ZMZuciN1JpG5U22prH9ms`). Smoke tests PASS (12/12 routes).
 - **Out of Scope**: Direct on-platform booking checkout, payment intermediation, escrow, or contracts (Velvet is a classified/discovery marketplace).
 - **Dependencies**: PX3 Agenda Foundation.
 - **Data Model**: Read/write projections over PX3 tables (`professional_availability_settings`, `professional_weekly_availability`, `professional_availability_exceptions`).
