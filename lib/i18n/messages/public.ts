@@ -174,6 +174,16 @@ export const publicPtBR = {
   'footer.cookiePreferences': 'Preferências de cookies',
   'footer.adultsOnly': '© {year} velvet. · Somente para maiores de 18 anos',
   'footer.verificationScope': 'A verificação confirma identidade e maioridade; não garante serviços ou encontros.',
+  'pwa.installVelvet': 'Instalar Velvet',
+  'pwa.cardHeading': 'VELVET NO SEU CELULAR',
+  'pwa.cardDescription': 'Acesse mais rápido, em tela cheia e direto da sua tela inicial.',
+  'pwa.dismiss': 'Dispensar aviso de instalação',
+  'pwa.iosModalTitle': 'Instalar o Velvet no seu iPhone',
+  'pwa.iosModalDescription': 'Adicione o Velvet à tela de início para ter acesso rápido e em tela cheia.',
+  'pwa.iosStep1': 'Toque no ícone Compartilhar na barra inferior do Safari.',
+  'pwa.iosStep2': 'Role as opções e selecione "Adicionar à Tela de Início".',
+  'pwa.iosStep3': 'Toque em "Adicionar" no canto superior direito.',
+  'pwa.iosModalClose': 'Entendi',
 } as const
 
 export const publicEn = {
@@ -352,4 +362,14 @@ export const publicEn = {
   'footer.cookiePreferences': 'Cookie preferences',
   'footer.adultsOnly': '© {year} velvet. · Adults 18+ only',
   'footer.verificationScope': 'Verification confirms identity and legal age; it does not guarantee services or meetings.',
+  'pwa.installVelvet': 'Install Velvet',
+  'pwa.cardHeading': 'VELVET ON YOUR DEVICE',
+  'pwa.cardDescription': 'Access faster, in full screen and directly from your home screen.',
+  'pwa.dismiss': 'Dismiss install notice',
+  'pwa.iosModalTitle': 'Install Velvet on your iPhone',
+  'pwa.iosModalDescription': 'Add Velvet to your home screen for quick, full-screen access.',
+  'pwa.iosStep1': 'Tap the Share icon in the Safari bottom toolbar.',
+  'pwa.iosStep2': 'Scroll down the options and select "Add to Home Screen".',
+  'pwa.iosStep3': 'Tap "Add" in the top right corner.',
+  'pwa.iosModalClose': 'Got it',
 } as const

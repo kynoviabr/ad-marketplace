@@ -7,6 +7,7 @@ import { LanguageSelector } from '@/components/i18n/language-selector'
 import { useI18n } from '@/components/i18n/i18n-provider'
 import { localizePathname } from '@/lib/i18n/routing'
 import { isPublicNavigationItemActive, type PublicNavigationItem } from './public-navigation-state'
+import { InstallVelvetButton } from '@/components/pwa'
 
 interface MobileNavigationProps {
   isAuthenticated: boolean
@@ -168,6 +169,10 @@ export function MobileNavigation({ isAuthenticated }: MobileNavigationProps) {
                   {isAuthenticated ? t('navigation.account') : t('navigation.login')}
                 </DrawerLink>
               </DrawerGroup>
+
+              <div className="velvet-mobile-nav-install-wrap">
+                <InstallVelvetButton variant="nav" onClick={closeDrawer} />
+              </div>
 
               <DrawerGroup label={t('navigation.sectionLanguage')}>
                 <LanguageSelector expanded />

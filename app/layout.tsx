@@ -6,7 +6,7 @@ import { JsonLd } from '@/components/seo/json-ld'
 import { I18nProvider } from '@/components/i18n'
 import { getRequestLocale } from '@/lib/i18n/server'
 import { PublicComplianceLayer } from '@/components/compliance/public-compliance-layer'
-import { PwaLifecycle } from '@/components/pwa/pwa-lifecycle'
+import { PwaInstallProvider } from '@/components/pwa'
 import { cookies } from 'next/headers'
 import { AGE_COOKIE, CONSENT_COOKIE, parseConsent } from '@/lib/compliance/consent'
 
@@ -75,7 +75,17 @@ export default async function RootLayout({
       <head>
         <JsonLd data={websiteJsonLd} />
       </head>
-      <body><I18nProvider locale={locale}><div id="velvet-app-content">{children}</div><PublicComplianceLayer initialAgeAccepted={ageAccepted} initialAnalyticsConsent={initialConsent?.analytics ?? null} /><PwaLifecycle /></I18nProvider></body>
+      <body>
+        <I18nProvider locale={locale}>
+          <PwaInstallProvider>
+            <div id="velvet-app-content">{children}</div>
+            <PublicComplianceLayer
+              initialAgeAccepted={ageAccepted}
+              initialAnalyticsConsent={initialConsent?.analytics ?? null}
+            />
+          </PwaInstallProvider>
+        </I18nProvider>
+      </body>
     </html>
   )
 }

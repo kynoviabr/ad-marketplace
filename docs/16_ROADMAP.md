@@ -158,6 +158,35 @@ To deliver compelling professional value and establish deep competitive differen
 - **Data Model**: None (0 database migrations, 32/32 aligned).
 - **Modules**: `app/manifest.ts`, `public/sw.js`, `public/icons/`, `app/(public)/offline/`, `components/pwa/pwa-lifecycle.tsx`.
 
+### PX4.6 — Install App UX
+- **Status**: **COMPLETE (100% RESOLVED IN DEV)**.
+- **Product Value**: Delivers a polished, device-aware, non-intrusive Velvet installation experience for Android/Chromium, iOS Safari, and Desktop PWA users.
+- **User**: Professional Advertiser & Prospective Client.
+- **Scope**:
+  - Discoverable Entry Points:
+    - Restrained public footer card (`InstallVelvetCard`) with Velvet editorial styling: heading "VELVET NO SEU CELULAR" (EN: "VELVET ON YOUR DEVICE"), description "Acesse mais rápido, em tela cheia e direto da sua tela inicial.", primary CTA "Instalar Velvet", and session dismiss action.
+    - Mobile navigation drawer action (`InstallVelvetButton`) with clean icon, accessible label, and >=44px touch target.
+  - Platform-Aware Installation:
+    - Android / Chromium: Captures `beforeinstallprompt` event, triggers native browser prompt upon user click, tracks `accepted` and `dismissed` outcomes without persistent nagging.
+    - iOS / iPadOS: Safely detects iOS devices and iPadOS desktop UA, presents accessible modal dialog (`IosInstallModal`) with 3 concise steps (Share -> Add to Home Screen -> Add) and visual Safari icons.
+    - Standalone & Installed Detection: Automatically suppresses all install CTAs when running in standalone mode (`display-mode: standalone` / `navigator.standalone`) or upon receiving `appinstalled` event.
+    - Unsupported Environments: Gracefully returns `null` with zero broken CTAs on unsupported browsers.
+  - Non-Intermediary & Security Invariants:
+    - Zero store badges (no Apple App Store or Google Play badges).
+    - No "Download App" naming (explicitly "Instalar Velvet" PWA installation).
+    - Zero security authority: install state is UX only and never used for authentication or authorization decisions.
+  - Telemetry:
+    - Canonical DB analytics marked DEFERRED (fixed database enum `analytics_event_type` preserved under MIGRATION = NONE policy).
+    - Privacy-safe, deduplicated client telemetry events (`PWA_INSTALL_CTA_SHOWN`, `PWA_INSTALL_CTA_CLICKED`, `PWA_INSTALL_PROMPT_ACCEPTED`, `PWA_INSTALL_PROMPT_DISMISSED`, `PWA_INSTALLED`, `PWA_IOS_INSTRUCTIONS_OPENED`, `PWA_STANDALONE_SESSION`) with zero PII and zero device fingerprinting.
+  - Verification & Test Coverage:
+    - 26 PWA tests passing (`tests/pwa/pwa-manifest-and-cache-policy.test.ts` & `tests/pwa/pwa-install-ux.test.ts`).
+    - Full test suite: 179 test files, 1,800 tests PASS (0 failures).
+    - Typecheck: 0 errors (`npm run typecheck`).
+    - Lint: 0 errors, 0 warnings (`npm run lint`).
+    - Production build: Turbopack PASS (`npm run build`).
+- **Data Model**: None (0 migrations created, 32/32 aligned).
+- **Modules**: `components/pwa/`, `components/public/public-footer.tsx`, `components/public/mobile-navigation.tsx`, `lib/i18n/messages/public.ts`, `app/velvet-public.css`.
+
 ### PX5 — AI Concierge Foundation (Internal Portal Architecture)
 - **Product Value**: Provides professionals with an automated, 24/7 AI assistant to answer prospect questions about rates, offerings, services, and neighborhood locations, saving time and increasing inquiry conversion.
 - **User**: Professional Advertiser & Prospective Client.
@@ -304,8 +333,9 @@ Executed only **after** the GTM Ready Gate is achieved:
 - **Completed Product Workstreams**:
   - **PX1 — Observability & Telemetry Foundation**: **COMPLETE (100% RESOLVED)** across PX1A, PX1B, PX1C.
   - **PX2 — Professional Analytics 2.0**: **COMPLETE (100% RESOLVED)** across PX2A, PX2B, PX2C.
-    - **PX2A — Measurement Integrity + Funnel Foundation**: **RESOLVED** (Funnel integrity, migration 20260905040000, deduplication, safe math).
-    - **PX2B — Professional Analytics Dashboard 2.0**: **RESOLVED** (Componentized dashboard UI, period comparison, 3-stage visual funnel, hourly & location attribution).
-    - **PX2C — Insights, Comparisons & Safe Benchmarks**: **RESOLVED** (Deterministic performance diagnostics, privacy-safe cohort medians, zero competitor leakage).
-- **Product Next**: **PX3 — Agenda & Availability Foundation** (Recurring weekly availability rules, time slot intervals, buffer times, minimum notice, exception dates, and multi-location availability scoping).
-- **Operational Next**: **Hosted DEV stabilization & deploy checkpoint** (Commit/push verification and update existing stable Vercel hosted DEV target at `https://velvetgirls.club`).
+  - **PX3 — Agenda & Availability Foundation**: **COMPLETE (100% RESOLVED)**.
+  - **PX4 — Agenda UX & Professional Operations**: **COMPLETE (100% RESOLVED)**.
+  - **PX4.5 — PWA & Installable Experience**: **COMPLETE (100% RESOLVED)**.
+  - **PX4.6 — Install App UX**: **COMPLETE (100% RESOLVED)**.
+- **Product Next**: **PX5 — AI Concierge Foundation (Internal Portal Architecture)**.
+- **Operational Next**: **Hosted DEV stabilization & deploy checkpoint** (Update existing stable Vercel hosted DEV target at `https://velvetgirls.club`).

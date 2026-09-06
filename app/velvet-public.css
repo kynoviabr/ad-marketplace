@@ -3491,3 +3491,296 @@
 
 
 
+
+/* ============================================================
+   PX4.6 — Velvet Install App UX & iOS Guidance
+   ============================================================ */
+
+.velvet-public-footer-install-wrap {
+  width: min(100%, var(--container-content));
+  margin: 0 auto var(--space-6);
+}
+
+.velvet-install-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 16px 20px;
+  background: color-mix(in srgb, var(--color-surface) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-surface) 16%, transparent);
+  border-radius: 12px;
+  color: var(--color-surface);
+}
+
+.velvet-install-card-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1 1 260px;
+}
+
+.velvet-install-card-badge {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-surface) 12%, transparent);
+  color: var(--color-surface);
+}
+
+.velvet-install-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.velvet-install-card-heading {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-surface-alt);
+  margin: 0;
+}
+
+.velvet-install-card-desc {
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--color-surface);
+  margin: 0;
+}
+
+.velvet-install-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.velvet-install-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: var(--color-surface);
+  color: var(--color-brand-deep);
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.velvet-install-btn:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.velvet-install-dismiss {
+  min-height: 44px;
+  min-width: 44px;
+  background: transparent;
+  border: none;
+  color: var(--color-surface-alt);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition: color 0.15s ease;
+}
+
+.velvet-install-dismiss:hover {
+  color: var(--color-surface);
+}
+
+.velvet-mobile-nav-install-wrap {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.velvet-pwa-install-nav-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 12px 0;
+  font-family: var(--font-ui);
+  font-size: 15px;
+  font-weight: 500;
+  min-height: 44px;
+  color: inherit;
+}
+
+.velvet-pwa-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Modal Dialog for iOS instructions */
+.velvet-pwa-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 12, 18, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.velvet-pwa-modal {
+  background: #251428;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  color: #FAF7F2;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.velvet-pwa-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.velvet-pwa-modal-title {
+  font-family: var(--font-editorial);
+  font-size: 21px;
+  font-weight: 500;
+  color: #FAF7F2;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.velvet-pwa-modal-close {
+  min-height: 44px;
+  min-width: 44px;
+  background: transparent;
+  border: none;
+  color: #C8BFB5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.velvet-pwa-modal-close:hover {
+  color: #FAF7F2;
+}
+
+.velvet-pwa-modal-desc {
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #D1C7BD;
+  margin: 0 0 20px;
+}
+
+.velvet-pwa-modal-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.velvet-pwa-modal-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #EDE5DC;
+}
+
+.velvet-pwa-step-num {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #FAF7F2;
+  font-weight: 600;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.velvet-pwa-step-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.velvet-pwa-share-icon,
+.velvet-pwa-add-icon {
+  display: inline-block;
+  vertical-align: middle;
+  color: #D6C29E;
+}
+
+.velvet-pwa-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.velvet-pwa-primary-btn {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 9999px;
+  background: #FAF7F2;
+  color: #251428;
+  font-family: var(--font-ui);
+  font-size: 14.5px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.velvet-pwa-primary-btn:hover {
+  background: #ffffff;
+}
+
+@media (max-width: 700px) {
+  .velvet-install-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .velvet-install-card-actions {
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+  .velvet-install-btn {
+    flex: 1;
+  }
+}

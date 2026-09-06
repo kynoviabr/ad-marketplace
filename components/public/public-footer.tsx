@@ -4,6 +4,7 @@ import { localizePathname } from '@/lib/i18n/routing'
 import { getTranslations } from '@/lib/i18n/server'
 import { getPublicIsAuthenticated } from './public-auth-state'
 import { CookiePreferencesButton } from '@/components/compliance/cookie-preferences-button'
+import { InstallVelvetCard } from '@/components/pwa'
 
 export async function PublicFooter() {
   const [{ locale, t }, isAuthenticated] = await Promise.all([
@@ -16,6 +17,9 @@ export async function PublicFooter() {
 
   return (
     <footer className="velvet-public-footer">
+      <div className="velvet-public-footer-install-wrap">
+        <InstallVelvetCard />
+      </div>
       <div className="velvet-public-footer-grid">
         <section className="velvet-public-footer-brand" aria-label={t('footer.brand')}>
           <Link href={localized('/')} className="velvet-public-wordmark" aria-label={t('navigation.home')}>
