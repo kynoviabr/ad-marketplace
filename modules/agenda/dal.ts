@@ -1,14 +1,22 @@
 import 'server-only'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { generateAvailableSlots, hasOverlappingWindows, isValidIanaTimezone, normalizeTime } from './engine'
+import {
+  DEFAULT_TIMEZONE,
+  generateAvailableSlots,
+  generateOpaqueSlotRef,
+  hasOverlappingWindows,
+  isValidIanaTimezone,
+  normalizeTime,
+} from './engine'
 import type {
   AvailabilityException,
   AvailabilitySettings,
   DayOfWeek,
-  InquirySlot,
+  InternalInquirySlot,
   ProfessionalScheduleSummary,
   PublicAvailabilityQuery,
+  PublicAvailabilitySlot,
   WeeklyAvailabilityRule,
 } from './types'
 
@@ -337,7 +345,7 @@ export async function getProfessionalScheduleSummary(
  * 3. If locationSlug is specified, the location is verified active and associated with the profile
  * 4. Settings enabled is true
  */
-export async function getPublicAvailableSlots(query: PublicAvailabilityQuery): Promise<InquirySlot[]> {
+export async function getPublicAvailableSlots(query: PublicAvailabilityQuery): Promise<PublicAvailabilitySlot[]> {
   const admin = createAdminClient()
 
   // 1. Authoritative Publication Gate Check
@@ -389,8 +397,8 @@ export async function getPublicAvailableSlots(query: PublicAvailabilityQuery): P
     return []
   }
 
-  // 4. Generate slots purely
-  return generateAvailableSlots({
+  // 4. Generate internal slots purely
+  const internalSlots: InternalInquirySlot[] = generateAvailableSlots({
     settings: summary.settings,
     weeklyRules: summary.weeklyRules,
     exceptions: summary.exceptions,
@@ -399,4 +407,54 @@ export async function getPublicAvailableSlots(query: PublicAvailabilityQuery): P
     targetLocationId,
     now: new Date(),
   })
+
+  // 5. Transform to strictly sanitized PublicAvailabilitySlot DTO:
+  // Exposes ZERO internal UUIDs, ZERO account IDs, ZERO raw rule rows, ZERO buffer configs.
+  const timezone = summary.settings.timezone || DEFAULT_TIMEZONE
+  return internalSlots.map((slot) => ({
+    slotRef: generateOpaqueSlotRef(query.profileSlug, slot.startIso, slot.endIso),
+    startIso: slot.startIso,
+    endIso: slot.endIso,
+    localDate: slot.localDate,
+    localStartTime: slot.localStartTime,
+    localEndTime: slot.localEndTime,
+    timezone,
+    locationSlug: query.locationSlug ?? null,
+  }))
+}
+
+/**
+ * Canonical server-side availability revalidation.
+ * Re-runs full publication gate, location association, schedule rules, and exceptions
+ * to verify that a requested time slot is genuinely currently available.
+ *
+ * A client, external caller, or AI presenting a slotRef or time window CANNOT bypass this check.
+ */
+export async function revalidateSlotAvailability(params: {
+  profileSlug: string
+  startIso: string
+  endIso: string
+  locationSlug?: string | null
+}): Promise<{ available: boolean; slot?: PublicAvailabilitySlot; reason?: string }> {
+  const date = params.startIso.split('T')[0]
+  if (!date) {
+    return { available: false, reason: 'INVALID_TIMESTAMP' }
+  }
+
+  const slots = await getPublicAvailableSlots({
+    profileSlug: params.profileSlug,
+    startDate: date,
+    endDate: date,
+    locationSlug: params.locationSlug,
+  })
+
+  const matching = slots.find(
+    (s) => s.startIso === params.startIso && s.endIso === params.endIso
+  )
+
+  if (!matching) {
+    return { available: false, reason: 'SLOT_UNAVAILABLE' }
+  }
+
+  return { available: true, slot: matching }
 }

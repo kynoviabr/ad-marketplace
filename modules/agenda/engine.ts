@@ -1,5 +1,5 @@
 /**
- * PX3 — Pure Availability Engine
+ * PX3.1 — Pure Availability Engine
  *
  * Deterministic generation of inquiry slots from recurring weekly schedules,
  * date exceptions, notice/advance rules, operating preferences, and location scoping.
@@ -7,12 +7,13 @@
  * Pure function module: NO database calls, NO side effects, zero external runtime dependencies.
  */
 
+import { createHash } from 'node:crypto'
 import type {
   AvailabilityException,
   AvailabilitySettings,
   BusyInterval,
   DayOfWeek,
-  InquirySlot,
+  InternalInquirySlot,
   SlotGenerationParams,
   TimeWindow,
   WeeklyAvailabilityRule,
@@ -180,19 +181,17 @@ export function clipWindows(baseWindows: TimeWindow[], blockedWindows: TimeWindo
  * Converts a local wall-clock date and time in the specified IANA timezone into an exact,
  * unambiguous ISO-8601 string.
  *
- * Implements a fixed-point convergence algorithm to resolve true UTC timestamp and offset,
- * safely handling:
- * - Positive and negative UTC offsets
- * - DST spring-forward transitions (non-existent local hour)
- * - DST fall-back ambiguous hours
- * - Month and year rollovers
- * - Leap days
+ * DST WALL-CLOCK POLICY:
+ * - NONEXISTENT LOCAL TIME (spring-forward gap, e.g. 02:30 when clocks jump 2am -> 3am):
+ *   Returns null. The engine skips generating candidate slots for wall-clock times that do not physically exist.
+ * - AMBIGUOUS LOCAL TIME (fall-back repeat, e.g. 01:30 when clocks turn back 2am -> 1am):
+ *   Deterministically resolves to the earlier occurrence (pre-fall-back).
  */
 export function localToIso(
   localDate: string,
   localTime: string,
   timezone: string = DEFAULT_TIMEZONE
-): string {
+): string | null {
   const targetTz = isValidIanaTimezone(timezone) ? timezone.trim() : DEFAULT_TIMEZONE
   const cleanTime = normalizeTime(localTime)
   const [year, month, day] = localDate.split('-').map(Number)
@@ -218,7 +217,7 @@ export function localToIso(
     return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second)
   }
 
-  // Iterative convergence to find the true UTC timestamp representing this wall-clock time
+  // Iterative fixed-point convergence to find the UTC timestamp
   let utcMs = targetLocalMs
   let offsetMs = getLocalMs(utcMs) - targetLocalMs
   utcMs -= offsetMs
@@ -226,6 +225,19 @@ export function localToIso(
   utcMs -= offsetMs
 
   const resolvedUtcDate = new Date(utcMs)
+
+  // Strict round-trip validation: does this UTC instant actually format back to the requested local wall-clock?
+  const verifyParts = dtf.formatToParts(resolvedUtcDate)
+  const vp: Record<string, string> = {}
+  for (const part of verifyParts) vp[part.type] = part.value
+
+  const roundTripTime = `${vp.hour}:${vp.minute}`
+  const roundTripDate = `${vp.year}-${vp.month}-${vp.day}`
+
+  if (roundTripDate !== localDate || roundTripTime !== cleanTime) {
+    // Wall-clock time does not physically exist in this timezone (e.g. DST spring-forward gap)
+    return null
+  }
 
   // Resolve the exact offset string at this precise UTC instant in the target timezone
   const offsetParts = new Intl.DateTimeFormat('en-US', {
@@ -267,7 +279,26 @@ export function getDayOfWeekInTimezone(
   return dow
 }
 
-/** Generates discrete inquiry slots for a given continuous time window. */
+/**
+ * Generates a deterministic, opaque reference for a candidate inquiry slot.
+ * Format: 24-character hex hash of (profileSlug + startIso + endIso).
+ * Contains ZERO UUIDs, ZERO account IDs, and ZERO PII.
+ *
+ * IMPORTANT: A slotRef has ZERO security or booking authority.
+ * It is a transient pointer; server-side revalidation is always required.
+ */
+export function generateOpaqueSlotRef(
+  profileSlug: string,
+  startIso: string,
+  endIso: string
+): string {
+  return createHash('sha256')
+    .update(`velvet:slot:${profileSlug.trim()}:${startIso}:${endIso}`)
+    .digest('hex')
+    .slice(0, 24)
+}
+
+/** Generates discrete internal inquiry slots for a given continuous time window. */
 export function generateSlotsForWindow(params: {
   profileId: string
   localDate: string
@@ -279,7 +310,7 @@ export function generateSlotsForWindow(params: {
   noticeLimitDate: Date
   maxAdvanceLimitDate: Date
   busyIntervals?: BusyInterval[]
-}): InquirySlot[] {
+}): InternalInquirySlot[] {
   const {
     profileId,
     localDate,
@@ -295,7 +326,7 @@ export function generateSlotsForWindow(params: {
 
   const winStart = timeToMinutes(window.startTime)
   const winEnd = timeToMinutes(window.endTime)
-  const slots: InquirySlot[] = []
+  const slots: InternalInquirySlot[] = []
 
   let curStart = winStart
   while (curStart + slotDurationMinutes <= winEnd) {
@@ -305,6 +336,13 @@ export function generateSlotsForWindow(params: {
 
     const startIso = localToIso(localDate, localStartStr, timezone)
     const endIso = localToIso(localDate, localEndStr, timezone)
+
+    // Skip if either time falls into a nonexistent wall-clock gap (DST spring-forward)
+    if (!startIso || !endIso) {
+      curStart += slotIntervalMinutes
+      continue
+    }
+
     const startDate = new Date(startIso)
     const endDate = new Date(endIso)
 
@@ -322,7 +360,6 @@ export function generateSlotsForWindow(params: {
 
       if (!collidesWithBusy) {
         slots.push({
-          slotId: `${profileId}:${startIso}`,
           profileId,
           startIso,
           endIso,
@@ -341,7 +378,7 @@ export function generateSlotsForWindow(params: {
 }
 
 /**
- * Pure generator function: derives all available inquiry slots in the specified date range.
+ * Pure generator function: derives all available internal inquiry slots in the specified date range.
  * Fully deterministic given input parameters and current time clock.
  *
  * CANONICAL SPECIFICITY & PRECEDENCE HIERARCHY:
@@ -361,9 +398,9 @@ export function generateSlotsForWindow(params: {
  * 5. BusyIntervals adapter:
  *    - Any active busy intervals subtract/filter candidate slots.
  * 6. Duplicate suppression:
- *    - Mathematical interval merging + unique slotId Set guarantees zero duplicate slots.
+ *    - Mathematical interval merging + unique (profileId + startIso) Set guarantees zero duplicate slots.
  */
-export function generateAvailableSlots(params: SlotGenerationParams): InquirySlot[] {
+export function generateAvailableSlots(params: SlotGenerationParams): InternalInquirySlot[] {
   const {
     settings,
     weeklyRules,
@@ -409,8 +446,8 @@ export function generateAvailableSlots(params: SlotGenerationParams): InquirySlo
   const noticeLimitDate = new Date(now.getTime() + settings.minimumNoticeMinutes * 60 * 1000)
   const maxAdvanceLimitDate = new Date(now.getTime() + settings.maximumAdvanceDays * 24 * 60 * 60 * 1000)
 
-  const allSlots: InquirySlot[] = []
-  const seenSlotIds = new Set<string>()
+  const allSlots: InternalInquirySlot[] = []
+  const seenSlotKeys = new Set<string>()
 
   for (let d = 0; d <= daysDiff; d++) {
     const currentDayDate = new Date(startUtc + d * 86400000)
@@ -535,8 +572,9 @@ export function generateAvailableSlots(params: SlotGenerationParams): InquirySlo
       })
 
       for (const slot of windowSlots) {
-        if (!seenSlotIds.has(slot.slotId)) {
-          seenSlotIds.add(slot.slotId)
+        const slotKey = `${slot.profileId}:${slot.startIso}`
+        if (!seenSlotKeys.has(slotKey)) {
+          seenSlotKeys.add(slotKey)
           allSlots.push(slot)
         }
       }

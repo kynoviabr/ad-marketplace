@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   clipWindows,
   getDayOfWeekInTimezone,
+  generateOpaqueSlotRef,
   hasOverlappingWindows,
   isValidIanaTimezone,
   localToIso,
@@ -20,6 +21,7 @@ import {
   createAvailabilityException,
   deleteAvailabilityException,
   getPublicAvailableSlots,
+  revalidateSlotAvailability,
 } from '@/modules/agenda/dal'
 import {
   saveAvailabilitySettingsAction,
@@ -30,6 +32,7 @@ import {
 import type {
   AvailabilityException,
   AvailabilitySettings,
+  PublicAvailabilitySlot,
   WeeklyAvailabilityRule,
 } from '@/modules/agenda/types'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -147,57 +150,57 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
     it('generates unambiguous ISO timestamps with America/Sao_Paulo offset (-03:00)', () => {
       const iso = localToIso('2026-09-10', '14:00', 'America/Sao_Paulo')
       expect(iso).toBe('2026-09-10T14:00:00-03:00')
-      expect(new Date(iso).toISOString()).toBe('2026-09-10T17:00:00.000Z')
+      expect(new Date(iso!).toISOString()).toBe('2026-09-10T17:00:00.000Z')
     })
 
     it('resolves America/New_York standard and DST spring-forward transitions exactly', () => {
       // Standard time in NY (EST = UTC-5)
       const standard = localToIso('2026-01-15', '10:00', 'America/New_York')
       expect(standard).toBe('2026-01-15T10:00:00-05:00')
-      expect(new Date(standard).toISOString()).toBe('2026-01-15T15:00:00.000Z')
+      expect(new Date(standard!).toISOString()).toBe('2026-01-15T15:00:00.000Z')
 
       // Daylight time in NY (EDT = UTC-4)
       const daylight = localToIso('2026-06-15', '10:00', 'America/New_York')
       expect(daylight).toBe('2026-06-15T10:00:00-04:00')
-      expect(new Date(daylight).toISOString()).toBe('2026-06-15T14:00:00.000Z')
+      expect(new Date(daylight!).toISOString()).toBe('2026-06-15T14:00:00.000Z')
 
       // Spring-forward transition date: 2026-03-08 (at 2am clocks jump to 3am)
       // 01:30 is before transition (EST = UTC-5)
       const preSpring = localToIso('2026-03-08', '01:30', 'America/New_York')
       expect(preSpring).toBe('2026-03-08T01:30:00-05:00')
-      expect(new Date(preSpring).toISOString()).toBe('2026-03-08T06:30:00.000Z')
+      expect(new Date(preSpring!).toISOString()).toBe('2026-03-08T06:30:00.000Z')
 
       // 03:30 is after transition (EDT = UTC-4)
       const postSpring = localToIso('2026-03-08', '03:30', 'America/New_York')
       expect(postSpring).toBe('2026-03-08T03:30:00-04:00')
-      expect(new Date(postSpring).toISOString()).toBe('2026-03-08T07:30:00.000Z')
+      expect(new Date(postSpring!).toISOString()).toBe('2026-03-08T07:30:00.000Z')
     })
 
     it('resolves Europe/Berlin standard and DST spring-forward transitions exactly', () => {
       // Standard time in Berlin (CET = UTC+1)
       const standard = localToIso('2026-01-15', '10:00', 'Europe/Berlin')
       expect(standard).toBe('2026-01-15T10:00:00+01:00')
-      expect(new Date(standard).toISOString()).toBe('2026-01-15T09:00:00.000Z')
+      expect(new Date(standard!).toISOString()).toBe('2026-01-15T09:00:00.000Z')
 
       // Daylight time in Berlin (CEST = UTC+2)
       const daylight = localToIso('2026-06-15', '10:00', 'Europe/Berlin')
       expect(daylight).toBe('2026-06-15T10:00:00+02:00')
-      expect(new Date(daylight).toISOString()).toBe('2026-06-15T08:00:00.000Z')
+      expect(new Date(daylight!).toISOString()).toBe('2026-06-15T08:00:00.000Z')
 
       // Spring-forward transition date: 2026-03-29 (at 2am clocks jump to 3am)
       const preSpring = localToIso('2026-03-29', '01:30', 'Europe/Berlin')
       expect(preSpring).toBe('2026-03-29T01:30:00+01:00')
-      expect(new Date(preSpring).toISOString()).toBe('2026-03-29T00:30:00.000Z')
+      expect(new Date(preSpring!).toISOString()).toBe('2026-03-29T00:30:00.000Z')
 
       const postSpring = localToIso('2026-03-29', '03:30', 'Europe/Berlin')
       expect(postSpring).toBe('2026-03-29T03:30:00+02:00')
-      expect(new Date(postSpring).toISOString()).toBe('2026-03-29T01:30:00.000Z')
+      expect(new Date(postSpring!).toISOString()).toBe('2026-03-29T01:30:00.000Z')
     })
 
     it('handles positive UTC offsets like Asia/Tokyo (UTC+9)', () => {
       const tokyo = localToIso('2026-09-10', '14:00', 'Asia/Tokyo')
       expect(tokyo).toBe('2026-09-10T14:00:00+09:00')
-      expect(new Date(tokyo).toISOString()).toBe('2026-09-10T05:00:00.000Z')
+      expect(new Date(tokyo!).toISOString()).toBe('2026-09-10T05:00:00.000Z')
     })
 
     it('safely handles leap day and year rollover', () => {
@@ -215,6 +218,71 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
     it('falls back to America/Sao_Paulo if an invalid timezone is passed to localToIso', () => {
       const fallback = localToIso('2026-09-10', '14:00', 'Invalid/Timezone')
       expect(fallback).toBe('2026-09-10T14:00:00-03:00')
+    })
+
+    it('DST POLICY: skips nonexistent local wall-clock hour during spring-forward transition', () => {
+      // In America/New_York on 2026-03-08, 02:00 skips to 03:00.
+      // 02:30 does NOT exist on local clocks: returns null
+      const nonexistent = localToIso('2026-03-08', '02:30', 'America/New_York')
+      expect(nonexistent).toBeNull()
+
+      // The slot generator automatically skips nonexistent hours without throwing or generating phantom slots
+      const settings: AvailabilitySettings = {
+        profileId: '11111111-1111-4111-a111-111111111111',
+        enabled: true,
+        timezone: 'America/New_York',
+        slotDurationMinutes: 60,
+        slotIntervalMinutes: 60,
+        minimumNoticeMinutes: 0,
+        maximumAdvanceDays: 30,
+        bufferBeforeMinutes: 0,
+        bufferAfterMinutes: 0,
+      }
+      const rules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 0, startTime: '01:00', endTime: '05:00', locationId: null },
+      ]
+
+      const slots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions: [],
+        startDate: '2026-03-08', // Sunday (spring forward in NY)
+        endDate: '2026-03-08',
+        now: new Date('2026-03-07T12:00:00Z'),
+      })
+
+      // 01:00–02:00 cannot end at 02:00 because 02:00 does not exist.
+      // 02:00 does not exist.
+      // 03:00–04:00 and 04:00–05:00 exist.
+      const times = slots.map((s) => s.localStartTime)
+      expect(times).not.toContain('02:00')
+      expect(times).toEqual(['03:00', '04:00'])
+    })
+
+    it('DST POLICY: deterministically resolves ambiguous local wall-clock hour during fall-back transition', () => {
+      // In America/New_York on 2026-11-01, 01:00–02:00 repeats.
+      // Deterministically resolves to the earlier occurrence (-04:00)
+      const ambiguous = localToIso('2026-11-01', '01:30', 'America/New_York')
+      expect(ambiguous).toBe('2026-11-01T01:30:00-04:00')
+    })
+
+    it('generates stable, opaque slot references without exposing raw UUIDs or PII', () => {
+      const ref1 = generateOpaqueSlotRef('clara-lux', '2026-09-10T14:00:00-03:00', '2026-09-10T15:00:00-03:00')
+      const ref2 = generateOpaqueSlotRef('clara-lux', '2026-09-10T14:00:00-03:00', '2026-09-10T15:00:00-03:00')
+      const ref3 = generateOpaqueSlotRef('other-slug', '2026-09-10T14:00:00-03:00', '2026-09-10T15:00:00-03:00')
+
+      // Stable and deterministic for identical inputs
+      expect(ref1).toBe(ref2)
+      // Different for different profile or slot
+      expect(ref1).not.toBe(ref3)
+
+      // Hex format (24 characters)
+      expect(ref1).toMatch(/^[a-f0-9]{24}$/)
+
+      // Contains ZERO raw UUIDs, ZERO account IDs, ZERO colons or raw timestamps
+      expect(ref1).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)
+      expect(ref1).not.toContain('clara-lux')
+      expect(ref1).not.toContain(':')
     })
   })
 
@@ -812,6 +880,34 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
             }),
           }
         }
+        if (table === 'marketplace_locations') {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  maybeSingle: async () => ({
+                    data: { id: 'loc-moema-uuid', slug: 'moema', active: true },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_profile_locations') {
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  maybeSingle: async () => ({
+                    data: { profile_id: profileId, location_id: 'loc-moema-uuid' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
         if (table === 'professional_availability_settings') {
           return {
             select: () => ({
@@ -884,27 +980,135 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
         profileSlug: 'eligible-model',
         startDate: '2026-09-07',
         endDate: '2026-09-07',
+        locationSlug: 'moema',
       })
 
       expect(slots.length).toBeGreaterThan(0)
       for (const slot of slots) {
-        expect(slot).toHaveProperty('slotId')
-        expect(slot).toHaveProperty('profileId')
+        expect(slot).toHaveProperty('slotRef')
         expect(slot).toHaveProperty('startIso')
         expect(slot).toHaveProperty('endIso')
         expect(slot).toHaveProperty('localDate')
         expect(slot).toHaveProperty('localStartTime')
         expect(slot).toHaveProperty('localEndTime')
+        expect(slot).toHaveProperty('timezone')
+        expect(slot).toHaveProperty('locationSlug', 'moema')
+
+        // Internal identifier rules: NO profileId, NO locationId, NO slotId embedding UUIDs
+        expect((slot as any).profileId).toBeUndefined()
+        expect((slot as any).locationId).toBeUndefined()
+        expect((slot as any).slotId).toBeUndefined()
 
         // Privacy checks: must NEVER leak internal or configuration fields
         expect((slot as any).account_user_id).toBeUndefined()
+        expect((slot as any).accountUserId).toBeUndefined()
         expect((slot as any).bufferBeforeMinutes).toBeUndefined()
         expect((slot as any).buffer_before_minutes).toBeUndefined()
         expect((slot as any).rules).toBeUndefined()
         expect((slot as any).exceptions).toBeUndefined()
         expect((slot as any).ruleId).toBeUndefined()
-        expect((slot as any).private_rule_uuid).toBeUndefined()
+        expect((slot as any).settingsId).toBeUndefined()
+
+        // Strict JSON serialization assertion: stringified output contains ZERO UUIDs
+        const serialized = JSON.stringify(slot)
+        expect(serialized).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)
       }
+    })
+
+    it('revalidateSlotAvailability: canonical server revalidation enforces real availability', async () => {
+      const profileId = '11111111-1111-4111-a111-111111111111'
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'v_publication_eligible_profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { profile_id: profileId, profile_status: 'ACTIVE' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_availability_settings') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    profile_id: profileId,
+                    enabled: true,
+                    timezone: 'America/Sao_Paulo',
+                    slot_duration_minutes: 60,
+                    slot_interval_minutes: 60,
+                    minimum_notice_minutes: 0,
+                    maximum_advance_days: 30,
+                    buffer_before_minutes: 0,
+                    buffer_after_minutes: 0,
+                    created_at: '2026-09-06T00:00:00Z',
+                    updated_at: '2026-09-06T00:00:00Z',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_weekly_availability') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => ({
+                  order: async () => ({
+                    data: [
+                      {
+                        id: 'rule-1',
+                        profile_id: profileId,
+                        day_of_week: 1,
+                        start_time: '10:00',
+                        end_time: '12:00',
+                        location_id: null,
+                        created_at: '2026-09-06T00:00:00Z',
+                      },
+                    ],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_availability_exceptions') {
+          const qb: any = {
+            gte: () => qb,
+            lte: () => qb,
+            order: () => ({
+              order: async () => ({ data: [], error: null }),
+            }),
+          }
+          return { select: () => ({ eq: () => qb }) }
+        }
+        return {}
+      })
+
+      // Valid available slot: 2026-09-07 (Monday) 10:00–11:00
+      const validCheck = await revalidateSlotAvailability({
+        profileSlug: 'eligible-model',
+        startIso: '2026-09-07T10:00:00-03:00',
+        endIso: '2026-09-07T11:00:00-03:00',
+      })
+      expect(validCheck.available).toBe(true)
+      expect(validCheck.slot?.localStartTime).toBe('10:00')
+
+      // Non-existent / unavailable slot: 2026-09-07 14:00–15:00
+      const invalidCheck = await revalidateSlotAvailability({
+        profileSlug: 'eligible-model',
+        startIso: '2026-09-07T14:00:00-03:00',
+        endIso: '2026-09-07T15:00:00-03:00',
+      })
+      expect(invalidCheck.available).toBe(false)
+      expect(invalidCheck.reason).toBe('SLOT_UNAVAILABLE')
     })
 
     it('fails closed when profile is not in v_publication_eligible_profiles', async () => {
@@ -931,3 +1135,4 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
     })
   })
 })
+

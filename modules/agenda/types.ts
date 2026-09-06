@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * PX3 — Professional Availability and Agenda Foundation Types
+ * PX3.1 — Professional Availability and Agenda Foundation Contracts
  * ============================================================================
  *
  * Product Boundary:
@@ -21,6 +21,11 @@
  * Buffer Semantics:
  * bufferBeforeMinutes and bufferAfterMinutes are persisted operating preferences.
  * Currently persisted for future busy-interval and inquiry integration (PX4/PX5).
+ *
+ * Security Authority Invariant:
+ * slotRef is an opaque convenience pointer ONLY. It possesses ZERO authorization,
+ * reservation, or confirmation authority. Any future inquiry, booking, or AI flow
+ * must re-run canonical server-side availability validation before acting on it.
  */
 
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6
@@ -83,8 +88,12 @@ export interface BusyInterval {
   source?: 'INTERNAL_INQUIRY' | 'EXTERNAL_CALENDAR'
 }
 
-export interface InquirySlot {
-  slotId: string
+/**
+ * Internal representation used by the agenda availability engine and server-side logic.
+ * Contains internal database identifiers needed for deduplication, location filtering, and revalidation.
+ * NEVER returned directly across public APIs.
+ */
+export interface InternalInquirySlot {
   profileId: string
   startIso: string
   endIso: string
@@ -92,6 +101,29 @@ export interface InquirySlot {
   localStartTime: string // HH:mm
   localEndTime: string // HH:mm
   locationId?: string | null
+}
+
+/** Backward-compatibility alias for internal engine consumers. */
+export type InquirySlot = InternalInquirySlot
+
+/**
+ * Public availability slot exposed to clients, search, profile detail, and future AI concierge.
+ * Strictly sanitized: NEVER exposes raw profile UUID, location UUID, account IDs, rule IDs,
+ * exception IDs, or internal buffer configurations.
+ *
+ * Security Authority Invariant:
+ * slotRef is an opaque convenience pointer ONLY. It possesses ZERO authorization or reservation
+ * authority. Any future inquiry/AI flow must re-verify availability server-side.
+ */
+export interface PublicAvailabilitySlot {
+  slotRef: string
+  startIso: string
+  endIso: string
+  localDate: string // YYYY-MM-DD
+  localStartTime: string // HH:mm
+  localEndTime: string // HH:mm
+  timezone: string
+  locationSlug?: string | null
 }
 
 export interface SlotGenerationParams {
