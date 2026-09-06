@@ -2,7 +2,7 @@
  * PX3 — Pure Availability Engine
  *
  * Deterministic generation of inquiry slots from recurring weekly schedules,
- * date exceptions, notice/advance rules, and operating preferences.
+ * date exceptions, notice/advance rules, operating preferences, and location scoping.
  *
  * Pure function module: NO database calls, NO side effects, zero external runtime dependencies.
  */
@@ -10,6 +10,7 @@
 import type {
   AvailabilityException,
   AvailabilitySettings,
+  BusyInterval,
   DayOfWeek,
   InquirySlot,
   SlotGenerationParams,
@@ -17,7 +18,9 @@ import type {
   WeeklyAvailabilityRule,
 } from './types'
 
-const MAX_SEARCH_RANGE_DAYS = 90
+export const MAX_SEARCH_RANGE_DAYS = 90
+export const DEFAULT_TIMEZONE = 'America/Sao_Paulo'
+
 const DOW_MAP: Record<string, DayOfWeek> = {
   Sun: 0,
   Mon: 1,
@@ -26,6 +29,17 @@ const DOW_MAP: Record<string, DayOfWeek> = {
   Thu: 4,
   Fri: 5,
   Sat: 6,
+}
+
+/** Validates whether an IANA timezone identifier is valid and supported by the runtime. */
+export function isValidIanaTimezone(tz: string | null | undefined): boolean {
+  if (!tz || typeof tz !== 'string' || tz.trim() === '') return false
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz.trim() })
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** Converts "HH:mm" or "HH:mm:ss" to total minutes from midnight (0..1439). */
@@ -70,20 +84,51 @@ export function hasOverlappingWindows(windows: TimeWindow[]): boolean {
   return false
 }
 
+/** Merges overlapping or touching time windows into a unified sorted list of intervals. */
+export function mergeOverlappingWindows(windows: TimeWindow[]): TimeWindow[] {
+  if (windows.length <= 1) return [...windows]
+
+  const intervals = windows
+    .map((w) => ({ start: timeToMinutes(w.startTime), end: timeToMinutes(w.endTime) }))
+    .filter((i) => i.start < i.end)
+    .sort((a, b) => a.start - b.start)
+
+  if (intervals.length === 0) return []
+
+  const merged: { start: number; end: number }[] = [intervals[0]]
+
+  for (let i = 1; i < intervals.length; i++) {
+    const current = intervals[i]
+    const last = merged[merged.length - 1]
+
+    if (current.start <= last.end) {
+      // Overlapping or touching: merge
+      last.end = Math.max(last.end, current.end)
+    } else {
+      merged.push(current)
+    }
+  }
+
+  return merged.map((m) => ({
+    startTime: minutesToTime(m.start),
+    endTime: minutesToTime(m.end),
+  }))
+}
+
 /**
  * Clips a set of base available windows by subtracting blocked intervals.
  * Returns non-overlapping, strictly positive continuous windows.
  */
 export function clipWindows(baseWindows: TimeWindow[], blockedWindows: TimeWindow[]): TimeWindow[] {
   if (baseWindows.length === 0) return []
-  if (blockedWindows.length === 0) return [...baseWindows]
+  if (blockedWindows.length === 0) return mergeOverlappingWindows(baseWindows)
 
-  let currentWindows = baseWindows.map((w) => ({
+  let currentWindows = mergeOverlappingWindows(baseWindows).map((w) => ({
     start: timeToMinutes(w.startTime),
     end: timeToMinutes(w.endTime),
   }))
 
-  const blocked = blockedWindows
+  const blocked = mergeOverlappingWindows(blockedWindows)
     .map((w) => ({
       start: timeToMinutes(w.startTime),
       end: timeToMinutes(w.endTime),
@@ -131,15 +176,32 @@ export function clipWindows(baseWindows: TimeWindow[], blockedWindows: TimeWindo
     }))
 }
 
-/** Formats a local date and time in the specified timezone into an unambiguous ISO-8601 string. */
-export function localToIso(localDate: string, localTime: string, timezone: string = 'America/Sao_Paulo'): string {
+/**
+ * Converts a local wall-clock date and time in the specified IANA timezone into an exact,
+ * unambiguous ISO-8601 string.
+ *
+ * Implements a fixed-point convergence algorithm to resolve true UTC timestamp and offset,
+ * safely handling:
+ * - Positive and negative UTC offsets
+ * - DST spring-forward transitions (non-existent local hour)
+ * - DST fall-back ambiguous hours
+ * - Month and year rollovers
+ * - Leap days
+ */
+export function localToIso(
+  localDate: string,
+  localTime: string,
+  timezone: string = DEFAULT_TIMEZONE
+): string {
+  const targetTz = isValidIanaTimezone(timezone) ? timezone.trim() : DEFAULT_TIMEZONE
   const cleanTime = normalizeTime(localTime)
-  const [h, m] = cleanTime.split(':')
-  const roughUtc = new Date(`${localDate}T${h}:${m}:00Z`)
+  const [year, month, day] = localDate.split('-').map(Number)
+  const [hour, minute] = cleanTime.split(':').map(Number)
 
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    timeZoneName: 'longOffset',
+  const targetLocalMs = Date.UTC(year, month - 1, day, hour, minute)
+
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: targetTz,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -147,9 +209,31 @@ export function localToIso(localDate: string, localTime: string, timezone: strin
     minute: '2-digit',
     second: '2-digit',
     hourCycle: 'h23',
-  }).formatToParts(roughUtc)
+  })
 
-  const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value
+  function getLocalMs(utcMs: number): number {
+    const parts = dtf.formatToParts(new Date(utcMs))
+    const p: Record<string, string> = {}
+    for (const part of parts) p[part.type] = part.value
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second)
+  }
+
+  // Iterative convergence to find the true UTC timestamp representing this wall-clock time
+  let utcMs = targetLocalMs
+  let offsetMs = getLocalMs(utcMs) - targetLocalMs
+  utcMs -= offsetMs
+  offsetMs = getLocalMs(utcMs) - targetLocalMs
+  utcMs -= offsetMs
+
+  const resolvedUtcDate = new Date(utcMs)
+
+  // Resolve the exact offset string at this precise UTC instant in the target timezone
+  const offsetParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: targetTz,
+    timeZoneName: 'longOffset',
+  }).formatToParts(resolvedUtcDate)
+
+  const tzPart = offsetParts.find((p) => p.type === 'timeZoneName')?.value
   let offset = '+00:00'
   if (tzPart && tzPart.startsWith('GMT')) {
     const match = tzPart.match(/GMT([+-]\d{1,2}):?(\d{2})?/)
@@ -161,18 +245,24 @@ export function localToIso(localDate: string, localTime: string, timezone: strin
     }
   }
 
-  return `${localDate}T${h}:${m}:00${offset}`
+  const hStr = String(hour).padStart(2, '0')
+  const mStr = String(minute).padStart(2, '0')
+  return `${localDate}T${hStr}:${mStr}:00${offset}`
 }
 
 /** Determines day of week (0..6) for a given date in the target timezone. */
-export function getDayOfWeekInTimezone(dateStr: string, timezone: string = 'America/Sao_Paulo'): DayOfWeek {
+export function getDayOfWeekInTimezone(
+  dateStr: string,
+  timezone: string = DEFAULT_TIMEZONE
+): DayOfWeek {
+  const targetTz = isValidIanaTimezone(timezone) ? timezone.trim() : DEFAULT_TIMEZONE
   const parts = dateStr.split('-').map(Number)
   const roughUtc = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12, 0, 0))
-  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: timezone, weekday: 'short' })
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: targetTz, weekday: 'short' })
   const dowName = fmt.format(roughUtc)
   const dow = DOW_MAP[dowName]
   if (dow === undefined) {
-    throw new Error(`Unable to determine day of week for date ${dateStr} in timezone ${timezone}`)
+    throw new Error(`Unable to determine day of week for date ${dateStr} in timezone ${targetTz}`)
   }
   return dow
 }
@@ -188,6 +278,7 @@ export function generateSlotsForWindow(params: {
   locationId?: string | null
   noticeLimitDate: Date
   maxAdvanceLimitDate: Date
+  busyIntervals?: BusyInterval[]
 }): InquirySlot[] {
   const {
     profileId,
@@ -199,6 +290,7 @@ export function generateSlotsForWindow(params: {
     locationId,
     noticeLimitDate,
     maxAdvanceLimitDate,
+    busyIntervals = [],
   } = params
 
   const winStart = timeToMinutes(window.startTime)
@@ -214,20 +306,32 @@ export function generateSlotsForWindow(params: {
     const startIso = localToIso(localDate, localStartStr, timezone)
     const endIso = localToIso(localDate, localEndStr, timezone)
     const startDate = new Date(startIso)
+    const endDate = new Date(endIso)
 
     // Check notice window (slot start must be >= noticeLimitDate)
     // Check max advance window (slot start must be <= maxAdvanceLimitDate)
     if (startDate >= noticeLimitDate && startDate <= maxAdvanceLimitDate) {
-      slots.push({
-        slotId: `${profileId}:${startIso}`,
-        profileId,
-        startIso,
-        endIso,
-        localDate,
-        localStartTime: localStartStr,
-        localEndTime: localEndStr,
-        locationId: locationId ?? null,
+      // Check collision with busy intervals adapter if provided
+      const collidesWithBusy = busyIntervals.some((busy) => {
+        const busyStart = new Date(busy.startIso).getTime()
+        const busyEnd = new Date(busy.endIso).getTime()
+        const slotStartMs = startDate.getTime()
+        const slotEndMs = endDate.getTime()
+        return slotStartMs < busyEnd && slotEndMs > busyStart
       })
+
+      if (!collidesWithBusy) {
+        slots.push({
+          slotId: `${profileId}:${startIso}`,
+          profileId,
+          startIso,
+          endIso,
+          localDate,
+          localStartTime: localStartStr,
+          localEndTime: localEndStr,
+          locationId: locationId ?? null,
+        })
+      }
     }
 
     curStart += slotIntervalMinutes
@@ -239,6 +343,25 @@ export function generateSlotsForWindow(params: {
 /**
  * Pure generator function: derives all available inquiry slots in the specified date range.
  * Fully deterministic given input parameters and current time clock.
+ *
+ * CANONICAL SPECIFICITY & PRECEDENCE HIERARCHY:
+ * 1. Disabled availability -> 0 slots.
+ * 2. CLOSED_DAY:
+ *    - location-specific CLOSED_DAY closes that location.
+ *    - global CLOSED_DAY closes all locations UNLESS overridden by location-specific CUSTOM_HOURS.
+ * 3. Base Windows:
+ *    - If location CUSTOM_HOURS exist for matching targetLocationId: they replace recurring schedule.
+ *    - Else if global CUSTOM_HOURS exist (locationId === null): they replace global recurring schedule.
+ *    - Else weekly rules:
+ *      - If targetLocationId specified: location-specific rules override global rules for that location.
+ *      - If no location-specific rules exist: fallback to global weekly rules.
+ *      - If querying global (targetLocationId === null): merge all active rules.
+ * 4. BLOCKED_INTERVAL:
+ *    - Both global and matching location blocked intervals subtract from available windows.
+ * 5. BusyIntervals adapter:
+ *    - Any active busy intervals subtract/filter candidate slots.
+ * 6. Duplicate suppression:
+ *    - Mathematical interval merging + unique slotId Set guarantees zero duplicate slots.
  */
 export function generateAvailableSlots(params: SlotGenerationParams): InquirySlot[] {
   const {
@@ -248,6 +371,7 @@ export function generateAvailableSlots(params: SlotGenerationParams): InquirySlo
     startDate,
     endDate,
     targetLocationId = null,
+    busyIntervals = [],
     now = new Date(),
   } = params
 
@@ -278,70 +402,124 @@ export function generateAvailableSlots(params: SlotGenerationParams): InquirySlo
     throw new Error(`Date range exceeds maximum allowed limit of ${MAX_SEARCH_RANGE_DAYS} days`)
   }
 
-  const timezone = settings.timezone || 'America/Sao_Paulo'
+  const timezone = isValidIanaTimezone(settings.timezone)
+    ? settings.timezone.trim()
+    : DEFAULT_TIMEZONE
+
   const noticeLimitDate = new Date(now.getTime() + settings.minimumNoticeMinutes * 60 * 1000)
   const maxAdvanceLimitDate = new Date(now.getTime() + settings.maximumAdvanceDays * 24 * 60 * 60 * 1000)
 
   const allSlots: InquirySlot[] = []
+  const seenSlotIds = new Set<string>()
 
   for (let d = 0; d <= daysDiff; d++) {
     const currentDayDate = new Date(startUtc + d * 86400000)
     const localDate = currentDayDate.toISOString().split('T')[0]
     const dow = getDayOfWeekInTimezone(localDate, timezone)
 
-    // Filter exceptions relevant to this date and location scope
-    const dayExceptions = exceptions.filter((e) => {
-      if (e.exceptionDate !== localDate) return false
-      if (!targetLocationId) return true
-      return e.locationId === null || e.locationId === targetLocationId
-    })
+    // Exceptions for this date
+    const dayExceptions = exceptions.filter((e) => e.exceptionDate === localDate)
 
-    // 1. Closed day precedence
-    const isClosed = dayExceptions.some((e) => e.exceptionType === 'CLOSED_DAY')
-    if (isClosed) {
+    const locClosed = targetLocationId
+      ? dayExceptions.some((e) => e.exceptionType === 'CLOSED_DAY' && e.locationId === targetLocationId)
+      : false
+
+    if (locClosed) {
+      // Specific location is closed for this date
       continue
     }
 
-    // 2. Custom hours vs Weekly schedule
-    const customHoursExceptions = dayExceptions.filter(
-      (e) => e.exceptionType === 'CUSTOM_HOURS' && e.startTime && e.endTime
+    const globalClosed = dayExceptions.some(
+      (e) => e.exceptionType === 'CLOSED_DAY' && (e.locationId === null || e.locationId === undefined)
     )
 
+    const locCustomHours = targetLocationId
+      ? dayExceptions.filter(
+          (e) => e.exceptionType === 'CUSTOM_HOURS' && e.locationId === targetLocationId && e.startTime && e.endTime
+        )
+      : []
+
+    // If globally closed and no specific custom hours override this location, date is closed
+    if (globalClosed && locCustomHours.length === 0) {
+      continue
+    }
+
+    // Determine Base Windows
     let baseWindows: TimeWindow[] = []
-    if (customHoursExceptions.length > 0) {
-      baseWindows = customHoursExceptions.map((e) => ({
+
+    if (locCustomHours.length > 0) {
+      // 1. Specific location custom hours override
+      baseWindows = locCustomHours.map((e) => ({
         startTime: normalizeTime(e.startTime!),
         endTime: normalizeTime(e.endTime!),
       }))
     } else {
-      // Weekly rules matching day of week and location scope
-      const matchingRules = weeklyRules.filter((r) => {
-        if (r.dayOfWeek !== dow) return false
-        if (!targetLocationId) return true
-        return r.locationId === null || r.locationId === targetLocationId
-      })
+      const globalCustomHours = dayExceptions.filter(
+        (e) =>
+          e.exceptionType === 'CUSTOM_HOURS' &&
+          (e.locationId === null || e.locationId === undefined) &&
+          e.startTime &&
+          e.endTime
+      )
 
-      baseWindows = matchingRules.map((r) => ({
-        startTime: normalizeTime(r.startTime),
-        endTime: normalizeTime(r.endTime),
-      }))
+      if (globalCustomHours.length > 0) {
+        // 2. Global custom hours override
+        baseWindows = globalCustomHours.map((e) => ({
+          startTime: normalizeTime(e.startTime!),
+          endTime: normalizeTime(e.endTime!),
+        }))
+      } else {
+        // 3. Weekly recurring rules
+        const dayRules = weeklyRules.filter((r) => r.dayOfWeek === dow)
+
+        if (targetLocationId) {
+          const locRules = dayRules.filter((r) => r.locationId === targetLocationId)
+          if (locRules.length > 0) {
+            // Location-specific weekly schedule overrides global
+            baseWindows = locRules.map((r) => ({
+              startTime: normalizeTime(r.startTime),
+              endTime: normalizeTime(r.endTime),
+            }))
+          } else {
+            // Fallback to global weekly schedule
+            const globalRules = dayRules.filter((r) => r.locationId === null || r.locationId === undefined)
+            baseWindows = globalRules.map((r) => ({
+              startTime: normalizeTime(r.startTime),
+              endTime: normalizeTime(r.endTime),
+            }))
+          }
+        } else {
+          // Global query: union all rules for this day
+          baseWindows = dayRules.map((r) => ({
+            startTime: normalizeTime(r.startTime),
+            endTime: normalizeTime(r.endTime),
+          }))
+        }
+      }
     }
 
     if (baseWindows.length === 0) {
       continue
     }
 
-    // 3. Subtract blocked intervals
-    const blockedIntervals: TimeWindow[] = dayExceptions
-      .filter((e) => e.exceptionType === 'BLOCKED_INTERVAL' && e.startTime && e.endTime)
-      .map((e) => ({
-        startTime: normalizeTime(e.startTime!),
-        endTime: normalizeTime(e.endTime!),
-      }))
+    // Merge base windows to normalize overlaps
+    const normalizedBaseWindows = mergeOverlappingWindows(baseWindows)
 
-    const activeWindows = clipWindows(baseWindows, blockedIntervals)
+    // 4. Subtract blocked intervals (both global and matching location)
+    const relevantBlockedExceptions = dayExceptions.filter((e) => {
+      if (e.exceptionType !== 'BLOCKED_INTERVAL' || !e.startTime || !e.endTime) return false
+      if (!targetLocationId) return true
+      return e.locationId === null || e.locationId === undefined || e.locationId === targetLocationId
+    })
 
-    // 4. Generate slots for each continuous window
+    const blockedWindows: TimeWindow[] = relevantBlockedExceptions.map((e) => ({
+      startTime: normalizeTime(e.startTime!),
+      endTime: normalizeTime(e.endTime!),
+    }))
+
+    const activeWindows = clipWindows(normalizedBaseWindows, blockedWindows)
+
+    // 5. Generate slots for each continuous window
     for (const win of activeWindows) {
       const windowSlots = generateSlotsForWindow({
         profileId: settings.profileId,
@@ -353,8 +531,15 @@ export function generateAvailableSlots(params: SlotGenerationParams): InquirySlo
         locationId: targetLocationId,
         noticeLimitDate,
         maxAdvanceLimitDate,
+        busyIntervals,
       })
-      allSlots.push(...windowSlots)
+
+      for (const slot of windowSlots) {
+        if (!seenSlotIds.has(slot.slotId)) {
+          seenSlotIds.add(slot.slotId)
+          allSlots.push(slot)
+        }
+      }
     }
   }
 

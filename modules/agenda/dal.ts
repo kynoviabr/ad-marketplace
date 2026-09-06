@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { generateAvailableSlots, hasOverlappingWindows, normalizeTime } from './engine'
+import { generateAvailableSlots, hasOverlappingWindows, isValidIanaTimezone, normalizeTime } from './engine'
 import type {
   AvailabilityException,
   AvailabilitySettings,
@@ -132,6 +132,10 @@ export async function updateAvailabilitySettings(
   profileId: string,
   settings: Partial<Omit<AvailabilitySettings, 'profileId' | 'createdAt' | 'updatedAt'>>
 ): Promise<AvailabilitySettings> {
+  if (settings.timezone !== undefined && !isValidIanaTimezone(settings.timezone)) {
+    throw new Error(`Invalid IANA timezone identifier: ${settings.timezone}`)
+  }
+
   const current = await getAvailabilitySettings(profileId)
   const admin = createAdminClient()
 

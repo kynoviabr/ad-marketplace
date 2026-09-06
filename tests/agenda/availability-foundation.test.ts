@@ -3,7 +3,9 @@ import {
   clipWindows,
   getDayOfWeekInTimezone,
   hasOverlappingWindows,
+  isValidIanaTimezone,
   localToIso,
+  mergeOverlappingWindows,
   minutesToTime,
   timeToMinutes,
   generateAvailableSlots,
@@ -79,6 +81,19 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
       expect(hasOverlappingWindows(touching)).toBe(false)
     })
 
+    it('merges overlapping or touching base windows into single continuous intervals', () => {
+      const windows = [
+        { startTime: '09:00', endTime: '14:00' },
+        { startTime: '13:00', endTime: '18:00' },
+        { startTime: '19:00', endTime: '21:00' },
+      ]
+      const merged = mergeOverlappingWindows(windows)
+      expect(merged).toEqual([
+        { startTime: '09:00', endTime: '18:00' },
+        { startTime: '19:00', endTime: '21:00' },
+      ])
+    })
+
     it('clips base windows with blocked intervals correctly', () => {
       const base = [{ startTime: '09:00', endTime: '18:00' }]
 
@@ -112,503 +127,106 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
         { startTime: '16:00', endTime: '18:00' },
       ])
     })
+  })
 
-    it('generates unambiguous ISO timestamps with America/Sao_Paulo offset', () => {
+  describe('2. IANA Timezone Correctness & DST Transitions (AUDIT A)', () => {
+    it('validates IANA timezone identifiers accurately', () => {
+      expect(isValidIanaTimezone('America/Sao_Paulo')).toBe(true)
+      expect(isValidIanaTimezone('America/New_York')).toBe(true)
+      expect(isValidIanaTimezone('Europe/Berlin')).toBe(true)
+      expect(isValidIanaTimezone('Asia/Tokyo')).toBe(true)
+      expect(isValidIanaTimezone('UTC')).toBe(true)
+
+      expect(isValidIanaTimezone('Foo/Bar')).toBe(false)
+      expect(isValidIanaTimezone('America/Invalid')).toBe(false)
+      expect(isValidIanaTimezone('')).toBe(false)
+      expect(isValidIanaTimezone(null)).toBe(false)
+      expect(isValidIanaTimezone(undefined)).toBe(false)
+    })
+
+    it('generates unambiguous ISO timestamps with America/Sao_Paulo offset (-03:00)', () => {
       const iso = localToIso('2026-09-10', '14:00', 'America/Sao_Paulo')
       expect(iso).toBe('2026-09-10T14:00:00-03:00')
       expect(new Date(iso).toISOString()).toBe('2026-09-10T17:00:00.000Z')
     })
 
-    it('computes day of week in target timezone deterministically', () => {
-      // 2026-09-06 is Sunday (0)
-      expect(getDayOfWeekInTimezone('2026-09-06', 'America/Sao_Paulo')).toBe(0)
-      // 2026-09-07 is Monday (1)
-      expect(getDayOfWeekInTimezone('2026-09-07', 'America/Sao_Paulo')).toBe(1)
-      // 2026-09-10 is Thursday (4)
-      expect(getDayOfWeekInTimezone('2026-09-10', 'America/Sao_Paulo')).toBe(4)
+    it('resolves America/New_York standard and DST spring-forward transitions exactly', () => {
+      // Standard time in NY (EST = UTC-5)
+      const standard = localToIso('2026-01-15', '10:00', 'America/New_York')
+      expect(standard).toBe('2026-01-15T10:00:00-05:00')
+      expect(new Date(standard).toISOString()).toBe('2026-01-15T15:00:00.000Z')
+
+      // Daylight time in NY (EDT = UTC-4)
+      const daylight = localToIso('2026-06-15', '10:00', 'America/New_York')
+      expect(daylight).toBe('2026-06-15T10:00:00-04:00')
+      expect(new Date(daylight).toISOString()).toBe('2026-06-15T14:00:00.000Z')
+
+      // Spring-forward transition date: 2026-03-08 (at 2am clocks jump to 3am)
+      // 01:30 is before transition (EST = UTC-5)
+      const preSpring = localToIso('2026-03-08', '01:30', 'America/New_York')
+      expect(preSpring).toBe('2026-03-08T01:30:00-05:00')
+      expect(new Date(preSpring).toISOString()).toBe('2026-03-08T06:30:00.000Z')
+
+      // 03:30 is after transition (EDT = UTC-4)
+      const postSpring = localToIso('2026-03-08', '03:30', 'America/New_York')
+      expect(postSpring).toBe('2026-03-08T03:30:00-04:00')
+      expect(new Date(postSpring).toISOString()).toBe('2026-03-08T07:30:00.000Z')
+    })
+
+    it('resolves Europe/Berlin standard and DST spring-forward transitions exactly', () => {
+      // Standard time in Berlin (CET = UTC+1)
+      const standard = localToIso('2026-01-15', '10:00', 'Europe/Berlin')
+      expect(standard).toBe('2026-01-15T10:00:00+01:00')
+      expect(new Date(standard).toISOString()).toBe('2026-01-15T09:00:00.000Z')
+
+      // Daylight time in Berlin (CEST = UTC+2)
+      const daylight = localToIso('2026-06-15', '10:00', 'Europe/Berlin')
+      expect(daylight).toBe('2026-06-15T10:00:00+02:00')
+      expect(new Date(daylight).toISOString()).toBe('2026-06-15T08:00:00.000Z')
+
+      // Spring-forward transition date: 2026-03-29 (at 2am clocks jump to 3am)
+      const preSpring = localToIso('2026-03-29', '01:30', 'Europe/Berlin')
+      expect(preSpring).toBe('2026-03-29T01:30:00+01:00')
+      expect(new Date(preSpring).toISOString()).toBe('2026-03-29T00:30:00.000Z')
+
+      const postSpring = localToIso('2026-03-29', '03:30', 'Europe/Berlin')
+      expect(postSpring).toBe('2026-03-29T03:30:00+02:00')
+      expect(new Date(postSpring).toISOString()).toBe('2026-03-29T01:30:00.000Z')
+    })
+
+    it('handles positive UTC offsets like Asia/Tokyo (UTC+9)', () => {
+      const tokyo = localToIso('2026-09-10', '14:00', 'Asia/Tokyo')
+      expect(tokyo).toBe('2026-09-10T14:00:00+09:00')
+      expect(new Date(tokyo).toISOString()).toBe('2026-09-10T05:00:00.000Z')
+    })
+
+    it('safely handles leap day and year rollover', () => {
+      // Leap day 2028-02-29
+      const leap = localToIso('2028-02-29', '12:00', 'America/Sao_Paulo')
+      expect(leap).toBe('2028-02-29T12:00:00-03:00')
+
+      // Year rollover 2026-12-31 to 2027-01-01
+      const nye = localToIso('2026-12-31', '23:30', 'America/Sao_Paulo')
+      expect(nye).toBe('2026-12-31T23:30:00-03:00')
+      expect(getDayOfWeekInTimezone('2026-12-31', 'America/Sao_Paulo')).toBe(4) // Thursday
+      expect(getDayOfWeekInTimezone('2027-01-01', 'America/Sao_Paulo')).toBe(5) // Friday
+    })
+
+    it('falls back to America/Sao_Paulo if an invalid timezone is passed to localToIso', () => {
+      const fallback = localToIso('2026-09-10', '14:00', 'Invalid/Timezone')
+      expect(fallback).toBe('2026-09-10T14:00:00-03:00')
     })
   })
 
-  describe('2. Pure Slot Generation & Precedence Engine', () => {
-    const defaultSettings: AvailabilitySettings = {
-      profileId: '11111111-1111-4111-a111-111111111111',
-      enabled: true,
-      timezone: 'America/Sao_Paulo',
-      slotDurationMinutes: 60,
-      slotIntervalMinutes: 60,
-      minimumNoticeMinutes: 120, // 2 hours
-      maximumAdvanceDays: 30,
-      bufferBeforeMinutes: 0,
-      bufferAfterMinutes: 0,
-    }
-
-    // Monday schedule: 09:00 - 13:00 (4 x 60m slots: 09:00, 10:00, 11:00, 12:00)
-    const weeklyRules: WeeklyAvailabilityRule[] = [
-      {
-        profileId: defaultSettings.profileId,
-        dayOfWeek: 1, // Monday
-        startTime: '09:00',
-        endTime: '13:00',
-        locationId: null,
-      },
-    ]
-
-    it('returns empty array when availability is disabled', () => {
-      const slots = generateAvailableSlots({
-        settings: { ...defaultSettings, enabled: false },
-        weeklyRules,
-        exceptions: [],
-        startDate: '2026-09-07', // Monday
-        endDate: '2026-09-07',
-        now: new Date('2026-09-07T05:00:00-03:00'),
-      })
-      expect(slots).toEqual([])
-    })
-
-    it('generates standard weekly slots when no exceptions exist', () => {
-      const slots = generateAvailableSlots({
-        settings: defaultSettings,
-        weeklyRules,
-        exceptions: [],
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-        now: new Date('2026-09-07T05:00:00-03:00'), // 4 hours before 09:00 -> notice satisfied
-      })
-
-      expect(slots).toHaveLength(4)
-      expect(slots[0].localStartTime).toBe('09:00')
-      expect(slots[0].localEndTime).toBe('10:00')
-      expect(slots[1].localStartTime).toBe('10:00')
-      expect(slots[2].localStartTime).toBe('11:00')
-      expect(slots[3].localStartTime).toBe('12:00')
-      expect(slots[3].localEndTime).toBe('13:00')
-    })
-
-    it('respects minimum notice window and filters out imminent slots', () => {
-      // Current time is 08:30 on Monday. Minimum notice is 120m (2 hours).
-      // First available slot must start at >= 10:30.
-      // 09:00 is too soon; 10:00 is too soon (< 120m); 11:00 and 12:00 are available!
-      const slots = generateAvailableSlots({
-        settings: defaultSettings,
-        weeklyRules,
-        exceptions: [],
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-        now: new Date('2026-09-07T08:30:00-03:00'),
-      })
-
-      expect(slots).toHaveLength(2)
-      expect(slots[0].localStartTime).toBe('11:00')
-      expect(slots[1].localStartTime).toBe('12:00')
-    })
-
-    it('respects maximum advance window', () => {
-      // 5 days advance max; query is 10 days out
-      const slots = generateAvailableSlots({
-        settings: { ...defaultSettings, maximumAdvanceDays: 5 },
-        weeklyRules,
-        exceptions: [],
-        startDate: '2026-09-21', // 14 days later
-        endDate: '2026-09-21',
-        now: new Date('2026-09-07T05:00:00-03:00'),
-      })
-
-      expect(slots).toEqual([])
-    })
-
-    it('CLOSED_DAY exception takes absolute precedence and returns 0 slots', () => {
-      const exceptions: AvailabilityException[] = [
-        {
-          profileId: defaultSettings.profileId,
-          exceptionDate: '2026-09-07',
-          exceptionType: 'CLOSED_DAY',
-          locationId: null,
-        },
-      ]
-
-      const slots = generateAvailableSlots({
-        settings: defaultSettings,
-        weeklyRules,
-        exceptions,
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-        now: new Date('2026-09-07T05:00:00-03:00'),
-      })
-
-      expect(slots).toEqual([])
-    })
-
-    it('CUSTOM_HOURS exception completely replaces weekly rules for that date', () => {
-      const exceptions: AvailabilityException[] = [
-        {
-          profileId: defaultSettings.profileId,
-          exceptionDate: '2026-09-07',
-          exceptionType: 'CUSTOM_HOURS',
-          startTime: '14:00',
-          endTime: '16:00',
-          locationId: null,
-        },
-      ]
-
-      const slots = generateAvailableSlots({
-        settings: defaultSettings,
-        weeklyRules, // regular is 09:00-13:00
-        exceptions,
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-        now: new Date('2026-09-07T05:00:00-03:00'),
-      })
-
-      // Replaces 09:00-13:00 with 14:00-16:00 (2 x 60m slots: 14:00, 15:00)
-      expect(slots).toHaveLength(2)
-      expect(slots[0].localStartTime).toBe('14:00')
-      expect(slots[1].localStartTime).toBe('15:00')
-    })
-
-    it('BLOCKED_INTERVAL exception subtracts time from weekly schedule', () => {
-      const exceptions: AvailabilityException[] = [
-        {
-          profileId: defaultSettings.profileId,
-          exceptionDate: '2026-09-07',
-          exceptionType: 'BLOCKED_INTERVAL',
-          startTime: '10:00',
-          endTime: '12:00',
-          locationId: null,
-        },
-      ]
-
-      const slots = generateAvailableSlots({
-        settings: defaultSettings,
-        weeklyRules, // regular is 09:00-13:00
-        exceptions,
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-        now: new Date('2026-09-07T05:00:00-03:00'),
-      })
-
-      // 09:00-13:00 with 10:00-12:00 blocked leaves:
-      // 09:00-10:00 (1 slot: 09:00)
-      // 12:00-13:00 (1 slot: 12:00)
-      expect(slots).toHaveLength(2)
-      expect(slots[0].localStartTime).toBe('09:00')
-      expect(slots[1].localStartTime).toBe('12:00')
-    })
-
-    it('respects location scoping for multi-area rules and exceptions', () => {
-      const locA = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa'
-      const locB = 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb'
-
-      const multiLocRules: WeeklyAvailabilityRule[] = [
-        {
-          profileId: defaultSettings.profileId,
-          dayOfWeek: 1,
-          startTime: '09:00',
-          endTime: '12:00',
-          locationId: locA,
-        },
-        {
-          profileId: defaultSettings.profileId,
-          dayOfWeek: 1,
-          startTime: '14:00',
-          endTime: '18:00',
-          locationId: locB,
-        },
-      ]
-
-      // Querying locA
-      const slotsA = generateAvailableSlots({
-        settings: defaultSettings,
-        weeklyRules: multiLocRules,
-        exceptions: [],
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-        targetLocationId: locA,
-        now: new Date('2026-09-07T05:00:00-03:00'),
-      })
-      expect(slotsA).toHaveLength(3) // 09:00, 10:00, 11:00
-      expect(slotsA.every((s) => s.locationId === locA)).toBe(true)
-
-      // Querying locB
-      const slotsB = generateAvailableSlots({
-        settings: defaultSettings,
-        weeklyRules: multiLocRules,
-        exceptions: [],
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-        targetLocationId: locB,
-        now: new Date('2026-09-07T05:00:00-03:00'),
-      })
-      expect(slotsB).toHaveLength(4) // 14:00, 15:00, 16:00, 17:00
-      expect(slotsB.every((s) => s.locationId === locB)).toBe(true)
-    })
-  })
-
-  describe('3. DAL & Public Query Security (Fail-Closed)', () => {
-    const mockFrom = vi.fn()
-    const mockRpc = vi.fn()
-    const mockAdmin = { from: mockFrom, rpc: mockRpc }
-
-    beforeEach(() => {
-      vi.clearAllMocks()
-      vi.mocked(createAdminClient).mockReturnValue(mockAdmin as any)
-    })
-
-    it('returns default availability settings when no DB row exists', async () => {
-      mockFrom.mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            maybeSingle: async () => ({ data: null, error: null }),
-          }),
-        }),
-      })
-
-      const settings = await getAvailabilitySettings('profile-uuid')
-      expect(settings.profileId).toBe('profile-uuid')
-      expect(settings.enabled).toBe(true)
-      expect(settings.slotDurationMinutes).toBe(DEFAULT_AVAILABILITY_SETTINGS.slotDurationMinutes)
-    })
-
-    it('validates overlapping windows before calling weekly availability RPC', async () => {
-      const invalidRules = [
-        { dayOfWeek: 1 as const, startTime: '09:00', endTime: '12:00' },
-        { dayOfWeek: 1 as const, startTime: '11:00', endTime: '14:00' },
-      ]
-
-      await expect(saveWeeklyAvailability('profile-uuid', invalidRules)).rejects.toThrow(
-        /Overlapping windows detected/
-      )
-      expect(mockRpc).not.toHaveBeenCalled()
-    })
-
-    it('calls save_professional_weekly_availability RPC on valid schedule', async () => {
-      mockRpc.mockResolvedValue({ error: null })
-      mockFrom.mockReturnValue({
-        select: () => ({
-          eq: () => ({
-            order: () => ({
-              order: async () => ({
-                data: [
-                  {
-                    id: 'rule-1',
-                    profile_id: 'profile-uuid',
-                    day_of_week: 1,
-                    start_time: '09:00',
-                    end_time: '12:00',
-                    location_id: null,
-                    created_at: '2026-09-06T00:00:00Z',
-                  },
-                ],
-                error: null,
-              }),
-            }),
-          }),
-        }),
-      })
-
-      const result = await saveWeeklyAvailability('profile-uuid', [
-        { dayOfWeek: 1, startTime: '09:00', endTime: '12:00' },
-      ])
-
-      expect(mockRpc).toHaveBeenCalledWith('save_professional_weekly_availability', {
-        p_profile_id: 'profile-uuid',
-        p_rules: [
-          { day_of_week: 1, start_time: '09:00', end_time: '12:00', location_id: null },
-        ],
-      })
-      expect(result).toHaveLength(1)
-    })
-
-    it('fails closed on public slot inquiry when profile is not publication-eligible', async () => {
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'v_publication_eligible_profiles') {
-          return {
-            select: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({ data: null, error: null }), // NOT in view
-              }),
-            }),
-          }
-        }
-        return {}
-      })
-
-      const slots = await getPublicAvailableSlots({
-        profileSlug: 'unverified-slug',
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-      })
-
-      expect(slots).toEqual([])
-    })
-
-    it('fails closed when requested location is not associated with the profile', async () => {
-      const profileId = '11111111-1111-4111-a111-111111111111'
-      const locId = '22222222-2222-4222-a222-222222222222'
-
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'v_publication_eligible_profiles') {
-          return {
-            select: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({
-                  data: { profile_id: profileId, profile_status: 'ACTIVE' },
-                  error: null,
-                }),
-              }),
-            }),
-          }
-        }
-        if (table === 'marketplace_locations') {
-          return {
-            select: () => ({
-              eq: () => ({
-                eq: () => ({
-                  maybeSingle: async () => ({
-                    data: { id: locId, active: true },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }
-        }
-        if (table === 'professional_profile_locations') {
-          return {
-            select: () => ({
-              eq: () => ({
-                eq: () => ({
-                  maybeSingle: async () => ({ data: null, error: null }), // Location NOT tied to profile
-                }),
-              }),
-            }),
-          }
-        }
-        return {}
-      })
-
-      const slots = await getPublicAvailableSlots({
-        profileSlug: 'valid-slug',
-        locationSlug: 'unauthorized-location',
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
-      })
-
-      expect(slots).toEqual([])
-    })
-  })
-
-  describe('4. Server Actions & Ownership Authorization Boundary', () => {
-    const mockFrom = vi.fn()
-    const mockRpc = vi.fn()
-    const mockAdmin = { from: mockFrom, rpc: mockRpc }
-
-    beforeEach(() => {
-      vi.clearAllMocks()
-      vi.mocked(createAdminClient).mockReturnValue(mockAdmin as any)
-    })
-
-    it('rejects saveAvailabilitySettingsAction when caller does not own the profile', async () => {
-      vi.mocked(requireAccount).mockResolvedValue({
-        id: 'attacker-account-id',
-        role: 'ADVERTISER',
-        status: 'ACTIVE',
-      } as any)
-
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'professional_profiles') {
-          return {
-            select: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({
-                  data: { id: 'target-profile-id', account_user_id: 'real-owner-account-id' },
-                  error: null,
-                }),
-              }),
-            }),
-          }
-        }
-        return {}
-      })
-
-      const res = await saveAvailabilitySettingsAction('target-profile-id', {
-        slotDurationMinutes: 60,
-      })
-
-      expect(res.success).toBe(false)
-      expect(res.error).toMatch(/você não possui permissão/)
-    })
-
-    it('allows ADMIN to manage availability settings for any profile', async () => {
-      vi.mocked(requireAccount).mockResolvedValue({
-        id: 'admin-account-id',
-        role: 'ADMIN',
-        status: 'ACTIVE',
-      } as any)
-
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'professional_availability_settings') {
-          return {
-            select: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({
-                  data: {
-                    profile_id: 'target-profile-id',
-                    enabled: true,
-                    timezone: 'America/Sao_Paulo',
-                    slot_duration_minutes: 60,
-                    slot_interval_minutes: 30,
-                    minimum_notice_minutes: 120,
-                    maximum_advance_days: 30,
-                    buffer_before_minutes: 0,
-                    buffer_after_minutes: 0,
-                    created_at: '2026-09-06T00:00:00Z',
-                    updated_at: '2026-09-06T00:00:00Z',
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-            upsert: () => ({
-              select: () => ({
-                single: async () => ({
-                  data: {
-                    profile_id: 'target-profile-id',
-                    enabled: true,
-                    timezone: 'America/Sao_Paulo',
-                    slot_duration_minutes: 45,
-                    slot_interval_minutes: 30,
-                    minimum_notice_minutes: 120,
-                    maximum_advance_days: 30,
-                    buffer_before_minutes: 0,
-                    buffer_after_minutes: 0,
-                    created_at: '2026-09-06T00:00:00Z',
-                    updated_at: '2026-09-06T00:00:00Z',
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          }
-        }
-        return {}
-      })
-
-      const res = await saveAvailabilitySettingsAction('target-profile-id', {
-        slotDurationMinutes: 45,
-      })
-
-      expect(res.success).toBe(true)
-      expect(res.data?.slotDurationMinutes).toBe(45)
-    })
-
-    it('validates exception rules in createAvailabilityExceptionAction', async () => {
+  describe('3. Cross-Midnight Policy (AUDIT B)', () => {
+    it('rejects cross-midnight single rules (start_time >= end_time) with controlled error in action', async () => {
       vi.mocked(requireAccount).mockResolvedValue({
         id: 'owner-account-id',
         role: 'ADVERTISER',
         status: 'ACTIVE',
       } as any)
 
-      mockFrom.mockImplementation((table: string) => {
+      const mockFrom = vi.fn().mockImplementation((table: string) => {
         if (table === 'professional_profiles') {
           return {
             select: () => ({
@@ -623,34 +241,693 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
         }
         return {}
       })
+      vi.mocked(createAdminClient).mockReturnValue({ from: mockFrom } as any)
 
-      // Invalid date format
-      const res1 = await createAvailabilityExceptionAction('target-profile-id', {
-        exceptionDate: '07-09-2026',
-        exceptionType: 'CLOSED_DAY',
-      })
-      expect(res1.success).toBe(false)
-      expect(res1.error).toMatch(/Data da exceção inválida/)
+      const res = await saveWeeklyScheduleAction('target-profile-id', [
+        { dayOfWeek: 1, startTime: '22:00', endTime: '02:00' },
+      ])
 
-      // CLOSED_DAY with times specified
-      const res2 = await createAvailabilityExceptionAction('target-profile-id', {
-        exceptionDate: '2026-09-07',
-        exceptionType: 'CLOSED_DAY',
-        startTime: '10:00',
-        endTime: '12:00',
-      })
-      expect(res2.success).toBe(false)
-      expect(res2.error).toMatch(/Dias fechados não devem conter horários/)
+      expect(res.success).toBe(false)
+      expect(res.error).toMatch(/Horário de início \(22:00\) deve ser anterior ao fim \(02:00\)/)
+    })
 
-      // BLOCKED_INTERVAL with start >= end
-      const res3 = await createAvailabilityExceptionAction('target-profile-id', {
-        exceptionDate: '2026-09-07',
-        exceptionType: 'BLOCKED_INTERVAL',
-        startTime: '14:00',
-        endTime: '12:00',
+    it('correctly models cross-midnight availability as two discrete daily intervals', () => {
+      const settings: AvailabilitySettings = {
+        profileId: '11111111-1111-4111-a111-111111111111',
+        enabled: true,
+        timezone: 'America/Sao_Paulo',
+        slotDurationMinutes: 60,
+        slotIntervalMinutes: 60,
+        minimumNoticeMinutes: 0,
+        maximumAdvanceDays: 30,
+        bufferBeforeMinutes: 0,
+        bufferAfterMinutes: 0,
+      }
+
+      // Day 1 (Monday, 2026-09-07): 22:00–23:59 (slot: 22:00–23:00)
+      // Day 2 (Tuesday, 2026-09-08): 00:00–02:00 (slots: 00:00–01:00, 01:00–02:00)
+      const splitRules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '22:00', endTime: '23:59', locationId: null },
+        { profileId: settings.profileId, dayOfWeek: 2, startTime: '00:00', endTime: '02:00', locationId: null },
+      ]
+
+      const slots = generateAvailableSlots({
+        settings,
+        weeklyRules: splitRules,
+        exceptions: [],
+        startDate: '2026-09-07',
+        endDate: '2026-09-08',
+        now: new Date('2026-09-07T12:00:00-03:00'),
       })
-      expect(res3.success).toBe(false)
-      expect(res3.error).toMatch(/Horário de início deve ser anterior/)
+
+      expect(slots).toHaveLength(3)
+      expect(slots[0].localDate).toBe('2026-09-07')
+      expect(slots[0].localStartTime).toBe('22:00')
+      expect(slots[1].localDate).toBe('2026-09-08')
+      expect(slots[1].localStartTime).toBe('00:00')
+      expect(slots[2].localDate).toBe('2026-09-08')
+      expect(slots[2].localStartTime).toBe('01:00')
+    })
+  })
+
+  describe('4. Global vs Location Semantics & Precedence (AUDIT C)', () => {
+    const locMoema = '11111111-1111-4111-a111-111111111111'
+    const locPinheiros = '22222222-2222-4222-a222-222222222222'
+
+    const settings: AvailabilitySettings = {
+      profileId: '99999999-9999-4999-a999-999999999999',
+      enabled: true,
+      timezone: 'America/Sao_Paulo',
+      slotDurationMinutes: 60,
+      slotIntervalMinutes: 60,
+      minimumNoticeMinutes: 0,
+      maximumAdvanceDays: 30,
+      bufferBeforeMinutes: 0,
+      bufferAfterMinutes: 0,
+    }
+
+    it('LOCATION OVERRIDE: Moema-specific schedule overrides global schedule for Moema query with ZERO duplicates', () => {
+      // Global: Monday 09:00–18:00
+      // Moema: Monday 14:00–20:00
+      const rules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '09:00', endTime: '18:00', locationId: null },
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '14:00', endTime: '20:00', locationId: locMoema },
+      ]
+
+      // Query Moema -> Must return ONLY Moema's 14:00–20:00 slots (6 slots: 14, 15, 16, 17, 18, 19)
+      const moemaSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions: [],
+        startDate: '2026-09-07', // Monday
+        endDate: '2026-09-07',
+        targetLocationId: locMoema,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+
+      expect(moemaSlots).toHaveLength(6)
+      expect(moemaSlots[0].localStartTime).toBe('14:00')
+      expect(moemaSlots[5].localStartTime).toBe('19:00')
+      // Ensure zero duplicates
+      const startTimes = moemaSlots.map((s) => s.localStartTime)
+      expect(new Set(startTimes).size).toBe(startTimes.length)
+
+      // Query Pinheiros (has no custom schedule) -> falls back to Global 09:00–18:00 (9 slots)
+      const pinheirosSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions: [],
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locPinheiros,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+
+      expect(pinheirosSlots).toHaveLength(9)
+      expect(pinheirosSlots[0].localStartTime).toBe('09:00')
+      expect(pinheirosSlots[8].localStartTime).toBe('17:00')
+    })
+
+    it('location CLOSED_DAY overrides global weekly hours for that location', () => {
+      const rules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '09:00', endTime: '18:00', locationId: null },
+      ]
+      const exceptions: AvailabilityException[] = [
+        {
+          profileId: settings.profileId,
+          exceptionDate: '2026-09-07',
+          exceptionType: 'CLOSED_DAY',
+          locationId: locMoema,
+        },
+      ]
+
+      // Querying Moema -> CLOSED (0 slots)
+      const moemaSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions,
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locMoema,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+      expect(moemaSlots).toEqual([])
+
+      // Querying Pinheiros -> Still open with global hours
+      const pinheirosSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions,
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locPinheiros,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+      expect(pinheirosSlots.length).toBeGreaterThan(0)
+    })
+
+    it('location CUSTOM_HOURS overrides global CLOSED_DAY for that location', () => {
+      const rules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '09:00', endTime: '18:00', locationId: null },
+      ]
+      const exceptions: AvailabilityException[] = [
+        // Globally closed on this date
+        {
+          profileId: settings.profileId,
+          exceptionDate: '2026-09-07',
+          exceptionType: 'CLOSED_DAY',
+          locationId: null,
+        },
+        // BUT professional explicitly opens custom hours in Moema
+        {
+          profileId: settings.profileId,
+          exceptionDate: '2026-09-07',
+          exceptionType: 'CUSTOM_HOURS',
+          startTime: '15:00',
+          endTime: '18:00',
+          locationId: locMoema,
+        },
+      ]
+
+      // Moema -> Available during custom hours (3 slots: 15, 16, 17)
+      const moemaSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions,
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locMoema,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+      expect(moemaSlots).toHaveLength(3)
+      expect(moemaSlots[0].localStartTime).toBe('15:00')
+
+      // Pinheiros -> Globally closed (0 slots)
+      const pinheirosSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions,
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locPinheiros,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+      expect(pinheirosSlots).toEqual([])
+    })
+
+    it('global BLOCKED_INTERVAL subtracts from location-specific weekly hours', () => {
+      const rules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '10:00', endTime: '18:00', locationId: locMoema },
+      ]
+      const exceptions: AvailabilityException[] = [
+        {
+          profileId: settings.profileId,
+          exceptionDate: '2026-09-07',
+          exceptionType: 'BLOCKED_INTERVAL',
+          startTime: '12:00',
+          endTime: '14:00',
+          locationId: null, // Global block (e.g. personal lunch / doctor)
+        },
+      ]
+
+      const slots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions,
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locMoema,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+
+      // 10:00–18:00 with 12:00–14:00 blocked gives 10, 11, 14, 15, 16, 17 (6 slots)
+      expect(slots).toHaveLength(6)
+      const times = slots.map((s) => s.localStartTime)
+      expect(times).toEqual(['10:00', '11:00', '14:00', '15:00', '16:00', '17:00'])
+      expect(times).not.toContain('12:00')
+      expect(times).not.toContain('13:00')
+    })
+
+    it('location BLOCKED_INTERVAL subtracts only from that location without affecting other locations', () => {
+      const rules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '10:00', endTime: '16:00', locationId: null },
+      ]
+      const exceptions: AvailabilityException[] = [
+        {
+          profileId: settings.profileId,
+          exceptionDate: '2026-09-07',
+          exceptionType: 'BLOCKED_INTERVAL',
+          startTime: '14:00',
+          endTime: '16:00',
+          locationId: locMoema, // Blocked only in Moema
+        },
+      ]
+
+      // Moema has 14:00–16:00 blocked -> 10:00, 11:00, 12:00, 13:00 (4 slots)
+      const moemaSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions,
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locMoema,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+      expect(moemaSlots).toHaveLength(4)
+
+      // Pinheiros is NOT blocked -> 10:00, 11:00, 12:00, 13:00, 14:00, 15:00 (6 slots)
+      const pinheirosSlots = generateAvailableSlots({
+        settings,
+        weeklyRules: rules,
+        exceptions,
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        targetLocationId: locPinheiros,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+      expect(pinheirosSlots).toHaveLength(6)
+    })
+  })
+
+  describe('5. Exact Boundary Tests & Limits (AUDIT 14)', () => {
+    const settings: AvailabilitySettings = {
+      profileId: '11111111-1111-4111-a111-111111111111',
+      enabled: true,
+      timezone: 'America/Sao_Paulo',
+      slotDurationMinutes: 60,
+      slotIntervalMinutes: 60,
+      minimumNoticeMinutes: 120, // 2 hours
+      maximumAdvanceDays: 14, // 14 days
+      bufferBeforeMinutes: 0,
+      bufferAfterMinutes: 0,
+    }
+
+    const weeklyRules: WeeklyAvailabilityRule[] = [
+      { profileId: settings.profileId, dayOfWeek: 1, startTime: '10:00', endTime: '14:00', locationId: null },
+    ]
+
+    it('notice exact boundary: slot start == now + notice is ALLOWED', () => {
+      // Slot 10:00–11:00 starts at 10:00.
+      // If now is exactly 08:00 (120 min prior), start == now + 120m -> ALLOWED
+      const slots = generateAvailableSlots({
+        settings,
+        weeklyRules,
+        exceptions: [],
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        now: new Date('2026-09-07T08:00:00-03:00'),
+      })
+
+      expect(slots[0].localStartTime).toBe('10:00')
+    })
+
+    it('notice exact boundary: slot start 1 minute before boundary is REJECTED', () => {
+      // If now is 08:01, 10:00 slot is 119 min away (< 120 min notice) -> REJECTED
+      const slots = generateAvailableSlots({
+        settings,
+        weeklyRules,
+        exceptions: [],
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        now: new Date('2026-09-07T08:01:00-03:00'),
+      })
+
+      expect(slots[0].localStartTime).toBe('11:00')
+    })
+
+    it('maximum advance exact boundary: slots beyond max advance are REJECTED', () => {
+      // 14 days advance max.
+      // Querying 15 days out -> 0 slots
+      const slots = generateAvailableSlots({
+        settings,
+        weeklyRules,
+        exceptions: [],
+        startDate: '2026-09-28', // 21 days out
+        endDate: '2026-09-28',
+        now: new Date('2026-09-07T08:00:00-03:00'),
+      })
+      expect(slots).toEqual([])
+    })
+
+    it('rejects query ranges exceeding 90 days', () => {
+      expect(() =>
+        generateAvailableSlots({
+          settings,
+          weeklyRules,
+          exceptions: [],
+          startDate: '2026-01-01',
+          endDate: '2026-05-01', // > 90 days
+        })
+      ).toThrow(/Date range exceeds maximum allowed limit of 90 days/)
+    })
+  })
+
+  describe('6. Busy Interval Adapter Boundary (AUDIT 17)', () => {
+    it('subtracts busy intervals from available inquiry slots', () => {
+      const settings: AvailabilitySettings = {
+        profileId: '11111111-1111-4111-a111-111111111111',
+        enabled: true,
+        timezone: 'America/Sao_Paulo',
+        slotDurationMinutes: 60,
+        slotIntervalMinutes: 60,
+        minimumNoticeMinutes: 0,
+        maximumAdvanceDays: 30,
+        bufferBeforeMinutes: 0,
+        bufferAfterMinutes: 0,
+      }
+
+      const weeklyRules: WeeklyAvailabilityRule[] = [
+        { profileId: settings.profileId, dayOfWeek: 1, startTime: '10:00', endTime: '14:00', locationId: null },
+      ]
+
+      // Busy interval: 11:00 to 12:00
+      const busyIntervals = [
+        {
+          startIso: '2026-09-07T11:00:00-03:00',
+          endIso: '2026-09-07T12:00:00-03:00',
+          source: 'INTERNAL_INQUIRY' as const,
+        },
+      ]
+
+      const slots = generateAvailableSlots({
+        settings,
+        weeklyRules,
+        exceptions: [],
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+        busyIntervals,
+        now: new Date('2026-09-07T05:00:00-03:00'),
+      })
+
+      // 10:00, 12:00, 13:00 (11:00 is blocked by busy interval)
+      expect(slots).toHaveLength(3)
+      const times = slots.map((s) => s.localStartTime)
+      expect(times).toEqual(['10:00', '12:00', '13:00'])
+      expect(times).not.toContain('11:00')
+    })
+  })
+
+  describe('7. Server Action Authority & Malicious Substitution (AUDIT 8, 11, 12)', () => {
+    const mockFrom = vi.fn()
+    const mockRpc = vi.fn()
+    const mockAdmin = { from: mockFrom, rpc: mockRpc }
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      vi.mocked(createAdminClient).mockReturnValue(mockAdmin as any)
+    })
+
+    it('rejects Advertiser A attempting to modify Profile B (malicious substitution)', async () => {
+      vi.mocked(requireAccount).mockResolvedValue({
+        id: 'advertiser-a-id',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+      } as any)
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'professional_profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { id: 'profile-b-id', account_user_id: 'advertiser-b-id' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const res = await saveAvailabilitySettingsAction('profile-b-id', {
+        slotDurationMinutes: 45,
+      })
+
+      expect(res.success).toBe(false)
+      expect(res.error).toMatch(/você não possui permissão/)
+    })
+
+    it('rejects CLIENT role from modifying professional availability settings', async () => {
+      vi.mocked(requireAccount).mockResolvedValue({
+        id: 'client-user-id',
+        role: 'CLIENT',
+        status: 'ACTIVE',
+      } as any)
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'professional_profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { id: 'some-profile-id', account_user_id: 'other-id' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const res = await saveAvailabilitySettingsAction('some-profile-id', {
+        slotDurationMinutes: 60,
+      })
+
+      expect(res.success).toBe(false)
+      expect(res.error).toMatch(/você não possui permissão/)
+    })
+
+    it('rejects unauthenticated caller attempting to call server actions', async () => {
+      vi.mocked(requireAccount).mockRejectedValue(new Error('NEXT_REDIRECT: /login'))
+
+      await expect(
+        saveAvailabilitySettingsAction('any-profile-id', { slotDurationMinutes: 60 })
+      ).resolves.toEqual({
+        success: false,
+        error: 'NEXT_REDIRECT: /login',
+      })
+    })
+
+    it('rejects invalid IANA timezones in saveAvailabilitySettingsAction', async () => {
+      vi.mocked(requireAccount).mockResolvedValue({
+        id: 'owner-id',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+      } as any)
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'professional_profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { id: 'owner-profile-id', account_user_id: 'owner-id' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const res = await saveAvailabilitySettingsAction('owner-profile-id', {
+        timezone: 'Foo/Bar',
+      })
+
+      expect(res.success).toBe(false)
+      expect(res.error).toMatch(/Fuso horário inválido/)
+    })
+
+    it('rejects out-of-bounds settings values in saveAvailabilitySettingsAction', async () => {
+      vi.mocked(requireAccount).mockResolvedValue({
+        id: 'owner-id',
+        role: 'ADVERTISER',
+        status: 'ACTIVE',
+      } as any)
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'professional_profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { id: 'owner-profile-id', account_user_id: 'owner-id' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      // duration > 480
+      const r1 = await saveAvailabilitySettingsAction('owner-profile-id', { slotDurationMinutes: 500 })
+      expect(r1.success).toBe(false)
+      expect(r1.error).toMatch(/A duração do intervalo deve ser entre 1 e 480/)
+
+      // interval > 240
+      const r2 = await saveAvailabilitySettingsAction('owner-profile-id', { slotIntervalMinutes: 300 })
+      expect(r2.success).toBe(false)
+      expect(r2.error).toMatch(/A frequência entre intervalos deve ser entre 1 e 240/)
+
+      // advance > 90
+      const r3 = await saveAvailabilitySettingsAction('owner-profile-id', { maximumAdvanceDays: 100 })
+      expect(r3.success).toBe(false)
+      expect(r3.error).toMatch(/A antecedência máxima deve ser entre 1 e 90/)
+
+      // buffer > 120
+      const r4 = await saveAvailabilitySettingsAction('owner-profile-id', { bufferBeforeMinutes: 150 })
+      expect(r4.success).toBe(false)
+      expect(r4.error).toMatch(/O tempo de preparação anterior deve ser entre 0 e 120/)
+    })
+  })
+
+  describe('8. Public Slot Privacy & Fail-Closed Publication Gate (AUDIT 9, 10)', () => {
+    const mockFrom = vi.fn()
+    const mockRpc = vi.fn()
+    const mockAdmin = { from: mockFrom, rpc: mockRpc }
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      vi.mocked(createAdminClient).mockReturnValue(mockAdmin as any)
+    })
+
+    it('public slot DTO does NOT expose private raw table rows, exception IDs, buffers, or account IDs', async () => {
+      const profileId = '11111111-1111-4111-a111-111111111111'
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'v_publication_eligible_profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { profile_id: profileId, profile_status: 'ACTIVE' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_availability_settings') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    profile_id: profileId,
+                    enabled: true,
+                    timezone: 'America/Sao_Paulo',
+                    slot_duration_minutes: 60,
+                    slot_interval_minutes: 60,
+                    minimum_notice_minutes: 0,
+                    maximum_advance_days: 30,
+                    buffer_before_minutes: 15,
+                    buffer_after_minutes: 15,
+                    created_at: '2026-09-06T00:00:00Z',
+                    updated_at: '2026-09-06T00:00:00Z',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_weekly_availability') {
+          return {
+            select: () => ({
+              eq: () => ({
+                order: () => ({
+                  order: async () => ({
+                    data: [
+                      {
+                        id: 'private-rule-uuid-123',
+                        profile_id: profileId,
+                        day_of_week: 1,
+                        start_time: '10:00',
+                        end_time: '12:00',
+                        location_id: null,
+                        created_at: '2026-09-06T00:00:00Z',
+                      },
+                    ],
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_availability_exceptions') {
+          const queryBuilder: any = {
+            gte: () => queryBuilder,
+            lte: () => queryBuilder,
+            order: () => ({
+              order: async () => ({
+                data: [],
+                error: null,
+              }),
+            }),
+          }
+          return {
+            select: () => ({
+              eq: () => queryBuilder,
+            }),
+          }
+        }
+        return {}
+      })
+
+      const slots = await getPublicAvailableSlots({
+        profileSlug: 'eligible-model',
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+      })
+
+      expect(slots.length).toBeGreaterThan(0)
+      for (const slot of slots) {
+        expect(slot).toHaveProperty('slotId')
+        expect(slot).toHaveProperty('profileId')
+        expect(slot).toHaveProperty('startIso')
+        expect(slot).toHaveProperty('endIso')
+        expect(slot).toHaveProperty('localDate')
+        expect(slot).toHaveProperty('localStartTime')
+        expect(slot).toHaveProperty('localEndTime')
+
+        // Privacy checks: must NEVER leak internal or configuration fields
+        expect((slot as any).account_user_id).toBeUndefined()
+        expect((slot as any).bufferBeforeMinutes).toBeUndefined()
+        expect((slot as any).buffer_before_minutes).toBeUndefined()
+        expect((slot as any).rules).toBeUndefined()
+        expect((slot as any).exceptions).toBeUndefined()
+        expect((slot as any).ruleId).toBeUndefined()
+        expect((slot as any).private_rule_uuid).toBeUndefined()
+      }
+    })
+
+    it('fails closed when profile is not in v_publication_eligible_profiles', async () => {
+      mockFrom.mockImplementation((table: string) => {
+        if (table === 'v_publication_eligible_profiles') {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: null, error: null }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const slots = await getPublicAvailableSlots({
+        profileSlug: 'ineligible-profile',
+        startDate: '2026-09-07',
+        endDate: '2026-09-07',
+      })
+
+      expect(slots).toEqual([])
     })
   })
 })

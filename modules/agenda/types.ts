@@ -1,15 +1,26 @@
 /**
--- ============================================================================
--- PX3 — Professional Availability and Agenda Foundation Types
--- ============================================================================
+ * ============================================================================
+ * PX3 — Professional Availability and Agenda Foundation Types
+ * ============================================================================
  *
  * Product Boundary:
  * Velvet is an advertising / discovery marketplace. Agenda and availability
- * are optional productivity tooling for the advertising professional.
+ * are optional productivity tooling for the professional advertiser.
  *
  * Terminology rule:
  * NO 'booking', 'reservation', 'order', 'sale'.
  * USE 'availability', 'available time', 'inquiry slot', 'requested time'.
+ *
+ * Cross-Midnight Policy:
+ * Single rules spanning across midnight (where end_time <= start_time, e.g. 22:00–02:00)
+ * are strictly REJECTED by database check constraints, RPC validation, and engine logic.
+ * Cross-midnight availability must be modeled as two discrete intervals:
+ * Day N: 22:00–23:59 (or 23:59:59)
+ * Day N+1: 00:00–02:00
+ *
+ * Buffer Semantics:
+ * bufferBeforeMinutes and bufferAfterMinutes are persisted operating preferences.
+ * Currently persisted for future busy-interval and inquiry integration (PX4/PX5).
  */
 
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6
@@ -66,6 +77,12 @@ export interface TimeWindow {
   endTime: string // HH:mm
 }
 
+export interface BusyInterval {
+  startIso: string
+  endIso: string
+  source?: 'INTERNAL_INQUIRY' | 'EXTERNAL_CALENDAR'
+}
+
 export interface InquirySlot {
   slotId: string
   profileId: string
@@ -84,6 +101,7 @@ export interface SlotGenerationParams {
   startDate: string // YYYY-MM-DD
   endDate: string // YYYY-MM-DD
   targetLocationId?: string | null
+  busyIntervals?: BusyInterval[]
   now?: Date // Injected current time for deterministic testing and notice calculations
 }
 

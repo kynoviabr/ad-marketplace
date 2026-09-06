@@ -8,6 +8,7 @@ import {
   saveWeeklyAvailability,
   updateAvailabilitySettings,
 } from './dal'
+import { isValidIanaTimezone } from './engine'
 import type { AvailabilityException, AvailabilitySettings, DayOfWeek, WeeklyAvailabilityRule } from './types'
 
 export interface AgendaActionResult<T = void> {
@@ -66,6 +67,18 @@ export async function saveAvailabilitySettingsAction(
 
     if (settings.maximumAdvanceDays !== undefined && (settings.maximumAdvanceDays <= 0 || settings.maximumAdvanceDays > 90)) {
       return { success: false, error: 'A antecedência máxima deve ser entre 1 e 90 dias.' }
+    }
+
+    if (settings.bufferBeforeMinutes !== undefined && (settings.bufferBeforeMinutes < 0 || settings.bufferBeforeMinutes > 120)) {
+      return { success: false, error: 'O tempo de preparação anterior deve ser entre 0 e 120 minutos.' }
+    }
+
+    if (settings.bufferAfterMinutes !== undefined && (settings.bufferAfterMinutes < 0 || settings.bufferAfterMinutes > 120)) {
+      return { success: false, error: 'O tempo de preparação posterior deve ser entre 0 e 120 minutos.' }
+    }
+
+    if (settings.timezone !== undefined && !isValidIanaTimezone(settings.timezone)) {
+      return { success: false, error: 'Fuso horário inválido. Forneça um identificador IANA válido.' }
     }
 
     const updated = await updateAvailabilitySettings(profileId, settings)
