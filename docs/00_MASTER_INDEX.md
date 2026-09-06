@@ -23,8 +23,9 @@ LAST UPDATED: 2026-09-05
   - Professional Hub & Acquisition Funnel (Release R11): CLOSED
   - Admin Operations & Queues (Release R12 / R12.1–R12.4C2): CLOSED IN DEV
   - Security Remediation P1-1 through P1-5: CLOSED & DEV VALIDATED (29/29 migrations in DEV)
-- CURRENT STATE: R12 CLOSED & DEV VALIDATED (171/171 targeted tests PASS, DEV transactional runtime PASS)
-- NEXT: Pre-GTM Product Expansion in DEV (Workstreams PX1–PX8) followed by Pre-GTM Hardening, Environment & Secrets Readiness (PROD setup), and Professional Acquisition.
+- CURRENT STATE: R12 CLOSED, PRE-PX1 GUARDRAILS (D/F/E/I) RESOLVED, PX1 COMPLETE, PX2A COMPLETE & DEV VALIDATED.
+- OPERATIONAL ENVIRONMENT MODEL: Single operational DEV environment (Supabase DEV `mwzlunkkyigxzjpnybxj`). Current Vercel deployment labeled/configured as "Production" is operationally hosted DEV. Real DEV/PROD separation and credential rotation are deferred to Environment & Secrets Readiness prior to GTM.
+- NEXT: PX2B — Professional Analytics Dashboard UI & Insights Surface.
 
 ## Key Decisions
 - DEC-001 Modular monolith.

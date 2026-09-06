@@ -10,6 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getProfessionalAnalyticsOverview } from '@/modules/analytics/dal'
+import { getSaoPauloDateStr } from '@/modules/analytics/aggregation'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 vi.mock('@/lib/supabase/admin', () => ({
@@ -121,7 +122,7 @@ describe('PX2A — Professional Analytics Authorization & Ownership Isolation', 
                       {
                         id: 'm1',
                         profile_id: profileId,
-                        metric_date: new Date().toISOString().slice(0, 10),
+                        metric_date: getSaoPauloDateStr(new Date()),
                         impressions_total: 100,
                         impressions_organic: 80,
                         impressions_sponsored: 20,

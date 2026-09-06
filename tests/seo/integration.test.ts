@@ -124,5 +124,5 @@ describe('FASE 10 — Live Supabase DEV SEO DAL Integration Tests', () => {
 
       expect(seoData).not.toBeNull()
     }
-  })
+  }, 20_000)
 })

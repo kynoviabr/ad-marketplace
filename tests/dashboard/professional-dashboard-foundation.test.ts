@@ -71,7 +71,7 @@ describe('Velvet professional dashboard foundation — INTEGRATION CONTRACT', ()
 describe('Velvet professional dashboard foundation — LIVE DEV', () => {
   it('resolves a completed, verified and published synthetic professional', async () => {
     const admin = getTestSupabaseAdmin()
-    const { data: eligible, error } = await admin.from('v_publication_eligible_profiles').select('account_user_id, profile_slug').limit(1).maybeSingle()
+    const { data: eligible, error } = await admin.from('v_publication_eligible_profiles').select('account_user_id, profile_slug').like('profile_slug', '%-sp-%').limit(1).maybeSingle()
     if (error || !eligible) throw new Error('No eligible synthetic DEV account available')
     const { data: original } = await admin.from('account_users').select('*').eq('id', eligible.account_user_id).single()
     if (!original || !/-sp-\d+$/.test(eligible.profile_slug)) throw new Error('Eligible account is not a known synthetic DEV fixture')

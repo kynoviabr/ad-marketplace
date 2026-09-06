@@ -8,6 +8,7 @@ LAST UPDATED: 2026-09-05
 **Product-first pre-GTM strategy adopted.** Rather than rushing prematurely into dual PROD infrastructure setup, credential rotation, and Closed Beta, Velvet will build its core product differentiation, operational intelligence, and professional value drivers in the single authorized DEV environment (`mwzlunkkyigxzjpnybxj`) first.
 
 The goal is to reach a state of **GTM Readiness for Professional Acquisition** before creating separate DEV + PROD environments and performing final production infrastructure hardening.
+Currently, there is a single operational DEV environment: Supabase DEV (`mwzlunkkyigxzjpnybxj`) and the existing Vercel deployment labeled as "Production" is operationally hosted DEV. Real DEV/PROD separation is deferred to Environment & Secrets Readiness.
 
 ### Updated Strategic Lifecycle Order
 

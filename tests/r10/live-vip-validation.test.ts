@@ -5,7 +5,7 @@ import { getEligiblePublicProfileBySlug } from '@/modules/profiles/public-detail
 import { executeSearch } from '@/modules/search/dal'
 import { getNewProfessionals, getNewContent } from '@/modules/search/home-sections'
 
-describe('FASE 10 — Final Live VIP Preview Validation', () => {
+describe('FASE 10 — Final Live VIP Preview Validation', { timeout: 30000 }, () => {
   const admin = getTestSupabaseAdmin()
   const PREFIX = `synth-live-${Date.now()}-`
 
