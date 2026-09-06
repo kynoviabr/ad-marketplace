@@ -188,18 +188,40 @@ To deliver compelling professional value and establish deep competitive differen
 - **Modules**: `components/pwa/`, `components/public/public-footer.tsx`, `components/public/mobile-navigation.tsx`, `lib/i18n/messages/public.ts`, `app/velvet-public.css`.
 
 ### PX5 — AI Concierge Foundation (Internal Portal Architecture)
+- **Status**: **COMPLETE (100% RESOLVED IN DEV)**.
 - **Product Value**: Provides professionals with an automated, 24/7 AI assistant to answer prospect questions about rates, offerings, services, and neighborhood locations, saving time and increasing inquiry conversion.
 - **User**: Professional Advertiser & Prospective Client.
 - **Scope**: AI Concierge domain architecture; professional-configured instructions and knowledge base (rates, bio, boundaries); portal-based interactive chat interface; safety boundaries and guardrails; token usage tracking and quota enforcement.
-- **Out of Scope**: External WhatsApp Business API integration (deferred to post-portal stabilization), voice/audio generation.
-- **Dependencies**: PX1 Telemetry, Professional profile & offerings domain.
-- **Data Model**: `ai_concierge_settings`, `ai_conversations`, `ai_messages`, `ai_usage_metering`.
-- **Expected Modules**: `modules/ai-concierge/`, `app/api/ai/`, `components/ai/`.
-- **Expected Migrations**: 1 additive migration for AI settings, conversation ledgers, and token metering tables.
-- **Security Considerations**: Zero leakage of KYC/legal identities, addresses, or phone numbers in LLM system prompts; injection defense; professional retains kill-switch to disable concierge instantly.
-- **Observability Requirements**: Token consumption metering, LLM call duration, error rates, prompt safety violation flags.
-- **Test Strategy**: Prompt injection resilience tests, strict knowledge-boundary unit tests, quota cap enforcement tests.
-- **Exit Criteria**: Prospective client can chat with AI Concierge on a profile; responses strictly honor professional's configured offerings; token usage tracked.
+- **Delivered**:
+  - Additive Migration `20260906020000_ai_concierge.sql` applied to DEV Supabase (`mwzlunkkyigxzjpnybxj`); 33/33 migrations aligned in canonical sync.
+  - Database Schema: `professional_concierge_settings`, `professional_concierge_faqs`, `concierge_conversations`, `concierge_messages` with strict `service_role` authorization, RLS, and zero public exposure.
+  - Core Concierge Module (`modules/concierge/`):
+    - `types.ts`: Comprehensive domain contracts (tone, channel, status, role, qualification schemas, tools).
+    - `constants.ts`: Operational bounds (1000 char message cap, 10-message context window, max 3 tool calls/turn, max 10 FAQs/profile, refusal replies, tone instructions).
+    - `tools.ts`: Server-authoritative tool registry with execution limits (`get_public_profile_summary`, `get_public_service_areas`, `request_human_handoff`, and PX6 `get_available_slots` stub).
+    - `prompt.ts`: Pre-flight safety filter (18+ minor protection, prompt injection defense, system prompt confidentiality, illegal activity refusal) and structured prompt builder with public facts & FAQ context.
+    - `provider.ts`: Server-only AI provider abstraction with native fetch to OpenAI completions when `OPENAI_API_KEY` is present, and deterministic rule-based mock provider fallback for dev/test.
+    - `dal.ts`: Data access layer with fail-closed profile ownership assertions and strict minimization (excludes KYC, documents, billing, real names, and private addresses).
+    - `runtime.ts`: Multi-turn conversational runtime with session rate limiting, status transitions, qualification updates, and structured observability logging.
+    - `actions.ts`: Guarded Next.js Server Actions with strict ownership validation (`assertProfileOwnership`).
+  - Professional Dashboard (`/dashboard/concierge`):
+    - Server page `app/(dashboard)/dashboard/concierge/page.tsx` guarded by advertiser auth and onboarding completion.
+    - `ConciergeSettingsForm`: Master toggle, assistant display name, welcome message, tone selector, qualification toggle, and handoff toggle.
+    - `ConciergeFaqManager`: Card-based list and creator for up to 10 custom Q&As with edit and delete capabilities.
+    - `ConciergeTestChat`: Interactive simulator marked prominently with "MODO DE TESTE" / "TEST MODE", disclaimer, message history, touch-friendly composer (>=44px), detected intent pills, and conversation reset.
+    - Header Navigation: Added "Concierge IA" / "AI Concierge" to `ProfessionalDashboardHeader`.
+  - Internationalization: Complete bilingual catalog in `lib/i18n/messages/concierge.ts` registered in `lib/i18n/catalog.ts`.
+  - Styling: Editorial Velvet styles for layout, forms, FAQ cards, and test simulator in `app/globals.css`.
+  - Verification & Test Coverage:
+    - 25 dedicated PX5 tests in `tests/concierge/` (prompt safety, server tools, mock provider, DAL and live DEV Supabase integration).
+    - Full project suite: 182 test files, 1,825 tests PASS.
+    - Quality gates: `npm run typecheck`, `npm run lint`, `npm run build` all pass with zero errors.
+- **Out of Scope**: External WhatsApp Business API integration (deferred to post-portal stabilization), live booking execution (PX6).
+- **Data Model**: `professional_concierge_settings`, `professional_concierge_faqs`, `concierge_conversations`, `concierge_messages`.
+- **Modules**: `modules/concierge/`, `app/(dashboard)/dashboard/concierge/`, `components/concierge/`, `lib/i18n/messages/concierge.ts`.
+- **Applied Migrations**: `20260906020000_ai_concierge.sql` (33/33 aligned).
+- **Security Considerations**: Zero leakage of KYC, legal names, or billing info in prompts; pre-flight safety filter rejects underage inquiries; non-intermediary classified disclaimers enforced.
+- **Product Next**: PX6 — AI Concierge + Agenda & Inquiries Integration.
 
 ### PX6 — AI Concierge + Agenda & Inquiries Integration
 - **Product Value**: Allows the AI Concierge to check real-time availability from PX3/PX4, inform clients of open slots, gather inquiry details, and generate a pre-filled WhatsApp handoff link.

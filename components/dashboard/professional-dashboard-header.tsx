@@ -11,6 +11,7 @@ export async function ProfessionalDashboardHeader({ activeHref }: { activeHref: 
     [t('dashboard.photos'), '/dashboard/photos'],
     [t('dashboard.locations'), '/onboarding/onde-atende'],
     [t('dashboard.availability'), '/dashboard/availability'],
+    [t('dashboard.concierge'), '/dashboard/concierge'],
     [t('dashboard.verification'), '/onboarding/verificacao'],
     [t('profile.reviews'), '/dashboard/reviews'],
     ['Analytics', '/dashboard/analytics'],
