@@ -1,6 +1,7 @@
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getSaoPauloDateStr } from '@/modules/analytics/aggregation'
+import { logger } from '@/modules/observability/logger'
 import type {
   AnalyticsPeriodDays,
   ProfessionalBenchmarkDTO,
@@ -106,12 +107,21 @@ export async function getProfessionalBenchmark(
   const currentStartDate = shiftCalendarDateStr(currentEndDate, -(days - 1))
 
   // 3. Query target profile's own metrics in this period
-  const { data: ownRows } = await admin
+  const { data: ownRows, error: ownErr } = await admin
     .from('profile_daily_metrics')
-    .select('impressions_total, views_total, whatsapp_clicks, phone_clicks, telegram_clicks')
+    .select('impressions_total, views_total, whatsapp_clicks')
     .eq('profile_id', params.profileId)
     .gte('metric_date', currentStartDate)
     .lte('metric_date', currentEndDate)
+
+  if (ownErr) {
+    logger.error('analytics.professional.benchmark_query_failed', {
+      subsystem: 'DATABASE',
+      error: new Error(ownErr.message),
+      metadata: { profileId: params.profileId, query: 'own_metrics' },
+    })
+    throw new Error('Database query failed for professional profile metrics')
+  }
 
   let ownImpressions = 0
   let ownViews = 0
@@ -120,8 +130,7 @@ export async function getProfessionalBenchmark(
   for (const r of ownRows || []) {
     ownImpressions += r.impressions_total || 0
     ownViews += r.views_total || 0
-    ownContacts +=
-      (r.whatsapp_clicks || 0) + (r.phone_clicks || 0) + (r.telegram_clicks || 0)
+    ownContacts += r.whatsapp_clicks || 0
   }
 
   const ownOpenRate =
@@ -129,14 +138,45 @@ export async function getProfessionalBenchmark(
   const ownContactRate =
     ownViews > 0 ? Number(((ownContacts / ownViews) * 100).toFixed(1)) : 0
 
-  // 4. Query canonical publication-eligible profiles (EXCLUDING target profile)
-  const { data: eligibleRows, error: eligErr } = await admin
+  // 4. Resolve target profile's city to ensure same-city cohort isolation
+  const { data: locData, error: locErr } = await admin
+    .from('professional_profile_locations')
+    .select('location:marketplace_locations(city_id)')
+    .eq('profile_id', params.profileId)
+    .order('is_primary', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (locErr) {
+    logger.error('analytics.professional.benchmark_query_failed', {
+      subsystem: 'DATABASE',
+      error: new Error(locErr.message),
+      metadata: { profileId: params.profileId, query: 'profile_location' },
+    })
+    throw new Error('Database query failed for profile location')
+  }
+
+  const targetCityId = (locData?.location as any)?.city_id ?? null
+
+  // 5. Query canonical publication-eligible profiles in the SAME city (EXCLUDING target profile)
+  let eligibleQuery = admin
     .from('v_publication_eligible_profiles')
     .select('profile_id')
     .neq('profile_id', params.profileId)
 
+  if (targetCityId) {
+    eligibleQuery = eligibleQuery.eq('city_id', targetCityId)
+  }
+
+  const { data: eligibleRows, error: eligErr } = await eligibleQuery
+
   if (eligErr) {
-    console.error('[analytics:benchmark] Error fetching eligible cohort:', eligErr.message)
+    logger.error('analytics.professional.benchmark_query_failed', {
+      subsystem: 'DATABASE',
+      error: new Error(eligErr.message),
+      metadata: { profileId: params.profileId, query: 'eligible_cohort', targetCityId },
+    })
+    throw new Error('Database query failed for eligible cohort')
   }
 
   const eligibleCohortIds = Array.from(
@@ -149,7 +189,7 @@ export async function getProfessionalBenchmark(
     comparisonBand: 'INSUFFICIENT_DATA',
   })
 
-  // 5. Cohort Privacy Threshold Guard: Minimum 5 distinct active profiles
+  // 6. Cohort Privacy Threshold Guard: Minimum 5 distinct active profiles
   if (eligibleCohortIds.length < MIN_COHORT_PROFILES) {
     return {
       status: 'INSUFFICIENT_COHORT',
@@ -164,16 +204,21 @@ export async function getProfessionalBenchmark(
     }
   }
 
-  // 6. Query aggregate metrics for eligible cohort across the period
+  // 7. Query aggregate metrics for eligible cohort across the period
   const { data: cohortMetricsRows, error: cohortErr } = await admin
     .from('profile_daily_metrics')
-    .select('profile_id, impressions_total, views_total, whatsapp_clicks, phone_clicks, telegram_clicks')
+    .select('profile_id, impressions_total, views_total, whatsapp_clicks')
     .in('profile_id', eligibleCohortIds)
     .gte('metric_date', currentStartDate)
     .lte('metric_date', currentEndDate)
 
   if (cohortErr) {
-    console.error('[analytics:benchmark] Error fetching cohort metrics:', cohortErr.message)
+    logger.error('analytics.professional.benchmark_query_failed', {
+      subsystem: 'DATABASE',
+      error: new Error(cohortErr.message),
+      metadata: { profileId: params.profileId, query: 'cohort_metrics' },
+    })
+    throw new Error('Database query failed for cohort metrics')
   }
 
   // Group metrics by profile_id
@@ -192,8 +237,7 @@ export async function getProfessionalBenchmark(
     if (entry) {
       entry.impressions += r.impressions_total || 0
       entry.views += r.views_total || 0
-      entry.contacts +=
-        (r.whatsapp_clicks || 0) + (r.phone_clicks || 0) + (r.telegram_clicks || 0)
+      entry.contacts += r.whatsapp_clicks || 0
     }
   }
 

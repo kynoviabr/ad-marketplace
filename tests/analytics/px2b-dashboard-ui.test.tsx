@@ -441,7 +441,7 @@ describe('PX2B — Professional Analytics Dashboard 2.0', () => {
       expect(html).toContain('Cliques no WhatsApp')
       expect(html).toContain('Privacidade e Proteção de Dados')
       expect(html).toContain('500ms')
-      expect(html).toContain('100% anônimas')
+      expect(html).toContain('não revelam a identidade dos visitantes')
     })
   })
 

@@ -84,8 +84,8 @@ export function AnalyticsBenchmark({ benchmark, locale }: AnalyticsBenchmarkProp
           </p>
           <span className="analytics-benchmark-cohort-info">
             {isPt
-              ? `Base atual: ${eligibleCohortSize} perfil(is) ativo(s) na cidade.`
-              : `Current base: ${eligibleCohortSize} active profile(s) in the city.`}
+              ? 'A amostra ainda não atingiu o volume mínimo necessário.'
+              : 'The sample has not yet reached the minimum threshold required.'}
           </span>
         </div>
       )}
@@ -133,7 +133,7 @@ export function AnalyticsBenchmark({ benchmark, locale }: AnalyticsBenchmarkProp
           {/* Metric 2: Contact Rate */}
           <div className="analytics-benchmark-card">
             <div className="analytics-benchmark-card-header">
-              <h3>{isPt ? 'Taxa de contato' : 'Contact rate'}</h3>
+              <h3>{isPt ? 'Taxa de contato WhatsApp' : 'WhatsApp contact rate'}</h3>
               {renderBandBadge(contactRate.comparisonBand, isPt)}
             </div>
             <div className="analytics-benchmark-values">
@@ -152,8 +152,8 @@ export function AnalyticsBenchmark({ benchmark, locale }: AnalyticsBenchmarkProp
             </div>
             <p className="analytics-benchmark-desc">
               {isPt
-                ? 'Proporção de visitas que clicaram no botão de contato.'
-                : 'Share of visits that clicked the contact button.'}
+                ? 'Proporção de visitas que clicaram no botão de WhatsApp.'
+                : 'Share of visits that clicked the WhatsApp button.'}
             </p>
           </div>
 

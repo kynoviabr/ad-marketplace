@@ -346,13 +346,23 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
         if (table === 'professional_profiles') {
           return {
             select: vi.fn().mockReturnThis(),
-            eq: vi.fn((col: string, val: string) => {
-              return {
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: { id: 'prof-target', account_user_id: 'acc-target', status: 'ACTIVE' },
-                  error: null,
-                }),
-              }
+            eq: vi.fn(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'prof-target', account_user_id: 'acc-target', status: 'ACTIVE' },
+                error: null,
+              }),
+            })),
+          }
+        }
+        if (table === 'professional_profile_locations') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { location: { city_id: 'city-sp' } },
+              error: null,
             }),
           }
         }
@@ -365,17 +375,21 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
           }
         }
         if (table === 'v_publication_eligible_profiles') {
-          return {
+          const chain = {
             select: vi.fn().mockReturnThis(),
-            neq: vi.fn().mockResolvedValue({
-              data: [
-                { profile_id: 'peer-1' },
-                { profile_id: 'peer-2' },
-                { profile_id: 'peer-3' },
-              ], // Only 3 peers (< 5)
-              error: null,
-            }),
+            neq: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: any) =>
+              resolve({
+                data: [
+                  { profile_id: 'peer-1' },
+                  { profile_id: 'peer-2' },
+                  { profile_id: 'peer-3' },
+                ], // Only 3 peers (< 5)
+                error: null,
+              }),
           }
+          return chain
         }
         return { select: vi.fn().mockReturnThis() }
       }),
@@ -409,19 +423,39 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
             }),
           }
         }
-        if (table === 'profile_daily_metrics') {
+        if (table === 'professional_profile_locations') {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { location: { city_id: 'city-sp' } },
+              error: null,
+            }),
+          }
+        }
+        if (table === 'profile_daily_metrics') {
+          let queriedProfileId: string | null = null
+          const queryChain: any = {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn((col: string, val: string) => {
+              if (col === 'profile_id') queriedProfileId = val
+              return queryChain
+            }),
             in: vi.fn().mockReturnThis(),
             gte: vi.fn().mockReturnThis(),
-            lte: vi.fn((col: string, val: string) => {
-              // Check if query is for own target or cohort
+            lte: vi.fn(() => {
+              if (queriedProfileId === 'prof-target') {
+                return Promise.resolve({
+                  data: [
+                    { profile_id: 'prof-target', impressions_total: 100, views_total: 20, whatsapp_clicks: 5, phone_clicks: 2, telegram_clicks: 1 },
+                  ],
+                  error: null,
+                })
+              }
               return Promise.resolve({
                 data: [
-                  // Target profile data: 100 imp, 20 views, 5 contacts
-                  { profile_id: 'prof-target', impressions_total: 100, views_total: 20, whatsapp_clicks: 5, phone_clicks: 0, telegram_clicks: 0 },
-                  // Peer metrics
                   { profile_id: 'p1', impressions_total: 80, views_total: 12, whatsapp_clicks: 2, phone_clicks: 0, telegram_clicks: 0 },
                   { profile_id: 'p2', impressions_total: 100, views_total: 15, whatsapp_clicks: 3, phone_clicks: 0, telegram_clicks: 0 },
                   { profile_id: 'p3', impressions_total: 120, views_total: 18, whatsapp_clicks: 4, phone_clicks: 0, telegram_clicks: 0 },
@@ -433,15 +467,20 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
               })
             }),
           }
+          return queryChain
         }
         if (table === 'v_publication_eligible_profiles') {
-          return {
+          const chain = {
             select: vi.fn().mockReturnThis(),
-            neq: vi.fn().mockResolvedValue({
-              data: peers.map((id) => ({ profile_id: id })),
-              error: null,
-            }),
+            neq: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: any) =>
+              resolve({
+                data: peers.map((id) => ({ profile_id: id })),
+                error: null,
+              }),
           }
+          return chain
         }
         return { select: vi.fn().mockReturnThis() }
       }),
@@ -459,6 +498,8 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
     expect(result.visibility.cohortMedian).toBeGreaterThan(0)
     expect(result.openRate.cohortMedian).toBeGreaterThan(0)
     expect(result.contactRate.cohortMedian).toBeGreaterThan(0)
+    // Contact rate calculation uses whatsapp_clicks (5 / 20 = 25.0%), not total contacts ((5+2+1)/20 = 40.0%)
+    expect(result.contactRate.professionalValue).toBe(25.0)
 
     // Verify zero competitor identifiers returned:
     const serialized = JSON.stringify(result)
@@ -469,9 +510,11 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
     expect(serialized).not.toContain('leaderboard')
   })
 
-  it('Benchmark Case E & F: strictly excludes target profile and non-eligible profiles from cohort query', async () => {
+  it('Benchmark Case E & F: strictly excludes target profile and non-eligible profiles from cohort query and isolates by city', async () => {
     let neqCol = ''
     let neqVal = ''
+    let eqCityCol = ''
+    let eqCityVal = ''
 
     const mockAdmin = {
       from: vi.fn((table: string) => {
@@ -486,15 +529,34 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
             }),
           }
         }
-        if (table === 'v_publication_eligible_profiles') {
+        if (table === 'professional_profile_locations') {
           return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { location: { city_id: 'city-sao-paulo-uuid' } },
+              error: null,
+            }),
+          }
+        }
+        if (table === 'v_publication_eligible_profiles') {
+          const chain = {
             select: vi.fn().mockReturnThis(),
             neq: vi.fn((col: string, val: string) => {
               neqCol = col
               neqVal = val
-              return Promise.resolve({ data: [], error: null })
+              return chain
             }),
+            eq: vi.fn((col: string, val: string) => {
+              eqCityCol = col
+              eqCityVal = val
+              return chain
+            }),
+            then: (resolve: any) => resolve({ data: [], error: null }),
           }
+          return chain
         }
         return {
           select: vi.fn().mockReturnThis(),
@@ -515,6 +577,70 @@ describe('PX2C — Privacy-Safe Cohort Benchmark Math & DAL', () => {
     // Assert that target profile is explicitly excluded from eligible view query
     expect(neqCol).toBe('profile_id')
     expect(neqVal).toBe('prof-target-exclusive')
+    // Assert that cohort is explicitly restricted to target profile's city
+    expect(eqCityCol).toBe('city_id')
+    expect(eqCityVal).toBe('city-sao-paulo-uuid')
+  })
+
+  it('Benchmark Case: throws error on database query failure instead of returning fake INSUFFICIENT_COHORT', async () => {
+    const mockAdmin = {
+      from: vi.fn((table: string) => {
+        if (table === 'professional_profiles') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'prof-target', account_user_id: 'acc-target', status: 'ACTIVE' },
+                error: null,
+              }),
+            }),
+          }
+        }
+        if (table === 'professional_profile_locations') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockReturnThis(),
+            limit: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { location: { city_id: 'city-sp' } },
+              error: null,
+            }),
+          }
+        }
+        if (table === 'profile_daily_metrics') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            gte: vi.fn().mockReturnThis(),
+            lte: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }
+        }
+        if (table === 'v_publication_eligible_profiles') {
+          const chain = {
+            select: vi.fn().mockReturnThis(),
+            neq: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: any) =>
+              resolve({
+                data: null,
+                error: { message: 'connection refused to pg_meta' },
+              }),
+          }
+          return chain
+        }
+        return { select: vi.fn().mockReturnThis() }
+      }),
+    }
+    vi.mocked(createAdminClient).mockReturnValue(mockAdmin as any)
+
+    await expect(
+      getProfessionalBenchmark({
+        profileId: 'prof-target',
+        accountId: 'acc-target',
+        periodDays: 30,
+      })
+    ).rejects.toThrow('Database query failed for eligible cohort')
   })
 
   it('Benchmark Case G: blocks unauthorized access when accountId does not own profile', async () => {
@@ -587,7 +713,7 @@ describe('PX2C — UI Component Rendering & Strict Privacy Tests', () => {
     expect(html).toContain('18.2%')
     expect(html).toContain('Acima da mediana')
 
-    expect(html).toContain('Taxa de contato')
+    expect(html).toContain('Taxa de contato WhatsApp')
     expect(html).toContain('Próximo à mediana')
 
     expect(html).toContain('Visibilidade na busca')
@@ -602,7 +728,7 @@ describe('PX2C — UI Component Rendering & Strict Privacy Tests', () => {
     expect(html).not.toContain('peer-')
   })
 
-  it('renders AnalyticsBenchmark in INSUFFICIENT_COHORT state with privacy explanation', () => {
+  it('renders AnalyticsBenchmark in INSUFFICIENT_COHORT state without exposing exact small cohort count', () => {
     const benchmark: ProfessionalBenchmarkDTO = {
       status: 'INSUFFICIENT_COHORT',
       periodDays: 30,
@@ -619,7 +745,9 @@ describe('PX2C — UI Component Rendering & Strict Privacy Tests', () => {
 
     expect(html).toContain('Amostra coletiva em formação')
     expect(html).toContain('grupo mínimo de 5 perfis ativos')
-    expect(html).toContain('Base atual: 3 perfil(is) ativo(s)')
+    expect(html).toContain('A amostra ainda não atingiu o volume mínimo necessário')
+    // Crucial privacy discipline: exact small count (3) is NOT exposed in UI
+    expect(html).not.toContain('Base atual: 3')
   })
 
   it('renders AnalyticsBenchmark in INSUFFICIENT_DATA state when target profile has no impressions', () => {

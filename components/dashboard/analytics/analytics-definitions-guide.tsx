@@ -46,8 +46,8 @@ export function AnalyticsDefinitionsGuide({ locale }: AnalyticsDefinitionsGuideP
           <h3>{isPt ? 'Privacidade e Proteção de Dados' : 'Privacy & Data Protection'}</h3>
           <p>
             {isPt
-              ? 'Todas as métricas são 100% anônimas e agregadas. Nenhum dado pessoal, número de telefone de visitantes ou endereço IP é rastreado ou disponibilizado na plataforma.'
-              : 'All metrics are 100% anonymous and aggregated. No personal data, visitor phone numbers, or IP addresses are tracked or made available on the platform.'}
+              ? 'Os dados exibidos neste painel são agregados e não revelam a identidade dos visitantes. A Velvet não disponibiliza à profissional dados pessoais como telefone, e-mail ou endereço IP dos visitantes.'
+              : 'The data shown in this dashboard is aggregated and does not reveal visitor identities. Velvet does not expose visitor personal data such as phone numbers, email addresses, or IP addresses to professionals.'}
           </p>
         </div>
       </div>
