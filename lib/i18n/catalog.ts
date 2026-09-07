@@ -6,6 +6,7 @@ import { seoPtBR, seoEn } from './messages/seo'
 import { analyticsPtBR, analyticsEn } from './messages/analytics'
 import { agendaPtBR, agendaEn } from './messages/agenda'
 import { conciergePtBR, conciergeEn } from './messages/concierge'
+import { appModePtBR, appModeEn } from './messages/app-mode'
 import type { Locale } from './config'
 
 export const ptBRMessages = {
@@ -17,6 +18,7 @@ export const ptBRMessages = {
   ...analyticsPtBR,
   ...agendaPtBR,
   ...conciergePtBR,
+  ...appModePtBR,
 } as const
 
 export type MessageKey = keyof typeof ptBRMessages
@@ -31,6 +33,7 @@ export const enMessages = {
   ...analyticsEn,
   ...agendaEn,
   ...conciergeEn,
+  ...appModeEn,
 } satisfies Messages
 
 export const catalogs: Record<Locale, Messages> = {

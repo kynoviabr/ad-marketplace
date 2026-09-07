@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { getPublicAvailabilitySignal } from '@/modules/agenda/dal'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -17,6 +17,8 @@ describe('PX4 — Public Availability Signal & Privacy Guarantees', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-06T12:00:00.000Z'))
     isEligible = true
     isEnabled = true
     weeklyRulesData = [
@@ -148,6 +150,10 @@ describe('PX4 — Public Availability Signal & Privacy Guarantees', () => {
     vi.mocked(createAdminClient).mockReturnValue({
       from: mockFrom,
     } as any)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('returns AVAILABLE_TODAY when an eligible profile has remaining slots today', async () => {

@@ -1,0 +1,63 @@
+/**
+ * App Mode i18n Messages — PX4.7 Velvet App Experience
+ *
+ * Provides localized labels for bottom navigation, more sheet, and app top bar.
+ */
+
+export const appModePtBR = {
+  'app.nav.title': 'Navegação do aplicativo',
+  'app.nav.home': 'Início',
+  'app.nav.analytics': 'Analytics',
+  'app.nav.agenda': 'Agenda',
+  'app.nav.concierge': 'Concierge',
+  'app.nav.more': 'Mais',
+  'app.nav.explore': 'Explorar',
+  'app.nav.search': 'Buscar',
+  'app.nav.account': 'Conta',
+  'app.more.title': 'Menu do Velvet',
+  'app.more.subtitle': 'Acesso rápido às configurações e ferramentas do seu perfil.',
+  'app.more.clientSubtitle': 'Atalhos e informações da sua conta na Velvet.',
+  'app.more.myProfile': 'Meu perfil',
+  'app.more.photos': 'Fotos & Mídia',
+  'app.more.locations': 'Bairros onde atende',
+  'app.more.verification': 'Verificação de identidade',
+  'app.more.reviews': 'Avaliações',
+  'app.more.billing': 'Plano & Faturamento',
+  'app.more.boosts': 'Destaques & Visibilidade',
+  'app.more.help': 'Central de Ajuda',
+  'app.more.safety': 'Segurança',
+  'app.more.terms': 'Termos de Uso',
+  'app.more.privacy': 'Privacidade',
+  'app.more.logout': 'Sair da conta',
+  'app.more.close': 'Fechar menu',
+  'app.topBar.title': 'velvet.',
+} as const
+
+export const appModeEn = {
+  'app.nav.title': 'App navigation',
+  'app.nav.home': 'Home',
+  'app.nav.analytics': 'Analytics',
+  'app.nav.agenda': 'Availability',
+  'app.nav.concierge': 'Concierge',
+  'app.nav.more': 'More',
+  'app.nav.explore': 'Explore',
+  'app.nav.search': 'Search',
+  'app.nav.account': 'Account',
+  'app.more.title': 'Velvet Menu',
+  'app.more.subtitle': 'Quick access to your profile settings and operations.',
+  'app.more.clientSubtitle': 'Shortcuts and information for your Velvet account.',
+  'app.more.myProfile': 'My profile',
+  'app.more.photos': 'Photos & Media',
+  'app.more.locations': 'Service areas',
+  'app.more.verification': 'Identity verification',
+  'app.more.reviews': 'Reviews',
+  'app.more.billing': 'Plan & Billing',
+  'app.more.boosts': 'Boosts & Visibility',
+  'app.more.help': 'Help Center',
+  'app.more.safety': 'Safety',
+  'app.more.terms': 'Terms of Use',
+  'app.more.privacy': 'Privacy',
+  'app.more.logout': 'Log out',
+  'app.more.close': 'Close menu',
+  'app.topBar.title': 'velvet.',
+} as const

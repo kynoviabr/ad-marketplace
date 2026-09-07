@@ -14,7 +14,7 @@ describe('PX4.5 — Web App Manifest & App Metadata', () => {
     expect(data.name).toBe('Velvet')
     expect(data.short_name).toBe('Velvet')
     expect(data.description).toContain('Velvet')
-    expect(data.start_url).toBe('/')
+    expect(data.start_url).toBe('/app')
     expect(data.scope).toBe('/')
     expect(data.display).toBe('standalone')
     expect(data.theme_color).toBe('#3B203F')
@@ -89,6 +89,7 @@ describe('PX4.5 — Service Worker Privacy & Caching Invariants', () => {
     const swContent = readFileSync(swPath, 'utf8')
 
     // Extract isPrivateOrAuthRoute function logic from sw.js
+    expect(swContent).toContain("pathname === '/app'")
     expect(swContent).toContain("pathname.startsWith('/dashboard')")
     expect(swContent).toContain("pathname.startsWith('/cliente')")
     expect(swContent).toContain("pathname.startsWith('/admin')")

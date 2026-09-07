@@ -6,7 +6,7 @@ import type { MetadataRoute } from 'next'
  * Configures the standalone mobile and desktop installation experience.
  *
  * Privacy & Routing invariants:
- * - start_url is strictly the public home ('/')
+ * - start_url is the canonical role-aware launcher ('/app')
  * - scope is '/'
  * - display is 'standalone'
  * - theme_color matches Velvet deep brand aubergine (#3B203F)
@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Velvet',
     short_name: 'Velvet',
     description: 'Velvet — Guia e marketplace de acompanhantes e modelos em São Paulo.',
-    start_url: '/',
+    start_url: '/app',
     scope: '/',
     display: 'standalone',
     background_color: '#F5F1E8',

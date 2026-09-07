@@ -62,6 +62,8 @@ self.addEventListener('activate', (event) => {
 
 function isPrivateOrAuthRoute(pathname) {
   return (
+    pathname === '/app' ||
+    pathname.startsWith('/app/') ||
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/cliente') ||
     pathname.startsWith('/admin') ||

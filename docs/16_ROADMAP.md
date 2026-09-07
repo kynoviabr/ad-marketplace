@@ -250,16 +250,31 @@ To deliver compelling professional value and establish deep competitive differen
 - **Modules**: `modules/concierge/` (`provider.ts`, `prompt.ts`, `dal.ts`, `runtime.ts`, `rate-limiter.ts`, `constants.ts`, `types.ts`).
 
 ### PX4.7 — Velvet App Experience
-- **Status**: **AUTHORITATIVE PRODUCT NEXT (NOT STARTED)**.
-- **Product Value**: Refines and elevates the installed PWA user experience into a seamless, native-feeling app tailored for mobile and standalone use, optimizing layout, gesture navigation, and touch ergonomics across client and professional journeys.
-- **User**: Professional Advertiser & Prospective Client.
-- **Scope**:
-  - Standalone app viewport polishing: persistent bottom navigation bar for installed mobile clients, keyboard avoidance, pull-to-refresh ergonomics, and subtle transition animations.
-  - Role-aware home experience: auto-routing installed professionals directly to `/dashboard` while presenting visitors with the curated mobile discovery experience.
-  - Touch interaction refinement: swipeable carousels, responsive media viewports, tactile touch states (`active:scale-98`), and bottom-sheet drawers.
-  - Notification permission scaffolding: non-intrusive in-app permission primer for future push notifications (Backlog Item G).
+- **Status**: **IMPLEMENTATION COMPLETE (AWAITING PHYSICAL DEVICE VERIFICATION)**.
+- **Product Value**: Refines and elevates the installed PWA user experience into a seamless, native-feeling app tailored for mobile and standalone use, optimizing layout, navigation, and touch ergonomics across client and professional journeys without altering the normal web browser experience.
+- **User**: Professional Advertiser & Client.
+- **Scope & Delivered Architecture**:
+  - **Server-Authoritative `/app` Launcher**: Route at `app/app/page.tsx` resolving session via `getAccount()`. Automatically routes: Anonymous/Public → `/`, Client → `/cliente`, Active Advertiser → `/dashboard`, Onboarding Advertiser → `resolveAdvertiserDestination()`, Admin → `/admin`, Suspended → `/suspended`. Strictly ignores spoofable query params (`?role=...`).
+  - **Service Worker Security & Privacy**: `public/sw.js` explicitly blocks caching for `/app` and `/app/*` (Network-Only policy; never stored in Cache Storage).
+  - **Web App Manifest**: Updated `start_url: '/app'` in `app/manifest.ts` while preserving `scope: '/'`, `#3B203F` theme color, `#F5F1E8` background, and full icon set.
+  - **Editorial Bottom Navigation (`VelvetAppBottomNav`)**:
+    - Advertiser: 5 destinations (Início `/dashboard`, Analytics `/dashboard/analytics`, Agenda `/dashboard/availability`, Concierge `/dashboard/concierge`, Mais sheet trigger).
+    - Client / Public: 4 destinations (Explorar `/`, Buscar `/?buscar=1`, Conta `/cliente`, Mais sheet trigger).
+    - Admin: Bottom nav suppressed entirely (preserves clean administrative dashboard).
+    - Ergonomics: Fixed bottom bar, $\ge 44$px touch targets, accessible `aria-current="page"`, `aria-label`, safe-area-inset-bottom support, and active indicator dot.
+  - **Accessible More Sheet Drawer (`VelvetAppMoreSheet`)**: Modal bottom sheet (`role="dialog"`, `aria-modal="true"`) with backdrop blur, focus trap, Escape key handling, and role-appropriate actions (Meu perfil, Fotos, Bairros, Verificação, Avaliações, Plano, Destaques, Ajuda, Sair) with zero fake features or app store badges.
+  - **Restrained Standalone Top Bar (`VelvetAppTopBar`)**: Contextual standalone header displaying `velvet.` wordmark, active section title, `LanguageSelector`, and logout button with `env(safe-area-inset-top)` support.
+  - **Layout & Shell Integration**: Wrapped `(dashboard)/layout.tsx` with `<VelvetAppShell role={account.role}>`; integrated `<VelvetAppBottomNav>` into `(public)/layout.tsx`; non-blocking server auth resolution via cached `getPublicAccount()`.
+  - **Pre-Hydration CSS Isolation (`app/globals.css`)**: Pure CSS `@media (display-mode: standalone)` reveals app chrome and hides web navigation/footers/install banners instantly before JavaScript hydration, eliminating layout jump. Content offset `padding-bottom: calc(68px + max(16px, env(safe-area-inset-bottom)))` prevents navigation overlap. Desktop standalone (`min-width: 1024px`) suppresses bottom nav.
+  - **Internationalization**: Bilingual catalog `lib/i18n/messages/app-mode.ts` (PT-BR and EN) registered in `lib/i18n/catalog.ts`; updated PWA card heading to "VELVET APP".
+  - **Verification & Test Coverage**:
+    - 18 dedicated tests in `tests/pwa/app-mode-shell.test.tsx` (44 PWA tests total across 3 test suites).
+    - Full project suite: 184 test files, 1,862 tests PASS (0 failures).
+    - Quality gates: `npm run typecheck` (0 errors), `npm run lint` (0 errors, 0 warnings), `npm run build` (Turbopack production build PASS).
+  - **Release Verification Status**: `VELVET APP EXPERIENCE RELEASE-VERIFIED = NO` (deferred to physical iPhone Safari and Android Chromium testing at `HOSTED DEV APP CHECKPOINT`).
 - **Dependencies**: PX4.5 PWA Infrastructure, PX4.6 Install App UX.
-- **Data Model**: None (0 migrations).
+- **Data Model**: None (0 migrations created, 33/33 aligned).
+- **Modules**: `app/app/page.tsx`, `components/pwa/`, `public/sw.js`, `app/manifest.ts`, `lib/i18n/messages/app-mode.ts`, `app/globals.css`.
 
 ### HOSTED DEV APP CHECKPOINT
 - **Status**: **PLANNED GATE (MANDATORY BEFORE PX6)**.
@@ -416,5 +431,8 @@ Executed only **after** the GTM Ready Gate is achieved:
   - **PX4 — Agenda UX & Professional Operations**: **COMPLETE (100% RESOLVED)**.
   - **PX4.5 — PWA & Installable Experience**: **COMPLETE (100% RESOLVED)**.
   - **PX4.6 — Install App UX**: **COMPLETE (100% RESOLVED)**.
-- **Product Next**: **PX5 — AI Concierge Foundation (Internal Portal Architecture)**.
-- **Operational Next**: **Hosted DEV stabilization & deploy checkpoint** (Update existing stable Vercel hosted DEV target at `https://velvetgirls.club`).
+  - **PX5 — AI Concierge Foundation**: **COMPLETE (100% RESOLVED IN DEV)**.
+  - **PX5.1 — AI Concierge Integrity Audit & Security Gates**: **COMPLETE (100% RESOLVED IN DEV)**.
+  - **PX4.7 — Velvet App Experience**: **IMPLEMENTATION COMPLETE (AWAITING PHYSICAL DEVICE VERIFICATION)**.
+- **Operational Next**: **HOSTED DEV APP CHECKPOINT** (Deploy complete PWA app stack to hosted DEV at `https://velvetgirls.club`, verify physical iPhone Safari + physical Android Chromium).
+- **Product Next (after Checkpoint)**: **PX6 — AI Concierge + Agenda & Inquiries Integration**.

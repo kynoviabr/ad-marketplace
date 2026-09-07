@@ -1,5 +1,7 @@
 import { PublicHeader } from '@/components/public/public-header'
 import { PublicFooter } from '@/components/public/public-footer'
+import { VelvetAppBottomNav } from '@/components/pwa'
+import { getPublicAccount } from '@/components/public/public-auth-state'
 
 /**
  * (public) route group layout — Public Marketplace Shell
@@ -20,7 +22,10 @@ import { PublicFooter } from '@/components/public/public-footer'
  * dashboard routes are NOT in this group — they use their own layouts.
  * This layout only wraps routes explicitly placed inside app/(public)/.
  */
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  const account = await getPublicAccount()
+  const role = account?.role ?? 'CLIENT'
+
   return (
     <div className="velvet-public-shell">
       <PublicHeader />
@@ -28,6 +33,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         {children}
       </main>
       <PublicFooter />
+      {/* Standalone client/visitor bottom navigation (hidden in normal browser web mode) */}
+      <VelvetAppBottomNav role={role === 'ADVERTISER' ? 'ADVERTISER' : 'CLIENT'} />
     </div>
   )
 }
