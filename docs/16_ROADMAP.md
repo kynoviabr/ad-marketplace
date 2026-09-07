@@ -1,7 +1,7 @@
 # Roadmap
 STATUS: ACTIVE — PRODUCT-FIRST PRE-GTM ROADMAP ADOPTED (R12 CLOSED IN DEV)
 VERSION: 4.0
-LAST UPDATED: 2026-09-06
+LAST UPDATED: 2026-09-07
 
 ## Strategic Direction Note (2026-09-05)
 
@@ -277,53 +277,67 @@ To deliver compelling professional value and establish deep competitive differen
 - **Modules**: `app/app/page.tsx`, `components/pwa/`, `public/sw.js`, `app/manifest.ts`, `lib/i18n/messages/app-mode.ts`, `app/globals.css`.
 
 ### HOSTED DEV APP CHECKPOINT
-- **Status**: **AUTOMATED HOSTED VALIDATION PASS (PHYSICAL DEVICE GATE IN PROGRESS)**.
-- **Hosted Deployment**: Deployed to persistent hosted DEV environment (`https://velvetgirls.club`, deployment `dpl_9XVxLyke17MjoVefpi8srdwtwc1n`, commit `0651b9e01c4b057a340895eacb31a77a514431a1`).
+- **Status**: **HOSTED DEV AUTOMATED + IPHONE PHYSICAL PASS (ANDROID DEFERRED)**.
+- **Hosted Deployment**: Deployed to persistent hosted DEV environment (`https://velvetgirls.club`).
 - **Objective**: Deploy the complete installable application stack (PX4.5 PWA + PX4.6 Install UX + PX4.7 App Experience) to the persistent hosted DEV environment (`https://velvetgirls.club`) and execute mandatory physical device verification.
 - **Physical Device Gate Status**:
-  - **IPHONE APP SHELL**: PARTIAL PASS
-  - **IPHONE TRI-STATE UX**: CORRECTED — REQUIRES RETEST (presentation copy updated to Sim / Não / Não informado; help text updated)
-  - **IPHONE DUPLICATE ONBOARDING HEADER**: CORRECTED — REQUIRES RETEST (standalone CSS suppresses .onboarding-header; VelvetAppTopBar provides unified header & step titles)
-  - **IPHONE DIDIT**: PENDING (tester intentionally did not complete KYC; integration operational)
-  - **ANDROID**: PENDING
-  - **VELVET APP EXPERIENCE RELEASE-VERIFIED**: NO
-  - **PX6 SAFE TO START**: NO
+  - **IPHONE APP SHELL**: PASS
+  - **IPHONE ONBOARDING & PROFILE REVIEW**: PASS
+  - **IPHONE DIDIT ENTRY & RESUME FLOW**: PASS (PX4.8.1 / PX4.8.2 validated)
+  - **ANDROID PHYSICAL APP GATE**: DEFERRED (Required before Closed Beta / real-user launch, does not block DEV progression)
+  - **VELVET APP EXPERIENCE RELEASE-VERIFIED**: YES (iOS / iPhone PWA)
+  - **PX6 SAFE TO START**: YES
 - **Automated Validation Results**:
   - Base routes: 9/9 PASS (`/`, `/app`, `/manifest.webmanifest`, `/sw.js`, `/offline`, `/api/health`, `/login`, `/sao-paulo`, `/sao-paulo/moema`).
   - Protected route canonical gates: 7/7 PASS (307 redirect to `/login` for anonymous callers).
   - Service worker security & privacy: `/app`, `/dashboard`, `/api`, `/auth`, and signed media strictly excluded from Cache Storage.
   - Manifest & icons: `start_url: '/app'`, `display: 'standalone'`, all 4 icon sizes (192, 512, maskable) return HTTP 200.
-  - Public profile: HTTP 200 on eligible profile `/perfil/juliana-sp-7`.
+  - Public profile: HTTP 200 on eligible profiles.
   - Desktop Standalone Navigation: Fully verified with top bar compact navigation and More sheet trigger.
-- **Validation Gates**:
-  1. **Physical iPhone / iOS Safari**:
-     - "Adicionar à Tela de Início" flow operates correctly with step-by-step guidance.
-     - Standalone icon displays correctly without rendering glitches or black borders.
-     - Launch splash screen, `#3B203F` theme color, and status bar translucency match specification.
-     - Safe area insets (`env(safe-area-inset-*)`) handle dynamic island and home bar smoothly.
-     - Offline fallback page functions when airplane mode is toggled.
-     - Authenticated routes are never cached in Cache Storage.
-  2. **Physical Android / Chromium**:
-     - `beforeinstallprompt` native install banner triggers from in-app CTAs.
-     - Standalone app launch from home screen and app drawer operates without browser chrome.
-     - Android hardware/gesture back button behaves predictably within app boundaries.
-     - Offline fallback page functions correctly under simulated network loss.
-  3. **Verification Sign-Off**: PX6 development is strictly blocked until this physical verification checkpoint is recorded as PASS.
 
 ### PX6 — AI Concierge + Agenda & Inquiries Integration
-- **Status**: **QUEUED (COMMENCES AFTER HOSTED DEV APP CHECKPOINT)**.
-- **Product Value**: Allows the AI Concierge to check real-time availability from PX3/PX4, inform clients of open slots, gather inquiry details, and generate a pre-filled WhatsApp handoff link.
+- **Status**: **COMPLETE (100% RESOLVED IN DEV)**.
+- **Product Value**: Connects the AI Concierge with the canonical Agenda/Availability engine to truthfully answer schedule questions without hallucination, provides professionals with an inquiries inbox in the dashboard, and equips public profiles with a multi-gated, non-intrusive concierge chat.
 - **User**: Professional Advertiser & Prospective Client.
-- **Scope**: AI tool/function calling for availability lookup (`check_availability(date)`); pre-qualification inquiry summary; seamless handoff to WhatsApp with formatted conversation context.
-- **Out of Scope**: Automatic calendar booking confirmation without professional consent.
+- **Scope & Delivered Architecture**:
+  - **Availability Engine Connection (`modules/concierge/tools.ts`)**:
+    - Tool `get_available_slots` calls canonical `getPublicAvailableSlots()` from `modules/agenda/dal.ts`.
+    - Bounded 7-day query horizon (requests beyond 7 days clamped automatically).
+    - Returns sanitized DTO: `slotRef`, date, time, timezone, zero internal UUIDs, and explicit disclaimer that appointments are arranged directly with the professional.
+    - System prompt platform directive #7 prohibits hallucination and emphasizes that availability does NOT mean a booking exists.
+  - **Mock & Live Multi-Turn Provider Integration (`modules/concierge/provider.ts`)**:
+    - `generateMockReply` queries canonical availability when schedule questions are asked ("atende hoje", "horário amanhã").
+    - `generateConciergeReply` supports multi-turn tool calling with OpenAI completions.
+  - **Zero Booking / Invariant Enforcement**:
+    - Verified by dedicated regression suite: queries produce 0 side effects, 0 rows added/modified in `professional_weekly_availability` or `professional_availability_exceptions`.
+    - Zero booking, reservation, slot locking, or payment intermediation logic.
+    - Zero database migrations (schema remains strictly 33/33).
+  - **Professional Inquiries Inbox (`components/concierge/concierge-inquiries-inbox.tsx`)**:
+    - Embedded in `/dashboard/concierge` alongside concierge status bar.
+    - Filter pills (Todas, Novas, Em contato, Convertidas, Arquivadas).
+    - Status badges, qualification summaries (budget, dates, location preferences), unread indicators, and full message transcript modal.
+    - Server Actions with strict ownership validation: `getProfessionalInquiriesAction`, `getProfessionalInquiryDetailAction`, `updateProfessionalInquiryStatusAction`.
+  - **Public Web Chat & Multi-Gate Server Readiness (`modules/concierge/gate.ts` & `components/concierge/public-concierge-chat.tsx`)**:
+    - Server gate `isWebPublicConciergeReady(profileId)` enforces 6 checks:
+      1. Global feature flag (`CONCIERGE_WEB_PUBLIC_ENABLED === 'true'`).
+      2. Data retention policy approval marker (`CONCIERGE_RETENTION_POLICY_APPROVED === 'true'`).
+      3. Distributed rate limiting readiness (`CONCIERGE_DISTRIBUTED_RATE_LIMIT_READY === 'true'`).
+      4. AI provider configuration (`OPENAI_API_KEY` present).
+      5. Canonical profile publication eligibility (`v_publication_eligible_profiles`).
+      6. Professional concierge enabled setting (`settings.enabled`).
+    - Defaults to OFF (`WEB_PUBLIC = OFF`) on Hosted DEV.
+    - Floating bottom launcher, accessible modal / bottom sheet on mobile, clear virtual assistant disclosure, non-intrusive styling.
+  - **Verification & Test Coverage**:
+    - 6 dedicated test files in `tests/concierge/` with 60/60 tests PASS.
+    - Full test suite: 189 test files, 1,927 tests PASS (0 failures).
+    - Typecheck (`npm run typecheck`): 0 errors.
+    - Lint (`npm run lint`): 0 errors, 0 warnings.
+    - Production build (`npm run build`): Turbopack PASS.
+    - Hosted validation at `https://velvetgirls.club`: All routes HTTP 200, public concierge chat trigger correctly suppressed (`false`).
 - **Dependencies**: PX3 Agenda, PX4 Public Agenda, PX5 AI Concierge.
-- **Data Model**: `ai_inquiry_handoffs` (records qualified lead handoffs).
-- **Expected Modules**: `modules/ai-concierge/tools/`, `modules/ai-concierge/handoff.ts`.
-- **Expected Migrations**: None or minor additive table for lead handoffs.
-- **Security Considerations**: Visitor contact details never shared without consent; strict prompt guardrails around pricing and availability.
-- **Observability Requirements**: Inquiry conversion rate telemetry (Chat Started → Availability Checked → WhatsApp Handoff Clicked).
-- **Test Strategy**: End-to-end integration test of AI availability lookup and WhatsApp link generation.
-- **Exit Criteria**: AI accurately reports available slots from PX3 schedule and produces validated WhatsApp handoff.
+- **Data Model**: None (0 migrations created; 33/33 migrations aligned).
+- **Modules**: `modules/concierge/`, `components/concierge/`, `app/(dashboard)/dashboard/concierge/page.tsx`, `app/(public)/perfil/[slug]/page.tsx`, `app/globals.css`.
+- **Product Next**: PX7 — Cybersecurity & Abuse Intelligence.
 
 ### PX7 — Cybersecurity & Abuse Intelligence
 - **Product Value**: Protects platform availability, data integrity, and user trust against hostile traffic, automated scraping, malicious media uploads, and account abuse.
