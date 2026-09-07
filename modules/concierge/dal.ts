@@ -13,6 +13,8 @@ import type {
   ConciergeContextFacts,
   ConciergeConversation,
   ConciergeConversationStatus,
+  ConciergeInquiryDetailDTO,
+  ConciergeInquiryDTO,
   ConciergeMessage,
   ConciergeMessageRole,
   ConciergeMessageType,
@@ -189,7 +191,7 @@ export async function getPublicProfileContextFacts(
 
   const { data: profile, error } = await admin
     .from('professional_profiles')
-    .select('id, stage_name, bio, show_whatsapp, show_phone, show_telegram')
+    .select('id, slug, stage_name, bio, show_whatsapp, show_phone, show_telegram')
     .eq('id', profileId)
     .single()
 
@@ -210,6 +212,7 @@ export async function getPublicProfileContextFacts(
 
   return {
     profileId: profile.id,
+    profileSlug: profile.slug,
     stageName: profile.stage_name,
     city,
     aboutMe: profile.bio || '',
@@ -481,3 +484,186 @@ export async function assertPublicConciergeEligibility(profileId: string): Promi
 
   return true
 }
+
+/**
+ * Retrieves professional inquiries (Section 23, 25, 27).
+ * An inquiry is an eligible conversation containing at least one visitor message.
+ * Internal test conversations are filtered out by default unless explicitly requested.
+ */
+export async function getProfessionalInquiries(
+  profileId: string,
+  options?: { isTest?: boolean; limit?: number }
+): Promise<ConciergeInquiryDTO[]> {
+  const admin = createAdminClient()
+  const isTest = options?.isTest ?? false
+  const limit = options?.limit ?? 50
+
+  // Fetch conversations for this profile
+  const { data: convs, error } = await admin
+    .from('concierge_conversations')
+    .select('*')
+    .eq('profile_id', profileId)
+    .eq('is_test', isTest)
+    .order('last_message_at', { ascending: false })
+    .limit(limit)
+
+  if (error || !convs || convs.length === 0) {
+    return []
+  }
+
+  const convIds = convs.map((c) => c.id)
+
+  // Fetch messages to filter conversations without visitor messages and build summaries
+  const { data: messages } = await admin
+    .from('concierge_messages')
+    .select('id, conversation_id, role, content, created_at')
+    .in('conversation_id', convIds)
+    .order('created_at', { ascending: true })
+
+  const messagesByConv = new Map<string, Array<{ id: string; role: string; content: string; created_at: string }>>()
+  for (const msg of messages || []) {
+    const list = messagesByConv.get(msg.conversation_id) || []
+    list.push(msg)
+    messagesByConv.set(msg.conversation_id, list)
+  }
+
+  const inquiries: ConciergeInquiryDTO[] = []
+
+  for (const conv of convs) {
+    const convMessages = messagesByConv.get(conv.id) || []
+    // Inquiry invariant (Section 23): must contain at least one meaningful visitor message
+    const hasVisitorMsg = convMessages.some((m) => m.role === 'VISITOR')
+    if (!hasVisitorMsg) {
+      continue
+    }
+
+    const lastMsg = convMessages[convMessages.length - 1]
+    const snippet = lastMsg
+      ? lastMsg.content.length > 80
+        ? `${lastMsg.content.slice(0, 77)}...`
+        : lastMsg.content
+      : ''
+
+    inquiries.push({
+      id: conv.id,
+      profileId: conv.profile_id,
+      visitorPseudonym: `Visitante #${conv.id.slice(0, 4)}`,
+      channel: conv.channel,
+      status: conv.status,
+      isTest: conv.is_test,
+      lastMessageSnippet: snippet,
+      lastMessageRole: (lastMsg?.role as any) || 'VISITOR',
+      messageCount: convMessages.length,
+      qualification: (conv.qualification || {}) as ConciergeQualification,
+      startedAt: conv.started_at,
+      lastMessageAt: conv.last_message_at,
+      handoffAt: conv.handoff_at,
+      closedAt: conv.closed_at,
+    })
+  }
+
+  return inquiries
+}
+
+/**
+ * Retrieves full details and message history for an inquiry (Section 28, 29).
+ * Enforces strict profile authority: a professional can only access conversations belonging to her profile.
+ */
+export async function getProfessionalInquiryDetail(
+  conversationId: string,
+  profileId: string
+): Promise<ConciergeInquiryDetailDTO> {
+  const admin = createAdminClient()
+
+  const { data: conv, error: convError } = await admin
+    .from('concierge_conversations')
+    .select('*')
+    .eq('id', conversationId)
+    .maybeSingle()
+
+  if (convError || !conv) {
+    throw new Error('[concierge:dal] Conversa não encontrada.')
+  }
+
+  // Strict profile isolation (Section 29)
+  if (conv.profile_id !== profileId) {
+    throw new Error('[concierge:dal] Acesso negado: conversa não pertence ao perfil especificado.')
+  }
+
+  const { data: messages, error: msgError } = await admin
+    .from('concierge_messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true })
+
+  if (msgError) {
+    throw new Error(`[concierge:dal] Falha ao carregar mensagens: ${msgError.message}`)
+  }
+
+  // Exclude any SYSTEM messages from professional view
+  const filteredMessages = (messages || []).filter((m) => m.role !== 'SYSTEM') as ConciergeMessage[]
+  const lastMsg = filteredMessages[filteredMessages.length - 1]
+  const snippet = lastMsg
+    ? lastMsg.content.length > 80
+      ? `${lastMsg.content.slice(0, 77)}...`
+      : lastMsg.content
+    : ''
+
+  const inquiryDTO: ConciergeInquiryDTO = {
+    id: conv.id,
+    profileId: conv.profile_id,
+    visitorPseudonym: `Visitante #${conv.id.slice(0, 4)}`,
+    channel: conv.channel,
+    status: conv.status,
+    isTest: conv.is_test,
+    lastMessageSnippet: snippet,
+    lastMessageRole: (lastMsg?.role as any) || 'VISITOR',
+    messageCount: filteredMessages.length,
+    qualification: (conv.qualification || {}) as ConciergeQualification,
+    startedAt: conv.started_at,
+    lastMessageAt: conv.last_message_at,
+    handoffAt: conv.handoff_at,
+    closedAt: conv.closed_at,
+  }
+
+  return {
+    conversation: inquiryDTO,
+    messages: filteredMessages,
+  }
+}
+
+/**
+ * Updates status of an inquiry with profile authority check (Section 30).
+ */
+export async function updateProfessionalInquiryStatus(
+  conversationId: string,
+  profileId: string,
+  status: ConciergeConversationStatus
+): Promise<void> {
+  const admin = createAdminClient()
+
+  // Verify ownership
+  const { data: conv, error: convError } = await admin
+    .from('concierge_conversations')
+    .select('id, profile_id')
+    .eq('id', conversationId)
+    .maybeSingle()
+
+  if (convError || !conv || conv.profile_id !== profileId) {
+    throw new Error('[concierge:dal] Acesso negado ou conversa não encontrada.')
+  }
+
+  const updates: Record<string, unknown> = {
+    status,
+    updated_at: new Date().toISOString(),
+  }
+
+  if (status === 'CLOSED') {
+    updates.closed_at = new Date().toISOString()
+  } else if (status === 'HANDOFF_COMPLETED') {
+    updates.handoff_at = new Date().toISOString()
+  }
+
+  await admin.from('concierge_conversations').update(updates).eq('id', conversationId)
+}
+

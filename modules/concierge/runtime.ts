@@ -130,16 +130,20 @@ export async function processConciergeTurn(
   })
 
   let finalReply = modelResponse.replyText
-  const detectedIntent: InquiryIntent = modelResponse.intent || 'GENERAL'
+  let detectedIntent: InquiryIntent = modelResponse.intent || 'GENERAL'
   let handoffRequested = Boolean(modelResponse.handoffRequested)
 
   // 5. Execute any suggested tools via server registry
   if (modelResponse.toolRequests && modelResponse.toolRequests.length > 0) {
-    const toolResults = executeConciergeToolsBatch(modelResponse.toolRequests, facts)
+    const toolResults = await executeConciergeToolsBatch(modelResponse.toolRequests, facts)
     for (const res of toolResults) {
       if (res.result && typeof res.result === 'object' && 'handoff_requested' in res.result) {
         handoffRequested = true
       }
+    }
+    const hasAvailabilityTool = modelResponse.toolRequests.some((t) => t.name === 'get_available_slots')
+    if (hasAvailabilityTool && detectedIntent === 'GENERAL') {
+      detectedIntent = 'AVAILABILITY_INQUIRY'
     }
   }
 

@@ -20,6 +20,8 @@ import { getAccount } from '@/modules/auth/dal'
 import { getPublicReviews, getReviewAccess, PUBLIC_REVIEW_PREVIEW_LIMIT } from '@/modules/reviews/dal'
 import { constructProfileMetadata } from '@/modules/seo/metadata'
 import { generateProfileJsonLd } from '@/modules/seo/structured-data'
+import { isWebPublicConciergeReady } from '@/modules/concierge/gate'
+import { PublicConciergeChat } from '@/components/concierge'
 
 export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }> }
@@ -68,6 +70,8 @@ export default async function PublicProfilePage({ params }: Props) {
     getPublicAvailabilitySignal(slug),
   ])
   if (!detail) notFound()
+
+  const conciergeReadiness = await isWebPublicConciergeReady(detail.profileId)
 
   const { profile, city, locations, media, videos } = detail
   const reviews = await getPublicReviews(detail.profileId, 1, PUBLIC_REVIEW_PREVIEW_LIMIT)
@@ -251,6 +255,15 @@ export default async function PublicProfilePage({ params }: Props) {
             </div>
           </div>
         </section>
+      ) : null}
+
+      {/* Section 33, 34, 37: Public Concierge Chat (Off by default via server readiness gate) */}
+      {conciergeReadiness.ready ? (
+        <PublicConciergeChat
+          profileId={detail.profileId}
+          stageName={profile.stageName}
+          locale={locale}
+        />
       ) : null}
     </div>
   )

@@ -6,6 +6,7 @@
  * arguments, and executes only deterministic, pre-approved read/handoff operations.
  */
 
+import { getPublicAvailableSlots } from '@/modules/agenda/dal'
 import { MAX_TOOL_CALLS_PER_TURN } from './constants'
 import type { ConciergeContextFacts, ConciergeToolCall, ConciergeToolResult } from './types'
 
@@ -51,13 +52,22 @@ export const CONCIERGE_TOOLS: ToolDefinition[] = [
   },
   {
     name: 'get_available_slots',
-    description: 'Contrato de interface para consulta de horários da agenda (PX6 futuro). Desabilitado para agendamentos no PX5.',
+    description:
+      'Consulta os horários de atendimento da profissional disponíveis na agenda pública. Retorna apenas horários reais publicados. Nunca invente horários.',
     parameters: {
       type: 'object',
       properties: {
         date: {
           type: 'string',
-          description: 'Data no formato YYYY-MM-DD.',
+          description: 'Data específica no formato YYYY-MM-DD.',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Data inicial no formato YYYY-MM-DD (máximo 7 dias de intervalo).',
+        },
+        endDate: {
+          type: 'string',
+          description: 'Data final no formato YYYY-MM-DD (máximo 7 dias de intervalo).',
         },
         locationSlug: {
           type: 'string',
@@ -68,10 +78,10 @@ export const CONCIERGE_TOOLS: ToolDefinition[] = [
   },
 ]
 
-export function executeConciergeTool(
+export async function executeConciergeTool(
   toolCall: ConciergeToolCall,
   facts: ConciergeContextFacts
-): ConciergeToolResult {
+): Promise<ConciergeToolResult> {
   const { id, name, arguments: args } = toolCall
 
   switch (name) {
@@ -106,16 +116,96 @@ export function executeConciergeTool(
         },
       }
 
-    case 'get_available_slots':
-      return {
-        tool_call_id: id,
-        result: {
-          status: 'NOT_IMPLEMENTED_IN_PX5',
-          date: args?.date ?? null,
-          message:
-            'A consulta de horários em tempo real será ativada no PX6. O agendamento vinculante é vedado pela plataforma; combine horários diretamente com a profissional.',
-        },
+    case 'get_available_slots': {
+      const today = new Date().toISOString().split('T')[0]
+      const rawDate = typeof args?.date === 'string' ? args.date.trim() : null
+      const rawStart = typeof args?.startDate === 'string' ? args.startDate.trim() : null
+      const rawEnd = typeof args?.endDate === 'string' ? args.endDate.trim() : null
+      const locationSlug = typeof args?.locationSlug === 'string' ? args.locationSlug.trim() : undefined
+
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+      let startDate: string
+      let endDate: string
+
+      if (rawDate && dateRegex.test(rawDate)) {
+        startDate = rawDate
+        endDate = rawDate
+      } else if (rawStart && dateRegex.test(rawStart)) {
+        startDate = rawStart
+        endDate = rawEnd && dateRegex.test(rawEnd) ? rawEnd : rawStart
+      } else {
+        startDate = today
+        endDate = today
       }
+
+      // Bound horizon to maximum 7 days (Section 10)
+      const startMs = new Date(`${startDate}T00:00:00Z`).getTime()
+      let endMs = new Date(`${endDate}T00:00:00Z`).getTime()
+      if (isNaN(startMs) || isNaN(endMs) || endMs < startMs) {
+        endDate = startDate
+        endMs = startMs
+      }
+
+      const maxEndMs = startMs + 7 * 24 * 60 * 60 * 1000
+      if (endMs > maxEndMs) {
+        endDate = new Date(maxEndMs).toISOString().split('T')[0]
+      }
+
+      const profileSlug =
+        facts.profileSlug ||
+        facts.stageName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+
+      try {
+        const slots = await getPublicAvailableSlots({
+          profileSlug,
+          startDate,
+          endDate,
+          locationSlug,
+        })
+
+        if (!slots || slots.length === 0) {
+          return {
+            tool_call_id: id,
+            result: {
+              status: 'NO_SLOTS_AVAILABLE',
+              dateRange: { startDate, endDate },
+              totalSlots: 0,
+              slots: [],
+              message:
+                'Nenhum horário público disponível publicado para o período solicitado. Agendamentos vinculantes não são realizados pelo assistente; o visitante pode combinar diretamente com a profissional.',
+            },
+          }
+        }
+
+        return {
+          tool_call_id: id,
+          result: {
+            status: 'AVAILABLE',
+            dateRange: { startDate, endDate },
+            timezone: slots[0].timezone,
+            totalSlots: slots.length,
+            slots: slots.slice(0, 10).map((s) => ({
+              slotRef: s.slotRef,
+              date: s.localDate,
+              time: s.localStartTime,
+              displayTime: s.localStartTime,
+              locationSlug: s.locationSlug ?? null,
+            })),
+            message:
+              'Horários disponíveis obtidos da agenda pública. Agendamentos vinculantes não são realizados pelo assistente; combine os detalhes diretamente com a profissional.',
+          },
+        }
+      } catch {
+        return {
+          tool_call_id: id,
+          result: {
+            status: 'LOOKUP_FAILED',
+            message:
+              'Não foi possível consultar a agenda no momento. Por favor, oriente o visitante a entrar em contato diretamente com a profissional via WhatsApp.',
+          },
+        }
+      }
+    }
 
     default:
       return {
@@ -126,11 +216,12 @@ export function executeConciergeTool(
   }
 }
 
-export function executeConciergeToolsBatch(
+export async function executeConciergeToolsBatch(
   toolCalls: ConciergeToolCall[],
   facts: ConciergeContextFacts
-): ConciergeToolResult[] {
+): Promise<ConciergeToolResult[]> {
   // Enforce bounding limit on tool calls
   const boundedCalls = toolCalls.slice(0, MAX_TOOL_CALLS_PER_TURN)
-  return boundedCalls.map((call) => executeConciergeTool(call, facts))
+  return Promise.all(boundedCalls.map((call) => executeConciergeTool(call, facts)))
 }
+

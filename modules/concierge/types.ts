@@ -108,6 +108,7 @@ export interface ConciergeModelResponse {
 
 export interface ConciergeContextFacts {
   profileId: string
+  profileSlug?: string
   stageName: string
   city: string
   aboutMe?: string
@@ -118,6 +119,28 @@ export interface ConciergeContextFacts {
     phone: boolean
     telegram: boolean
   }
+}
+
+export interface ConciergeInquiryDTO {
+  id: string
+  profileId: string
+  visitorPseudonym: string
+  channel: ConciergeChannel
+  status: ConciergeConversationStatus
+  isTest: boolean
+  lastMessageSnippet: string
+  lastMessageRole: ConciergeMessageRole
+  messageCount: number
+  qualification: ConciergeQualification
+  startedAt: string
+  lastMessageAt: string
+  handoffAt: string | null
+  closedAt: string | null
+}
+
+export interface ConciergeInquiryDetailDTO {
+  conversation: ConciergeInquiryDTO
+  messages: ConciergeMessage[]
 }
 
 export interface ConciergeGenerateParams {
@@ -140,3 +163,4 @@ export interface ConciergeRuntimeResult {
   qualification: ConciergeQualification
   assistantMessageId: string
 }
+

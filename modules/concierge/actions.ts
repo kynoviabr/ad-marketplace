@@ -10,13 +10,20 @@ import {
   getConciergeSettings,
   getConversationMessages,
   getOrCreateConversation,
+  getProfessionalInquiries,
+  getProfessionalInquiryDetail,
   saveConciergeFaq,
   updateConciergeSettings,
   updateConversationStatus,
+  updateProfessionalInquiryStatus,
 } from './dal'
+import { isWebPublicConciergeReady } from './gate'
 import { processConciergeTurn } from './runtime'
 import type {
   ConciergeConversation,
+  ConciergeConversationStatus,
+  ConciergeInquiryDetailDTO,
+  ConciergeInquiryDTO,
   ConciergeMessage,
   ConciergeRuntimeResult,
   ConciergeTone,
@@ -219,3 +226,77 @@ export async function resetTestConversationAction(
     return { success: false, error: err?.message || 'Erro ao reiniciar conversa de teste.' }
   }
 }
+
+export async function getProfessionalInquiriesAction(
+  profileId: string,
+  options?: { isTest?: boolean }
+): Promise<ConciergeActionResult<ConciergeInquiryDTO[]>> {
+  try {
+    await assertProfileOwnership(profileId)
+    const inquiries = await getProfessionalInquiries(profileId, options)
+    return { success: true, data: inquiries }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao carregar atendimentos.' }
+  }
+}
+
+export async function getProfessionalInquiryDetailAction(
+  conversationId: string,
+  profileId: string
+): Promise<ConciergeActionResult<ConciergeInquiryDetailDTO>> {
+  try {
+    await assertProfileOwnership(profileId)
+    const detail = await getProfessionalInquiryDetail(conversationId, profileId)
+    return { success: true, data: detail }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao carregar detalhes do atendimento.' }
+  }
+}
+
+export async function updateProfessionalInquiryStatusAction(
+  conversationId: string,
+  profileId: string,
+  status: ConciergeConversationStatus
+): Promise<ConciergeActionResult<void>> {
+  try {
+    await assertProfileOwnership(profileId)
+    await updateProfessionalInquiryStatus(conversationId, profileId, status)
+    revalidatePath('/dashboard/concierge')
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao atualizar status do atendimento.' }
+  }
+}
+
+export async function sendPublicChatMessageAction(
+  profileId: string,
+  visitorSessionId: string,
+  message: string
+): Promise<ConciergeActionResult<ConciergeRuntimeResult>> {
+  try {
+    // Gate: server-side readiness check (Sections 33, 34, 35, 36)
+    const readiness = await isWebPublicConciergeReady(profileId)
+    if (!readiness.ready) {
+      return {
+        success: false,
+        error: 'O assistente virtual público não está ativo no momento.',
+      }
+    }
+
+    if (!visitorSessionId || visitorSessionId.length < 16) {
+      return { success: false, error: 'Sessão de visitante inválida.' }
+    }
+
+    const conversation = await getOrCreateConversation(profileId, visitorSessionId, 'WEB_PUBLIC', false)
+    const result = await processConciergeTurn({
+      conversation,
+      visitorMessage: message,
+      isTest: false,
+    })
+
+    return { success: true, data: result }
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Erro ao processar mensagem.' }
+  }
+}
+

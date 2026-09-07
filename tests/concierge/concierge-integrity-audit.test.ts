@@ -255,25 +255,25 @@ describe('PX5.1 — AI Concierge Integrity Audit & Security Gates', () => {
   })
 
   describe('7. Server Tool Registry & Zero Booking Authority (Sections 16, 17, 18)', () => {
-    it('rejects arbitrary or unknown tool execution attempts', () => {
+    it('rejects arbitrary or unknown tool execution attempts', async () => {
       const unknownCall: ConciergeToolCall = {
         id: 'call-eval',
         name: 'execute_command',
         arguments: { cmd: 'rm -rf' },
       }
-      const res = executeConciergeTool(unknownCall, mockFacts)
+      const res = await executeConciergeTool(unknownCall, mockFacts)
       expect(res.error).toContain('Ferramenta desconhecida')
       expect(res.result).toBeNull()
     })
 
-    it('bounds tool batch execution to MAX_TOOL_CALLS_PER_TURN (3)', () => {
+    it('bounds tool batch execution to MAX_TOOL_CALLS_PER_TURN (3)', async () => {
       const batch: ConciergeToolCall[] = [
         { id: '1', name: 'get_public_profile_summary', arguments: {} },
         { id: '2', name: 'get_public_service_areas', arguments: {} },
         { id: '3', name: 'request_human_handoff', arguments: {} },
         { id: '4', name: 'get_available_slots', arguments: {} },
       ]
-      const results = executeConciergeToolsBatch(batch, mockFacts)
+      const results = await executeConciergeToolsBatch(batch, mockFacts)
       expect(results).toHaveLength(MAX_TOOL_CALLS_PER_TURN)
       expect(MAX_TOOL_CALLS_PER_TURN).toBe(3)
     })

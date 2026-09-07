@@ -72,13 +72,13 @@ describe('PX5 — Concierge Runtime & Server-Side Tools', () => {
       expect(toolNames).toContain('get_available_slots')
     })
 
-    it('executes get_public_profile_summary and returns sanitized public profile facts', () => {
+    it('executes get_public_profile_summary and returns sanitized public profile facts', async () => {
       const call: ConciergeToolCall = {
         id: 'call-1',
         name: 'get_public_profile_summary',
         arguments: {},
       }
-      const result = executeConciergeTool(call, mockFacts)
+      const result = await executeConciergeTool(call, mockFacts)
 
       expect(result.tool_call_id).toBe('call-1')
       expect(result.error).toBeUndefined()
@@ -95,13 +95,13 @@ describe('PX5 — Concierge Runtime & Server-Side Tools', () => {
       })
     })
 
-    it('executes get_public_service_areas and returns designated neighborhoods', () => {
+    it('executes get_public_service_areas and returns designated neighborhoods', async () => {
       const call: ConciergeToolCall = {
         id: 'call-2',
         name: 'get_public_service_areas',
         arguments: {},
       }
-      const result = executeConciergeTool(call, mockFacts)
+      const result = await executeConciergeTool(call, mockFacts)
 
       expect(result.tool_call_id).toBe('call-2')
       expect(result.result).toEqual({
@@ -110,47 +110,46 @@ describe('PX5 — Concierge Runtime & Server-Side Tools', () => {
       })
     })
 
-    it('executes request_human_handoff and returns handoff guidance', () => {
+    it('executes request_human_handoff and returns handoff guidance', async () => {
       const call: ConciergeToolCall = {
         id: 'call-3',
         name: 'request_human_handoff',
         arguments: { reason: 'Cliente quer tirar dúvidas específicas de agendamento' },
       }
-      const result = executeConciergeTool(call, mockFacts)
+      const result = await executeConciergeTool(call, mockFacts)
 
       expect(result.tool_call_id).toBe('call-3')
       expect((result.result as any).handoff_requested).toBe(true)
       expect((result.result as any).reason).toBe('Cliente quer tirar dúvidas específicas de agendamento')
     })
 
-    it('executes get_available_slots stub and states lookup is not bound to direct booking (PX6 stub)', () => {
+    it('executes get_available_slots and verifies canonical availability contract (PX6)', async () => {
       const call: ConciergeToolCall = {
         id: 'call-4',
         name: 'get_available_slots',
         arguments: { date: '2026-09-10' },
       }
-      const result = executeConciergeTool(call, mockFacts)
+      const result = await executeConciergeTool(call, mockFacts)
 
       expect(result.tool_call_id).toBe('call-4')
-      expect((result.result as any).status).toBe('NOT_IMPLEMENTED_IN_PX5')
-      expect((result.result as any).message).toContain('PX6')
-      expect((result.result as any).message).toContain('vedado pela plataforma')
+      expect(['AVAILABLE', 'NO_SLOTS_AVAILABLE']).toContain((result.result as any).status)
+      expect((result.result as any).message.toLowerCase()).toContain('agendamentos vinculantes')
     })
 
-    it('rejects unknown or unapproved tool calls', () => {
+    it('rejects unknown or unapproved tool calls', async () => {
       const call: ConciergeToolCall = {
         id: 'call-unknown',
         name: 'execute_sql_query',
         arguments: { query: 'SELECT * FROM users' },
       }
-      const result = executeConciergeTool(call, mockFacts)
+      const result = await executeConciergeTool(call, mockFacts)
 
       expect(result.tool_call_id).toBe('call-unknown')
       expect(result.result).toBeNull()
       expect(result.error).toContain('Ferramenta desconhecida')
     })
 
-    it('bounds tool batch executions to MAX_TOOL_CALLS_PER_TURN (3)', () => {
+    it('bounds tool batch executions to MAX_TOOL_CALLS_PER_TURN (3)', async () => {
       const excessiveCalls: ConciergeToolCall[] = [
         { id: '1', name: 'get_public_profile_summary', arguments: {} },
         { id: '2', name: 'get_public_service_areas', arguments: {} },
@@ -159,7 +158,7 @@ describe('PX5 — Concierge Runtime & Server-Side Tools', () => {
         { id: '5', name: 'get_public_profile_summary', arguments: {} },
       ]
 
-      const results = executeConciergeToolsBatch(excessiveCalls, mockFacts)
+      const results = await executeConciergeToolsBatch(excessiveCalls, mockFacts)
       expect(results).toHaveLength(MAX_TOOL_CALLS_PER_TURN)
       expect(results.map((r) => r.tool_call_id)).toEqual(['1', '2', '3'])
     })

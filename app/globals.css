@@ -4281,6 +4281,656 @@ body:has(.profile-detail-page) { overflow-x: clip; }
 }
 
 /* ============================================================
+   PX6 — Concierge Availability, Inquiries & Public Chat Styles
+   ============================================================ */
+
+/* 1. Concierge Status Bar */
+.velvet-concierge-status-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.status-stat-card {
+  background: var(--velvet-card-bg, #FFFFFF);
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  border-radius: 2px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--velvet-muted, #736B63);
+}
+
+.status-stat-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  color: var(--velvet-espresso, #1F1A18);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-indicator.active {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+
+.status-indicator.inactive {
+  background: #9ca3af;
+}
+
+.status-stat-hint {
+  font-size: 11px;
+  color: var(--velvet-muted, #736B63);
+  margin-top: 2px;
+}
+
+/* 2. Professional Inquiries Card */
+.velvet-concierge-inquiries-wrap {
+  margin-bottom: 24px;
+}
+
+.velvet-concierge-inquiries-card {
+  background: var(--velvet-card-bg, #FFFFFF);
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  border-radius: 2px;
+  padding: 24px;
+}
+
+.inquiries-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.inquiries-card-header h2 {
+  font: 400 24px/1.2 var(--velvet-serif, serif);
+  color: var(--velvet-espresso, #1F1A18);
+  margin: 0 0 4px 0;
+}
+
+.inquiries-card-subtitle {
+  font-size: 13px;
+  color: var(--velvet-muted, #736B63);
+  margin: 0;
+}
+
+.inquiries-filter-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill-btn {
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  background: var(--velvet-paper, #F9F6F0);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--velvet-espresso, #1F1A18);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pill-btn:hover {
+  background: #FFFFFF;
+}
+
+.pill-btn.active {
+  background: var(--velvet-espresso, #1F1A18);
+  color: #FFFFFF;
+  border-color: var(--velvet-espresso, #1F1A18);
+}
+
+.inquiries-empty-state {
+  text-align: center;
+  padding: 36px 16px;
+  color: var(--velvet-muted, #736B63);
+}
+
+.inquiries-empty-state .empty-icon {
+  font-size: 24px;
+  display: block;
+  margin-bottom: 8px;
+  color: var(--velvet-gold, #C5A880);
+}
+
+.inquiries-empty-state .empty-title {
+  font-weight: 600;
+  color: var(--velvet-espresso, #1F1A18);
+  margin: 0 0 4px 0;
+}
+
+.inquiries-empty-state .empty-description {
+  font-size: 12px;
+  max-width: 440px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.inquiries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inquiry-item {
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  border-radius: 2px;
+  padding: 16px;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.inquiry-item:hover {
+  border-color: var(--velvet-gold, #C5A880);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.inquiry-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.inquiry-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inquiry-pseudonym {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--velvet-espresso, #1F1A18);
+}
+
+.inquiry-intent-pill {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: #f3f4f6;
+  color: #4b5563;
+  border-radius: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.inquiry-status-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.inquiry-status-badge.inquiry-badge-handoff {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.inquiry-status-badge.inquiry-badge-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.inquiry-status-badge.inquiry-badge-active {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.inquiry-status-badge.inquiry-badge-closed {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.inquiry-snippet {
+  font-size: 13px;
+  color: var(--velvet-muted, #736B63);
+  margin: 0 0 10px 0;
+  line-height: 1.4;
+}
+
+.inquiry-item-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.inquiry-time {
+  font-size: 11px;
+  color: var(--velvet-muted, #736B63);
+}
+
+.inquiry-action-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--velvet-espresso, #1F1A18);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* 3. Inquiry Detail Modal */
+.inquiry-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.inquiry-detail-modal {
+  background: #FFFFFF;
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  border-radius: 4px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+}
+
+.inquiry-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--velvet-line, #E5DFD7);
+}
+
+.inquiry-modal-header h3 {
+  font: 400 20px/1.2 var(--velvet-serif, serif);
+  margin: 0 0 4px 0;
+  color: var(--velvet-espresso, #1F1A18);
+}
+
+.inquiry-modal-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--velvet-muted, #736B63);
+  padding: 4px;
+}
+
+.inquiry-qualification-box {
+  padding: 12px 20px;
+  background: var(--velvet-paper, #F9F6F0);
+  border-bottom: 1px solid var(--velvet-line, #E5DFD7);
+}
+
+.inquiry-qualification-box h4 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--velvet-muted, #736B63);
+  margin: 0 0 8px 0;
+}
+
+.qualification-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.qualification-grid small {
+  font-size: 10px;
+  color: var(--velvet-muted, #736B63);
+  display: block;
+}
+
+.qualification-grid p {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--velvet-espresso, #1F1A18);
+  margin: 2px 0 0 0;
+}
+
+.inquiry-transcript {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 200px;
+}
+
+.inquiry-transcript h4 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--velvet-muted, #736B63);
+  margin: 0;
+}
+
+.transcript-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transcript-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.transcript-msg.visitor {
+  align-self: flex-start;
+}
+
+.transcript-msg.assistant {
+  align-self: flex-end;
+}
+
+.transcript-bubble {
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.transcript-msg.visitor .transcript-bubble {
+  background: var(--velvet-paper, #F9F6F0);
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  color: var(--velvet-espresso, #1F1A18);
+}
+
+.transcript-msg.assistant .transcript-bubble {
+  background: var(--velvet-espresso, #1F1A18);
+  color: #FFFFFF;
+}
+
+.msg-author {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  opacity: 0.8;
+}
+
+.msg-time {
+  display: block;
+  font-size: 10px;
+  opacity: 0.6;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.inquiry-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--velvet-line, #E5DFD7);
+  background: var(--velvet-card-bg, #FFFFFF);
+}
+
+.btn-status-completed {
+  padding: 8px 16px;
+  background: #166534;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-status-close {
+  padding: 8px 16px;
+  background: var(--velvet-paper, #F9F6F0);
+  color: var(--velvet-espresso, #1F1A18);
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-status-reopen {
+  padding: 8px 16px;
+  background: var(--velvet-espresso, #1F1A18);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 4. Public Web Concierge Floating Trigger & Modal */
+.velvet-concierge-floating-wrap {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 900;
+}
+
+.velvet-concierge-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--velvet-espresso, #1F1A18);
+  color: #FFFFFF;
+  border: 1px solid var(--velvet-gold, #C5A880);
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.velvet-concierge-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.concierge-trigger-icon {
+  color: var(--velvet-gold, #C5A880);
+  font-size: 14px;
+}
+
+.velvet-concierge-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 20px;
+}
+
+@media (max-width: 640px) {
+  .velvet-concierge-modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+}
+
+.velvet-concierge-modal {
+  background: #FFFFFF;
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  border-radius: 4px;
+  width: 100%;
+  max-width: 420px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 640px) {
+  .velvet-concierge-modal {
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+    max-height: 90vh;
+  }
+}
+
+.concierge-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--velvet-line, #E5DFD7);
+  background: var(--velvet-paper, #F9F6F0);
+}
+
+.concierge-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--velvet-gold, #C5A880);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.concierge-modal-header h3 {
+  font: 400 18px/1.2 var(--velvet-serif, serif);
+  margin: 0;
+  color: var(--velvet-espresso, #1F1A18);
+}
+
+.concierge-modal-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--velvet-muted, #736B63);
+  padding: 4px 8px;
+}
+
+.concierge-disclaimer-banner {
+  background: rgba(197, 168, 128, 0.1);
+  padding: 8px 14px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--velvet-espresso, #1F1A18);
+  border-bottom: 1px solid rgba(197, 168, 128, 0.2);
+}
+
+.concierge-messages-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 260px;
+}
+
+.concierge-chat-msg {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+}
+
+.concierge-chat-msg.visitor {
+  align-self: flex-end;
+}
+
+.concierge-chat-msg.assistant {
+  align-self: flex-start;
+}
+
+.concierge-chat-msg .msg-bubble {
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.concierge-chat-msg.visitor .msg-bubble {
+  background: var(--velvet-espresso, #1F1A18);
+  color: #FFFFFF;
+}
+
+.concierge-chat-msg.assistant .msg-bubble {
+  background: var(--velvet-paper, #F9F6F0);
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  color: var(--velvet-espresso, #1F1A18);
+}
+
+.concierge-input-form {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #FFFFFF;
+  border-top: 1px solid var(--velvet-line, #E5DFD7);
+}
+
+.concierge-input {
+  flex: 1;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--velvet-line, #E5DFD7);
+  border-radius: 2px;
+  font-size: 13px;
+}
+
+.concierge-input:focus {
+  border-color: var(--velvet-espresso, #1F1A18);
+  outline: none;
+}
+
+.concierge-send-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  background: var(--velvet-espresso, #1F1A18);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.concierge-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
    PX4.7 — Velvet App Mode Experience Styles
    ============================================================ */
 
