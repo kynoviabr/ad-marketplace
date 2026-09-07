@@ -7,8 +7,13 @@
  */
 
 import 'server-only'
-import { MAX_USER_MESSAGE_LENGTH } from './constants'
 import {
+  MAX_USER_MESSAGE_LENGTH,
+  SAFE_RATE_LIMIT_REPLY,
+  UNAVAILABLE_PUBLIC_CHANNEL_REPLY,
+} from './constants'
+import {
+  assertPublicConciergeEligibility,
   getConciergeFaqs,
   getConciergeSettings,
   getConversationMessages,
@@ -17,6 +22,7 @@ import {
   updateConversationQualification,
   updateConversationStatus,
 } from './dal'
+import { isConciergeRateLimited } from './rate-limiter'
 import { generateConciergeReply } from './provider'
 import { executeConciergeToolsBatch } from './tools'
 import type {
@@ -31,29 +37,78 @@ export interface ProcessTurnInput {
   conversation: ConciergeConversation
   visitorMessage: string
   isTest?: boolean
+  clientTurnId?: string
 }
 
 export async function processConciergeTurn(
   input: ProcessTurnInput
 ): Promise<ConciergeRuntimeResult> {
-  const { conversation, isTest = false } = input
+  const { conversation, isTest = false, clientTurnId } = input
   const rawMessage = input.visitorMessage.trim()
+  const profileId = conversation.profile_id
 
-  // 1. Enforce length bounds
+  // 1. Publication Gate (Section 11) for public channels
+  if (conversation.channel === 'WEB_PUBLIC') {
+    const isEligible = await assertPublicConciergeEligibility(profileId)
+    if (!isEligible) {
+      return {
+        replyText: UNAVAILABLE_PUBLIC_CHANNEL_REPLY,
+        intent: 'GENERAL',
+        handoffRequested: false,
+        conversationStatus: conversation.status,
+        qualification: conversation.qualification,
+        assistantMessageId: '',
+      }
+    }
+  }
+
+  // 2. Enforce length bounds
   const visitorMessage =
     rawMessage.length > MAX_USER_MESSAGE_LENGTH
       ? rawMessage.slice(0, MAX_USER_MESSAGE_LENGTH)
       : rawMessage
 
-  const profileId = conversation.profile_id
+  // 3. Check Inbound Message Idempotency (Section 23): prevent duplicates from network retries
+  const recentMessages = await getConversationMessages(conversation.id, 4)
+  const lastVisitorMsg = [...recentMessages].reverse().find((m) => m.role === 'VISITOR')
+  const lastAssistantMsg = [...recentMessages].reverse().find((m) => m.role === 'ASSISTANT')
+  const isRecentDuplicate =
+    lastVisitorMsg &&
+    lastVisitorMsg.content === visitorMessage &&
+    lastAssistantMsg &&
+    (clientTurnId ? lastVisitorMsg.metadata?.turn_id === clientTurnId : new Date(lastVisitorMsg.created_at).getTime() > Date.now() - 15000)
 
-  // 2. Persist visitor message
+  if (isRecentDuplicate && lastAssistantMsg) {
+    return {
+      replyText: lastAssistantMsg.content,
+      intent: (lastAssistantMsg.metadata?.intent as InquiryIntent) || 'GENERAL',
+      handoffRequested: Boolean(lastAssistantMsg.metadata?.handoff_requested),
+      conversationStatus: conversation.status,
+      qualification: conversation.qualification,
+      assistantMessageId: lastAssistantMsg.id,
+    }
+  }
+
+  // 4. Rate Limiting (Section 22)
+  if (isConciergeRateLimited(conversation.id, 'CONVERSATION_TURN')) {
+    return {
+      replyText: SAFE_RATE_LIMIT_REPLY,
+      intent: 'GENERAL',
+      handoffRequested: false,
+      conversationStatus: conversation.status,
+      qualification: conversation.qualification,
+      assistantMessageId: '',
+    }
+  }
+
+  // 5. Persist visitor message
   await saveConciergeMessage(conversation.id, 'VISITOR', visitorMessage, {
     channel: conversation.channel,
     is_test: isTest,
+    turn_id: clientTurnId ?? null,
   })
 
-  // 3. Gather context facts, settings, FAQs, and recent history
+  // 6. Gather context facts, settings, FAQs, and recent history
   const [settings, faqs, facts, history] = await Promise.all([
     getConciergeSettings(profileId),
     getConciergeFaqs(profileId),
@@ -61,7 +116,7 @@ export async function processConciergeTurn(
     getConversationMessages(conversation.id),
   ])
 
-  // 4. Generate reply via provider abstraction
+  // 7. Generate reply via provider abstraction
   const modelResponse: ConciergeModelResponse = await generateConciergeReply({
     conversationId: conversation.id,
     profileId,
@@ -71,6 +126,7 @@ export async function processConciergeTurn(
     facts,
     history,
     isTest,
+    channel: conversation.channel,
   })
 
   let finalReply = modelResponse.replyText

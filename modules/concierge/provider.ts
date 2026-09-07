@@ -13,7 +13,7 @@ import {
   PROVIDER_FALLBACK_REPLY,
 } from './constants'
 import { CONCIERGE_TOOLS } from './tools'
-import { assemblePrompt, evaluatePreFlightSafety } from './prompt'
+import { assemblePrompt, evaluatePreFlightSafety, filterAssistantOutput } from './prompt'
 import type {
   ConciergeGenerateParams,
   ConciergeModelResponse,
@@ -35,20 +35,34 @@ export function generateMockReply(params: ConciergeGenerateParams): ConciergeMod
     return {
       replyText: preFlight.reply,
       intent: 'SAFETY_BLOCKED',
+      handoffRequested: false,
     }
   }
 
-  // 2. Booking / reservation boundary
-  if (
-    text.includes('confirmar') ||
-    text.includes('reserva') ||
-    text.includes('pagar') ||
-    text.includes('pix') ||
-    text.includes('sinal')
-  ) {
+  // 2. Booking / reservation boundary (action attempts to book or transact on-platform)
+  const matchesBookingOrPayment =
+    text.includes('confirmar agendamento') ||
+    text.includes('confirmar reserva') ||
+    text.includes('confirm my booking') ||
+    text.includes('fazer reserva') ||
+    text.includes('reservar') ||
+    text.startsWith('reserve') ||
+    text.includes(' reserve') ||
+    text.includes('booking') ||
+    text.includes('book ') ||
+    text.includes('pagar adiantado') ||
+    text.includes('pagar agora') ||
+    text.includes('pagar antecipado') ||
+    text.includes('charge my card') ||
+    text.includes('take payment') ||
+    text.includes('processar pagamento') ||
+    text.includes('sinal adiantado')
+
+  if (matchesBookingOrPayment) {
     return {
       replyText: `${BOOKING_DISCLAIMER_REPLY} Você pode combinar os detalhes diretamente com ${facts.stageName}.`,
       intent: 'GENERAL',
+      handoffRequested: false,
     }
   }
 
@@ -180,6 +194,47 @@ export function generateMockReply(params: ConciergeGenerateParams): ConciergeMod
 }
 
 /**
+ * Validates and sanitizes raw model output before runtime consumption.
+ * Enforces:
+ * - Tool allowlist check
+ * - Tool call bounding (MAX_TOOL_CALLS_PER_TURN)
+ * - Safe JSON arguments parsing
+ * - Assistant output filtering (no prompt leakage)
+ * - Known intent categorization
+ */
+export function validateModelResponse(
+  raw: Partial<ConciergeModelResponse>
+): ConciergeModelResponse {
+  const allowedToolNames = new Set(CONCIERGE_TOOLS.map((t) => t.name))
+
+  let sanitizedTools: ConciergeModelResponse['toolRequests'] = undefined
+  if (Array.isArray(raw.toolRequests)) {
+    const validCalls = raw.toolRequests
+      .filter((call) => call && typeof call.name === 'string' && allowedToolNames.has(call.name))
+      .slice(0, 3) // MAX_TOOL_CALLS_PER_TURN
+
+    if (validCalls.length > 0) {
+      sanitizedTools = validCalls.map((call) => ({
+        id: String(call.id || `call_${Date.now()}`),
+        name: call.name,
+        arguments: typeof call.arguments === 'object' && call.arguments !== null ? call.arguments : {},
+      }))
+    }
+  }
+
+  const rawReply = typeof raw.replyText === 'string' ? raw.replyText.trim() : ''
+  const sanitizedReply = rawReply ? filterAssistantOutput(rawReply) : PROVIDER_FALLBACK_REPLY
+
+  return {
+    replyText: sanitizedReply,
+    intent: raw.intent || 'GENERAL',
+    handoffRequested: Boolean(raw.handoffRequested),
+    qualificationUpdate: raw.qualificationUpdate,
+    toolRequests: sanitizedTools,
+  }
+}
+
+/**
  * Main provider entry point. Dispatches to live OpenAI if API key is present,
  * or mock provider if unconfigured or running in test environments.
  */
@@ -187,7 +242,8 @@ export async function generateConciergeReply(
   params: ConciergeGenerateParams
 ): Promise<ConciergeModelResponse> {
   const apiKey = process.env.OPENAI_API_KEY?.trim()
-  const isMockMode = !apiKey || params.isTest === true || process.env.NODE_ENV === 'test'
+  const isInternalTest = params.isTest === true || params.channel === 'INTERNAL_TEST'
+  const isRealUserChannel = params.channel === 'WEB_PUBLIC' || params.channel === 'WHATSAPP_OFFICIAL'
 
   // Pre-flight safety check is always evaluated first
   const preFlight = evaluatePreFlightSafety(params.visitorMessage)
@@ -195,11 +251,34 @@ export async function generateConciergeReply(
     return {
       replyText: preFlight.reply,
       intent: 'SAFETY_BLOCKED',
+      handoffRequested: false,
     }
   }
 
-  if (isMockMode) {
-    return generateMockReply(params)
+  // MOCK PROVIDER INVARIANT (Section 4):
+  // 1. Real channels (WEB_PUBLIC, WHATSAPP_OFFICIAL) MUST NEVER receive a mock response.
+  if (isRealUserChannel && !apiKey) {
+    logEvent('WARN', 'ai.concierge.public_provider_unavailable', {
+      subsystem: 'AI',
+      metadata: { conversationId: params.conversationId, channel: params.channel },
+    })
+    return {
+      replyText: PROVIDER_FALLBACK_REPLY,
+      intent: 'GENERAL',
+      handoffRequested: false,
+    }
+  }
+
+  // 2. Deterministic mock provider allowed ONLY for explicit internal test or test suite
+  if (!apiKey) {
+    if (isInternalTest || (process.env.NODE_ENV === 'test' && !isRealUserChannel)) {
+      return generateMockReply(params)
+    }
+    return {
+      replyText: PROVIDER_FALLBACK_REPLY,
+      intent: 'GENERAL',
+      handoffRequested: false,
+    }
   }
 
   // Live OpenAI Chat Completions call with bounded timeout
@@ -237,15 +316,15 @@ export async function generateConciergeReply(
     clearTimeout(timeoutId)
 
     if (!response.ok) {
-      const errorText = await response.text()
       logEvent('ERROR', 'ai.concierge.provider_failed', {
         subsystem: 'AI',
-        metadata: { status: response.status, error: errorText.slice(0, 300) },
+        metadata: { status: response.status, failureCategory: 'OPENAI_HTTP_ERROR' },
         error: new Error(`OpenAI HTTP ${response.status}`),
       })
       return {
         replyText: PROVIDER_FALLBACK_REPLY,
         intent: 'GENERAL',
+        handoffRequested: false,
       }
     }
 
@@ -256,32 +335,40 @@ export async function generateConciergeReply(
       return {
         replyText: PROVIDER_FALLBACK_REPLY,
         intent: 'GENERAL',
+        handoffRequested: false,
       }
     }
 
-    // Process tool calls if suggested by model
-    const toolCalls = (choice.tool_calls || []).map((tc: any) => ({
-      id: tc.id,
-      name: tc.function.name,
-      arguments: JSON.parse(tc.function.arguments || '{}'),
-    }))
+    // Process tool calls if suggested by model (safe JSON parse)
+    const rawToolCalls = (choice.tool_calls || []).map((tc: any) => {
+      let parsedArgs: Record<string, unknown> = {}
+      try {
+        parsedArgs = JSON.parse(tc.function.arguments || '{}')
+      } catch {
+        parsedArgs = {}
+      }
+      return {
+        id: tc.id,
+        name: tc.function.name,
+        arguments: parsedArgs,
+      }
+    })
 
-    const replyText = choice.content?.trim() || ''
-
-    return {
-      replyText: replyText || PROVIDER_FALLBACK_REPLY,
+    return validateModelResponse({
+      replyText: choice.content?.trim() || '',
       intent: 'GENERAL',
-      toolRequests: toolCalls.length > 0 ? toolCalls : undefined,
-    }
+      toolRequests: rawToolCalls.length > 0 ? rawToolCalls : undefined,
+    })
   } catch (err: any) {
     logEvent('ERROR', 'ai.concierge.provider_exception', {
       subsystem: 'AI',
-      metadata: { errorName: err?.name, message: err?.message },
+      metadata: { errorName: err?.name, failureCategory: 'PROVIDER_TIMEOUT_OR_NETWORK' },
       error: err,
     })
     return {
       replyText: PROVIDER_FALLBACK_REPLY,
       intent: 'GENERAL',
+      handoffRequested: false,
     }
   }
 }

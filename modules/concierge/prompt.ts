@@ -41,29 +41,54 @@ export function evaluatePreFlightSafety(visitorInput: string): {
 } {
   const lower = visitorInput.toLowerCase().trim()
 
-  // 1. Minor declaration (under 18)
+  // 1. Minor declaration (under 18) — with explicit false positive exclusion
+  const isTimeOrScheduleContext =
+    /\b[àa]s\s+(1[0-7]|[0-9])(:[0-9]{2}|h|hrs?)\b/.test(lower) ||
+    /\b(1[0-7]|[0-9]):[0-9]{2}\b/.test(lower) ||
+    /\bdia\s+(1[0-7]|[0-9])\b/.test(lower) ||
+    /\b(1[0-7]|[0-9])\s+de\s+(janeiro|fevereiro|mar[çc]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\b/.test(lower)
+
+  const isTenureOrExperienceContext =
+    /\b(atendo|trabalho|moro|estou|atuo)\s+(h[áa]|faz|a)\s+(1[0-7]|[0-9]|dezessete|dezesseis|quinze)\s*anos?\b/.test(lower) ||
+    /\b(1[0-7]|[0-9]|dezessete|dezesseis|quinze)\s*anos?\s+de\s+(experi[êe]ncia|carreira|profiss[ãa]o|atendimento|estrada|mercado)\b/.test(lower)
+
   const minorPatterns = [
-    /\btenho\s+(1[0-7]|[0-9])\s*anos?\b/,
-    /\bsou\s+menor\b/,
-    /\bmenor\s+de\s+idade\b/,
-    /\bi\s*'?m\s+(1[0-7]|[0-9])\s*(years?\s*old)?\b/,
-    /\bi\s+am\s+(1[0-7]|[0-9])\b/,
+    /\b(tenho|eu\s+tenho)\s+(1[0-7]|[0-9]|dezessete|dezesseis|quinze|quatorze|catorze|treze|doze)\s*anos?(?!\s+de\s+(experi[êe]ncia|carreira|profiss[ãa]o))\b/,
+    /\b(sou|estou|sendo)\s+menor(\s+de\s+idade)?\b/,
+    /\bmenor\s+de\s+(idade|18\s*anos?|dezoito\s*anos?)\b/,
+    /\bi\s*'?m\s+(1[0-7]|[0-9]|seventeen|sixteen|fifteen|fourteen|thirteen)\b/,
+    /\bi\s+am\s+(1[0-7]|[0-9]|seventeen|sixteen|fifteen|fourteen|thirteen)\b/,
+    /\bi\s*'?m\s+(under\s*18|underage|a\s+minor)\b/,
     /\bunder\s*18\b/,
     /\bunderage\b/,
+    /\b(minha\s+(namorada|amiga|prima|menina)|my\s+(girlfriend|friend|girl))\s+(tem|is|has)\s+(1[0-7]|[0-9]|dezessete|dezesseis|quinze|sixteen|seventeen)\b/,
+    /\b(menina|garota|novinha|boy|girl)\s+de\s+(1[0-7]|[0-9]|dezessete|dezesseis|quinze)\s*anos?\b/,
   ]
-  if (minorPatterns.some((pattern) => pattern.test(lower))) {
+
+  const matchesMinor = minorPatterns.some((pattern) => pattern.test(lower))
+  if (matchesMinor && !isTenureOrExperienceContext && (!isTimeOrScheduleContext || /\b(tenho|i\s*'?m|girlfriend|novinha|menor)\b/.test(lower))) {
     return { isBlocked: true, reply: MINOR_REFUSAL_REPLY, intent: 'SAFETY_BLOCKED' }
   }
 
-  // 2. System prompt extraction attempt
+  // 2. Prompt injection & System prompt extraction attempts
   const promptExtractionPatterns = [
     /\bshow\s+(me\s+)?(your\s+)?(system\s+)?prompt\b/,
     /\bqual\s+(é\s+o\s+)?seu\s+system\s+prompt\b/,
     /\bquais\s+s[ãa]o\s+(as\s+)?suas\s+instru[çc][õo]es\b/,
     /\bignore\s+(all\s+)?previous\s+instructions\b/,
     /\bdesconsidere\s+todas\s+as\s+instru[çc][õo]es\b/,
+    /\bforget\s+(all\s+)?rules\b/,
+    /\besque[çc]a\s+(todas\s+as\s+)?regras\b/,
     /\brevela\s+o\s+prompt\b/,
-    /\bprint\s+system\s+instructions\b/,
+    /\bprint\s+(system\s+)?(developer\s+)?instructions\b/,
+    /\bencode\s+(your\s+)?(hidden\s+)?prompt\b/,
+    /\bcall\s+(every\s+)?hidden\s+tool\b/,
+    /\bpretend\s+you\s+are\s+(the\s+)?professional\b/,
+    /\bfinja\s+que\s+(voc[êe]\s+)?é\s+a\s+profissional\b/,
+    /\bshow\s+another\s+professional'?s?\s+private\s+information\b/,
+    /\b(mostrar|exibir|ver)\s+informa[çc][õo]es\s+privadas\b/,
+    /\bact\s+as\s+dan\b/,
+    /\bjailbreak\b/,
   ]
   if (promptExtractionPatterns.some((pattern) => pattern.test(lower))) {
     return { isBlocked: true, reply: SYSTEM_PROMPT_REFUSAL_REPLY, intent: 'SAFETY_BLOCKED' }
@@ -172,4 +197,26 @@ export function assemblePrompt(
   messages.push({ role: 'user', content: newVisitorMessage })
 
   return { systemPrompt, messages }
+}
+
+/**
+ * Post-provider filter to sanitize any accidental system prompt or developer instruction leakage.
+ */
+export function filterAssistantOutput(rawText: string): string {
+  const leakPatterns = [
+    /\b(meu\s+prompt|my\s+prompt|system\s+prompt)\b/gi,
+    /\b(minhas\s+instru[çc][õo]es\s+s[ãa]o|my\s+instructions\s+are)\b/gi,
+    /\b(you\s+are\s+an\s+ai\s+(concierge|assistant))\b/gi,
+    /\b(diretrizes\s+da\s+plataforma)\b/gi,
+    /\b(as\s+an\s+ai\s+model\s+developed\s+by\s+openai)\b/gi,
+  ]
+
+  let sanitized = rawText
+  for (const pattern of leakPatterns) {
+    if (pattern.test(sanitized)) {
+      return BOOKING_DISCLAIMER_REPLY
+    }
+  }
+
+  return sanitized.trim()
 }

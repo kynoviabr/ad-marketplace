@@ -129,6 +129,7 @@ export interface ConciergeGenerateParams {
   facts: ConciergeContextFacts
   history: ConciergeMessage[]
   isTest?: boolean
+  channel?: ConciergeChannel
 }
 
 export interface ConciergeRuntimeResult {

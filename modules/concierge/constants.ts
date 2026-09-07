@@ -26,6 +26,12 @@ export const BOOKING_DISCLAIMER_REPLY =
 export const SYSTEM_PROMPT_REFUSAL_REPLY =
   'Como assistente virtual da Velvet, minhas diretrizes e configurações de sistema são protegidas e confidenciais. Posso ajudar com informações públicas sobre o perfil da profissional.'
 
+export const SAFE_RATE_LIMIT_REPLY =
+  'Limite de mensagens temporariamente atingido. Por favor, aguarde alguns minutos ou fale diretamente com a profissional pelos canais informados no perfil.'
+
+export const UNAVAILABLE_PUBLIC_CHANNEL_REPLY =
+  'O atendimento via assistente virtual não está disponível neste momento. Por favor, utilize os canais diretos de contato informados no perfil.'
+
 export const TONE_INSTRUCTIONS: Record<string, string> = {
   PROFESSIONAL: 'Mantenha um tom polido, objetivo, cordial e profissional.',
   WARM: 'Mantenha um tom caloroso, empático, receptivo e gentil.',

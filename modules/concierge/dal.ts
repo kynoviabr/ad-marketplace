@@ -17,6 +17,7 @@ import type {
   ConciergeMessageRole,
   ConciergeMessageType,
   ConciergeQualification,
+  InquiryIntent,
   ProfessionalConciergeFaq,
   ProfessionalConciergeSettings,
 } from './types'
@@ -277,6 +278,7 @@ export async function getConversationMessages(
     .select('*')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
+    .order('id', { ascending: true }) // Stable deterministic tie-breaker (Section 24)
     .limit(limit)
 
   if (error) {
@@ -293,6 +295,11 @@ export async function saveConciergeMessage(
   metadata: Record<string, unknown> = {},
   messageType: ConciergeMessageType = 'TEXT'
 ): Promise<ConciergeMessage> {
+  // CRITICAL INVARIANT (Section 7): System prompt and internal policies must NEVER be persisted in concierge_messages
+  if (role === 'SYSTEM') {
+    throw new Error('[concierge:dal] System prompt and developer instructions must never be persisted in concierge_messages.')
+  }
+
   const admin = createAdminClient()
 
   const { data, error } = await admin
@@ -343,6 +350,51 @@ export async function updateConversationStatus(
   await admin.from('concierge_conversations').update(updates).eq('id', conversationId)
 }
 
+const ALLOWED_INTENTS: Set<InquiryIntent> = new Set([
+  'GREETING',
+  'RATES_INQUIRY',
+  'AVAILABILITY_INQUIRY',
+  'SERVICE_INQUIRY',
+  'LOCATION_INQUIRY',
+  'HANDOFF_REQUEST',
+  'GENERAL',
+  'SAFETY_BLOCKED',
+])
+
+const ALLOWED_CHANNELS_PREF = new Set(['WHATSAPP', 'DIRECT_CALL', 'TELEGRAM'])
+
+/**
+ * Bounded qualification schema sanitizer (Section 19).
+ * Discards arbitrary model-generated keys, sensitive fields (CPF, card, address), and bounds lengths.
+ */
+export function sanitizeQualification(raw: unknown): ConciergeQualification {
+  if (!raw || typeof raw !== 'object') return {}
+  const obj = raw as Record<string, unknown>
+  const sanitized: ConciergeQualification = {}
+
+  if (typeof obj.intentCategory === 'string' && ALLOWED_INTENTS.has(obj.intentCategory as InquiryIntent)) {
+    sanitized.intentCategory = obj.intentCategory as InquiryIntent
+  }
+
+  if (typeof obj.preferredArea === 'string') {
+    sanitized.preferredArea = obj.preferredArea.trim().slice(0, 50)
+  }
+
+  if (typeof obj.preferredTimeWindow === 'string') {
+    sanitized.preferredTimeWindow = obj.preferredTimeWindow.trim().slice(0, 50)
+  }
+
+  if (typeof obj.contactPreference === 'string' && ALLOWED_CHANNELS_PREF.has(obj.contactPreference)) {
+    sanitized.contactPreference = obj.contactPreference as 'WHATSAPP' | 'DIRECT_CALL' | 'TELEGRAM'
+  }
+
+  if (typeof obj.notes === 'string') {
+    sanitized.notes = obj.notes.trim().slice(0, 200)
+  }
+
+  return sanitized
+}
+
 export async function updateConversationQualification(
   conversationId: string,
   qualification: Partial<ConciergeQualification>
@@ -356,7 +408,8 @@ export async function updateConversationQualification(
     .single()
 
   const currentQual = (conv?.qualification || {}) as ConciergeQualification
-  const merged = { ...currentQual, ...qualification }
+  const sanitizedUpdates = sanitizeQualification(qualification)
+  const merged = sanitizeQualification({ ...currentQual, ...sanitizedUpdates })
 
   await admin
     .from('concierge_conversations')
@@ -365,4 +418,66 @@ export async function updateConversationQualification(
       updated_at: new Date().toISOString(),
     })
     .eq('id', conversationId)
+}
+
+/**
+ * Asserts session and profile authority over a conversation (Section 9 & 10).
+ * A raw conversation UUID alone is strictly insufficient.
+ */
+export async function assertConversationAuthority(
+  conversationId: string,
+  expectedProfileId: string,
+  expectedVisitorSessionId: string
+): Promise<ConciergeConversation> {
+  const admin = createAdminClient()
+  const { data: conv, error } = await admin
+    .from('concierge_conversations')
+    .select('*')
+    .eq('id', conversationId)
+    .maybeSingle()
+
+  if (error || !conv) {
+    throw new Error('[concierge:dal] Conversa não encontrada.')
+  }
+
+  if (conv.profile_id !== expectedProfileId) {
+    throw new Error('[concierge:dal] Acesso negado: conversa não pertence ao perfil especificado.')
+  }
+
+  if (conv.visitor_session_id !== expectedVisitorSessionId) {
+    throw new Error('[concierge:dal] Acesso negado: sessão de visitante não autorizada.')
+  }
+
+  return conv as ConciergeConversation
+}
+
+/**
+ * Validates canonical publication eligibility and concierge activation for public channels (Section 11).
+ */
+export async function assertPublicConciergeEligibility(profileId: string): Promise<boolean> {
+  const admin = createAdminClient()
+
+  // 1. Check canonical publication eligibility view
+  const { data: eligible, error: eligibleError } = await admin
+    .from('v_publication_eligible_profiles')
+    .select('profile_id')
+    .eq('profile_id', profileId)
+    .maybeSingle()
+
+  if (eligibleError || !eligible) {
+    return false
+  }
+
+  // 2. Check concierge enabled setting
+  const { data: settings, error: settingsError } = await admin
+    .from('professional_concierge_settings')
+    .select('enabled')
+    .eq('profile_id', profileId)
+    .maybeSingle()
+
+  if (settingsError || !settings || !settings.enabled) {
+    return false
+  }
+
+  return true
 }

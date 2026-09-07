@@ -221,9 +221,66 @@ To deliver compelling professional value and establish deep competitive differen
 - **Modules**: `modules/concierge/`, `app/(dashboard)/dashboard/concierge/`, `components/concierge/`, `lib/i18n/messages/concierge.ts`.
 - **Applied Migrations**: `20260906020000_ai_concierge.sql` (33/33 aligned).
 - **Security Considerations**: Zero leakage of KYC, legal names, or billing info in prompts; pre-flight safety filter rejects underage inquiries; non-intermediary classified disclaimers enforced.
-- **Product Next**: PX6 — AI Concierge + Agenda & Inquiries Integration.
+- **Product Next**: PX5.1 — AI Concierge Integrity Audit & Security Gates (COMPLETE) → PX4.7 — Velvet App Experience.
+
+### PX5.1 — AI Concierge Integrity Audit & Security Gates
+- **Status**: **COMPLETE (100% RESOLVED IN DEV)**.
+- **Product Value**: Proves and guarantees that the AI Concierge foundation fails closed across 14 security, privacy, and architecture boundaries before participating in public visitor channels or the installable app experience.
+- **Scope & Gates Verified**:
+  1. **Mock Provider Channel Isolation (Section 4)**: The deterministic mock AI provider is strictly prohibited from executing on `WEB_PUBLIC` or `WHATSAPP_OFFICIAL` channels. When `OPENAI_API_KEY` is unconfigured, public visitor requests fail closed immediately with a safe, polite unavailable reply (`PROVIDER_FALLBACK_REPLY`), preventing synthetic AI hallucinations from reaching prospective clients. Mock responses are permitted ONLY for `INTERNAL_TEST` or unit test harnesses.
+  2. **Prompt Confidentiality & System Prompt Leakage Defense (Section 6 & 8)**: System prompts and internal developer directives are strictly prevented from entering the persistent ledger (`concierge_messages`). The DAL explicitly rejects messages with role `SYSTEM` (`saveConciergeMessage`). Output filtering (`filterAssistantOutput`) strips accidental leaks of internal instructions.
+  3. **Conversation Session Authority & Hijacking Defense (Sections 9 & 10)**: Raw conversation UUIDs are unforgeable and unauthorized without presenting a matching visitor session token/entropy and profile binding (`assertConversationAuthority`). Random or guessed UUIDs return 404/denied.
+  4. **Profile Immutability**: Conversations are permanently bound to their origin profile; cross-profile message injection is structurally rejected.
+  5. **Publication Gate Enforcement**: Public concierge chat checks canonical view `v_publication_eligible_profiles` AND `settings.enabled` (`assertPublicConciergeEligibility`). Unpublished, suspended, unverified, or expired profiles cannot serve concierge chat to public visitors.
+  6. **Layered Safety Filters (Section 15)**: Multi-layer safety engine (`evaluatePreFlightSafety`) blocks minor inquiries (18+ protection) in PT-BR and EN, including written numbers (`dezessete`, `sixteen`) and third-party references, without false positives on legitimate dates, times, or career tenure (`atendo há 17 anos`, `dia 17`, `às 17:00`). Prompt injection defenses refuse jailbreaks, prompt extractions, and role deception attacks.
+  7. **Server Tool Registry & Non-Intermediary Boundary (Sections 16, 17, 18)**: Strict tool execution allowlist with `MAX_TOOL_CALLS_PER_TURN = 3`. Unknown or unapproved tools return safe errors. Concierge tools hold zero authority over bookings, transactions, payments, or contracts; booking attempts trigger the canonical classifieds non-intermediary disclaimer.
+  8. **Bounded Qualification Schema (Section 19)**: Sanitizer (`sanitizeQualification`) strips unapproved or sensitive keys (`cpf`, `address`, `card`, `rg`) and enforces length bounds on lead qualification summaries.
+  9. **Rate Limiting & Abuse Defense (Section 22)**: Per-conversation rate limiting (`LOCAL_BEST_EFFORT`, 20 turns/hour) protects platform compute. Marked with `DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY = false as const`.
+  10. **Inbound Message Retry Idempotency (Section 23)**: Duplicate inbound requests (e.g. network retries within 15 seconds or matching `clientTurnId`) return the existing assistant response without duplicating database rows.
+  11. **DEV Database Table Privileges Audit (Section 28)**: Direct access to all concierge tables (`professional_concierge_settings`, `professional_concierge_faqs`, `concierge_conversations`, `concierge_messages`) is strictly revoked for `anon` and `authenticated` roles in DEV Supabase (`42501 insufficient_privilege`), enforcing server-authoritative `service_role` access only.
+  12. **Real User Retention Policy Decision (Section 29)**: `RETENTION POLICY REQUIRED BEFORE REAL USERS` adopted. Prior to onboarding real end-users, an automated conversation data retention and purge policy must be implemented. All current conversations in DEV are transient test fixtures.
+  13. **LGPD Full Lifecycle Decision (Section 30)**: `LGPD FULL LIFECYCLE = DEFERRED` (Backlog Item J). Full data subject request fulfillment (deletion, export) is scheduled for the pre-GTM compliance audit prior to commercial launch.
+  14. **Roadmap Realignment**: Product Next set authoritatively to `PX4.7 — Velvet App Experience`, followed by `HOSTED DEV APP CHECKPOINT`, followed by `PX6 — AI Concierge + Agenda & Inquiries Integration`.
+- **Verification & Test Coverage**:
+  - Dedicated integrity test suite: `tests/concierge/concierge-integrity-audit.test.ts` (19/19 tests PASS).
+  - All concierge tests: 4 test suites, 44 tests PASS (`tests/concierge/`).
+  - Full project test suite: 183 test files, 1,844 tests PASS (0 failures).
+  - Turbopack production build PASS.
+- **Applied Migrations**: None (existing schema 33/33 validated).
+- **Modules**: `modules/concierge/` (`provider.ts`, `prompt.ts`, `dal.ts`, `runtime.ts`, `rate-limiter.ts`, `constants.ts`, `types.ts`).
+
+### PX4.7 — Velvet App Experience
+- **Status**: **AUTHORITATIVE PRODUCT NEXT (NOT STARTED)**.
+- **Product Value**: Refines and elevates the installed PWA user experience into a seamless, native-feeling app tailored for mobile and standalone use, optimizing layout, gesture navigation, and touch ergonomics across client and professional journeys.
+- **User**: Professional Advertiser & Prospective Client.
+- **Scope**:
+  - Standalone app viewport polishing: persistent bottom navigation bar for installed mobile clients, keyboard avoidance, pull-to-refresh ergonomics, and subtle transition animations.
+  - Role-aware home experience: auto-routing installed professionals directly to `/dashboard` while presenting visitors with the curated mobile discovery experience.
+  - Touch interaction refinement: swipeable carousels, responsive media viewports, tactile touch states (`active:scale-98`), and bottom-sheet drawers.
+  - Notification permission scaffolding: non-intrusive in-app permission primer for future push notifications (Backlog Item G).
+- **Dependencies**: PX4.5 PWA Infrastructure, PX4.6 Install App UX.
+- **Data Model**: None (0 migrations).
+
+### HOSTED DEV APP CHECKPOINT
+- **Status**: **PLANNED GATE (MANDATORY BEFORE PX6)**.
+- **Objective**: Deploy the complete installable application stack (PX4.5 PWA + PX4.6 Install UX + PX4.7 App Experience) to the persistent hosted DEV environment (`https://velvetgirls.club`) and execute mandatory physical device verification.
+- **Validation Gates**:
+  1. **Physical iPhone / iOS Safari**:
+     - "Adicionar à Tela de Início" flow operates correctly with step-by-step guidance.
+     - Standalone icon displays correctly without rendering glitches or black borders.
+     - Launch splash screen, `#3B203F` theme color, and status bar translucency match specification.
+     - Safe area insets (`env(safe-area-inset-*)`) handle dynamic island and home bar smoothly.
+     - Offline fallback page functions when airplane mode is toggled.
+     - Authenticated routes are never cached in Cache Storage.
+  2. **Physical Android / Chromium**:
+     - `beforeinstallprompt` native install banner triggers from in-app CTAs.
+     - Standalone app launch from home screen and app drawer operates without browser chrome.
+     - Android hardware/gesture back button behaves predictably within app boundaries.
+     - Offline fallback page functions correctly under simulated network loss.
+  3. **Verification Sign-Off**: PX6 development is strictly blocked until this physical verification checkpoint is recorded as PASS.
 
 ### PX6 — AI Concierge + Agenda & Inquiries Integration
+- **Status**: **QUEUED (COMMENCES AFTER HOSTED DEV APP CHECKPOINT)**.
 - **Product Value**: Allows the AI Concierge to check real-time availability from PX3/PX4, inform clients of open slots, gather inquiry details, and generate a pre-filled WhatsApp handoff link.
 - **User**: Professional Advertiser & Prospective Client.
 - **Scope**: AI tool/function calling for availability lookup (`check_availability(date)`); pre-qualification inquiry summary; seamless handoff to WhatsApp with formatted conversation context.
