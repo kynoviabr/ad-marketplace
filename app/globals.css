@@ -4384,8 +4384,9 @@ body:has(.profile-detail-page) { overflow-x: clip; }
     color: var(--velvet-espresso, #1F1A18);
   }
 
-  /* Suppress web dashboard header in all standalone window sizes since VelvetAppTopBar handles unified app navigation */
-  .velvet-dashboard-header {
+  /* Suppress web dashboard and onboarding headers in all standalone window sizes since VelvetAppTopBar handles unified app navigation/branding */
+  .velvet-dashboard-header,
+  .onboarding-header {
     display: none !important;
   }
 
@@ -4466,7 +4467,8 @@ body:has(.profile-detail-page) { overflow-x: clip; }
     .velvet-app-main-content,
     .dashboard-container,
     .velvet-client-container,
-    .velvet-dashboard {
+    .velvet-dashboard,
+    .onboarding-shell {
       padding-bottom: calc(68px + max(16px, env(safe-area-inset-bottom))) !important;
     }
   }

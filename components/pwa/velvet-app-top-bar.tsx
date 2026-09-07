@@ -39,6 +39,20 @@ export function VelvetAppTopBar({ role = 'ADVERTISER' }: VelvetAppTopBarProps) {
     sectionTitle = 'Destaques'
   } else if (pathname === '/cliente') {
     sectionTitle = t('client.areaTitle')
+  } else if (pathname.startsWith('/onboarding/voce')) {
+    sectionTitle = t('onboarding.step.you')
+  } else if (pathname.startsWith('/onboarding/seu-perfil') || pathname.startsWith('/onboarding/profile')) {
+    sectionTitle = t('onboarding.step.profile')
+  } else if (pathname.startsWith('/onboarding/onde-atende')) {
+    sectionTitle = t('onboarding.step.locations')
+  } else if (pathname.startsWith('/onboarding/verificacao') || pathname.startsWith('/onboarding/verification')) {
+    sectionTitle = t('onboarding.step.verification')
+  } else if (pathname.startsWith('/onboarding/fotos') || pathname.startsWith('/onboarding/media')) {
+    sectionTitle = t('onboarding.step.photos')
+  } else if (pathname.startsWith('/onboarding/revisar')) {
+    sectionTitle = t('onboarding.step.review')
+  } else if (pathname.startsWith('/onboarding')) {
+    sectionTitle = t('onboarding.step.profile')
   }
 
   // Desktop App Mode navigation items (visible at >= 1024px in standalone)
