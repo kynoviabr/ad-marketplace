@@ -277,8 +277,16 @@ To deliver compelling professional value and establish deep competitive differen
 - **Modules**: `app/app/page.tsx`, `components/pwa/`, `public/sw.js`, `app/manifest.ts`, `lib/i18n/messages/app-mode.ts`, `app/globals.css`.
 
 ### HOSTED DEV APP CHECKPOINT
-- **Status**: **PLANNED GATE (MANDATORY BEFORE PX6)**.
+- **Status**: **AUTOMATED HOSTED VALIDATION PASS (PHYSICAL DEVICE GATE PENDING)**.
+- **Hosted Deployment**: Deployed to persistent hosted DEV environment (`https://velvetgirls.club`, deployment `dpl_EAaqW3LKE4NdFahL85t6NdbwQSTQ`, commit `0c0b02ed65d9f1ed200be7e8789ea768e6efb95d`).
 - **Objective**: Deploy the complete installable application stack (PX4.5 PWA + PX4.6 Install UX + PX4.7 App Experience) to the persistent hosted DEV environment (`https://velvetgirls.club`) and execute mandatory physical device verification.
+- **Automated Validation Results**:
+  - Base routes: 9/9 PASS (`/`, `/app`, `/manifest.webmanifest`, `/sw.js`, `/offline`, `/api/health`, `/login`, `/sao-paulo`, `/sao-paulo/moema`).
+  - Protected route canonical gates: 7/7 PASS (307 redirect to `/login` for anonymous callers).
+  - Service worker security & privacy: `/app`, `/dashboard`, `/api`, `/auth`, and signed media strictly excluded from Cache Storage.
+  - Manifest & icons: `start_url: '/app'`, `display: 'standalone'`, all 4 icon sizes (192, 512, maskable) return HTTP 200.
+  - Public profile: HTTP 200 on eligible profile `/perfil/juliana-sp-7`.
+  - Desktop Standalone Navigation: Fully verified with top bar compact navigation and More sheet trigger.
 - **Validation Gates**:
   1. **Physical iPhone / iOS Safari**:
      - "Adicionar à Tela de Início" flow operates correctly with step-by-step guidance.
@@ -434,5 +442,6 @@ Executed only **after** the GTM Ready Gate is achieved:
   - **PX5 — AI Concierge Foundation**: **COMPLETE (100% RESOLVED IN DEV)**.
   - **PX5.1 — AI Concierge Integrity Audit & Security Gates**: **COMPLETE (100% RESOLVED IN DEV)**.
   - **PX4.7 — Velvet App Experience**: **IMPLEMENTATION COMPLETE (AWAITING PHYSICAL DEVICE VERIFICATION)**.
-- **Operational Next**: **HOSTED DEV APP CHECKPOINT** (Deploy complete PWA app stack to hosted DEV at `https://velvetgirls.club`, verify physical iPhone Safari + physical Android Chromium).
-- **Product Next (after Checkpoint)**: **PX6 — AI Concierge + Agenda & Inquiries Integration**.
+- **Current Gate**: **HOSTED DEV APP CHECKPOINT — AUTOMATED PASS (PHYSICAL APP GATE PENDING)**.
+- **Next Action**: Complete Physical App Gate (real iPhone Safari + real Android Chromium verification).
+- **Product Next (after Physical Gate)**: **PX6 — AI Concierge + Agenda & Inquiries Integration** (`PX6 SAFE TO START = NO` until physical gate signed off).
