@@ -91,10 +91,33 @@ export function VerificationStatusCard({ initialVerification, initialVerifiedAdu
         </div>
       )}
 
-      {['PENDING', 'IN_PROGRESS', 'IN_REVIEW'].includes(status) && (
+      {['PENDING', 'IN_PROGRESS'].includes(status) && (
         <div className="verification-state">
-          <h2 id="verification-panel-title">{t('verification.inProgress')}</h2>
-          <p>{status === 'IN_REVIEW' ? t('verification.underReview') : t('verification.finishExternal')}</p>
+          <h2 id="verification-panel-title">{t('verification.continueTitle')}</h2>
+          <p>{t('verification.finishExternal')}</p>
+          <div className="verification-actions">
+            <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
+              {isPending ? t('verification.preparing') : t('verification.continueVerification')}<span aria-hidden="true">↗</span>
+            </button>
+            <Link href="/onboarding/revisar" className="verification-secondary-action">
+              {t('verification.reviewProfile')}
+            </Link>
+            <button type="button" className="verification-tertiary-action" onClick={refreshStatus} disabled={isPending}>
+              {isPending ? t('verification.checking') : t('verification.refresh')}<span aria-hidden="true">↻</span>
+            </button>
+          </div>
+          <div className="onboarding-nav-back">
+            <Link href="/onboarding/onde-atende" className="onboarding-secondary">
+              ← {t('common.back')}
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {status === 'IN_REVIEW' && (
+        <div className="verification-state">
+          <h2 id="verification-panel-title">{t('verification.underReviewTitle')}</h2>
+          <p>{t('verification.underReview')}</p>
           <div className="verification-actions">
             <button type="button" className="onboarding-primary" onClick={refreshStatus} disabled={isPending}>
               {isPending ? t('verification.checking') : t('verification.refresh')}<span aria-hidden="true">↻</span>
@@ -129,10 +152,30 @@ export function VerificationStatusCard({ initialVerification, initialVerifiedAdu
         </div>
       )}
 
-      {((status === 'VERIFIED' && !verifiedAdult) || status === 'REJECTED' || status === 'EXPIRED') && (
+      {status === 'EXPIRED' && (
         <div className="verification-state">
-          <h2 id="verification-panel-title">{status === 'EXPIRED' ? t('verification.expired') : t('verification.failed')}</h2>
-          <p>{status === 'EXPIRED' ? t('verification.expiredText') : t('verification.failedText')}</p>
+          <h2 id="verification-panel-title">{t('verification.expired')}</h2>
+          <p>{t('verification.expiredText')}</p>
+          <div className="verification-actions">
+            <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
+              {isPending ? t('verification.preparing') : t('verification.startNew')}<span aria-hidden="true">↗</span>
+            </button>
+            <Link href="/onboarding/revisar" className="verification-secondary-action">
+              {t('verification.reviewProfile')}
+            </Link>
+          </div>
+          <div className="onboarding-nav-back">
+            <Link href="/onboarding/onde-atende" className="onboarding-secondary">
+              ← {t('common.back')}
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {((status === 'VERIFIED' && !verifiedAdult) || status === 'REJECTED') && (
+        <div className="verification-state">
+          <h2 id="verification-panel-title">{t('verification.failed')}</h2>
+          <p>{t('verification.failedText')}</p>
           <div className="verification-actions">
             <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
               {isPending ? t('verification.preparing') : t('verification.retry')}<span aria-hidden="true">↗</span>

@@ -4830,6 +4830,33 @@ body:has(.profile-detail-page) { overflow-x: clip; }
   background: #F3EFE8;
 }
 
+.verification-tertiary-action {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--velvet-muted, #736965);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.verification-tertiary-action:hover:not(:disabled) {
+  color: var(--velvet-aubergine-deep, #3B203F);
+}
+
+.verification-tertiary-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .onboarding-nav-back,
 .review-actions-back {
   margin-top: 12px;
