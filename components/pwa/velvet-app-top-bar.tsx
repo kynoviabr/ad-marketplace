@@ -1,11 +1,12 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LanguageSelector } from '@/components/i18n'
 import { logoutAction } from '@/modules/auth/actions'
 import { useI18n } from '@/components/i18n/i18n-provider'
+import { VelvetAppMoreSheet } from './velvet-app-more-sheet'
 
 interface VelvetAppTopBarProps {
   role?: 'ADVERTISER' | 'CLIENT' | 'ADMIN' | null
@@ -14,6 +15,7 @@ interface VelvetAppTopBarProps {
 export function VelvetAppTopBar({ role = 'ADVERTISER' }: VelvetAppTopBarProps) {
   const pathname = usePathname() || ''
   const { t } = useI18n()
+  const [isMoreOpen, setIsMoreOpen] = useState(false)
 
   const homeHref = role === 'CLIENT' ? '/cliente' : role === 'ADMIN' ? '/admin' : '/dashboard'
 
@@ -39,6 +41,35 @@ export function VelvetAppTopBar({ role = 'ADVERTISER' }: VelvetAppTopBarProps) {
     sectionTitle = t('client.areaTitle')
   }
 
+  // Desktop App Mode navigation items (visible at >= 1024px in standalone)
+  interface DesktopNavItem {
+    href: string
+    label: string
+    isActive: boolean
+  }
+
+  const desktopNavItems: DesktopNavItem[] = []
+  if (role === 'ADVERTISER') {
+    desktopNavItems.push(
+      { href: '/dashboard', label: t('app.nav.home'), isActive: pathname === '/dashboard' },
+      { href: '/dashboard/analytics', label: t('app.nav.analytics'), isActive: pathname.startsWith('/dashboard/analytics') },
+      { href: '/dashboard/availability', label: t('app.nav.availability'), isActive: pathname.startsWith('/dashboard/availability') },
+      { href: '/dashboard/concierge', label: t('app.nav.concierge'), isActive: pathname.startsWith('/dashboard/concierge') }
+    )
+  } else if (role === 'CLIENT') {
+    desktopNavItems.push(
+      { href: '/', label: t('app.nav.explore'), isActive: pathname === '/' },
+      { href: '/?buscar=1', label: t('app.nav.search'), isActive: pathname === '/?buscar=1' },
+      { href: '/cliente', label: t('app.nav.account'), isActive: pathname === '/cliente' }
+    )
+  } else if (role === 'ADMIN') {
+    desktopNavItems.push(
+      { href: '/admin', label: 'Painel', isActive: pathname === '/admin' },
+      { href: '/admin/reports', label: 'Denúncias', isActive: pathname.startsWith('/admin/reports') },
+      { href: '/admin/moderation', label: 'Moderação', isActive: pathname.startsWith('/admin/moderation') }
+    )
+  }
+
   return (
     <header className="velvet-app-top-bar velvet-app-only">
       <div className="velvet-app-top-bar-left">
@@ -52,6 +83,36 @@ export function VelvetAppTopBar({ role = 'ADVERTISER' }: VelvetAppTopBarProps) {
           </>
         ) : null}
       </div>
+
+      {desktopNavItems.length > 0 ? (
+        <nav className="velvet-app-top-bar-nav" aria-label={t('dashboard.navigation')}>
+          {desktopNavItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`velvet-app-top-nav-link ${item.isActive ? 'active' : ''}`}
+              aria-current={item.isActive ? 'page' : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={() => setIsMoreOpen(true)}
+            className={`velvet-app-top-nav-link velvet-app-top-nav-more-btn ${isMoreOpen ? 'active' : ''}`}
+            aria-haspopup="dialog"
+            aria-expanded={isMoreOpen}
+            aria-label={t('app.nav.more')}
+          >
+            <span>{t('app.nav.more')}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="19" cy="12" r="1" />
+              <circle cx="5" cy="12" r="1" />
+            </svg>
+          </button>
+        </nav>
+      ) : null}
 
       <div className="velvet-app-top-bar-right">
         <LanguageSelector compact />
@@ -72,6 +133,8 @@ export function VelvetAppTopBar({ role = 'ADVERTISER' }: VelvetAppTopBarProps) {
           </form>
         ) : null}
       </div>
+
+      <VelvetAppMoreSheet isOpen={isMoreOpen} onClose={() => setIsMoreOpen(false)} role={role} />
     </header>
   )
 }

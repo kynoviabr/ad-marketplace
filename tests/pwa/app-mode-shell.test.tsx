@@ -163,6 +163,29 @@ describe('PX4.7 — Velvet App Mode Experience & Standalone Shell', () => {
       expect(markup).not.toContain('notification')
       expect(markup).not.toContain('badge')
     })
+
+    it('renders compact desktop standalone navigation links for ADVERTISER (Section 3)', () => {
+      vi.mocked(nextNavigation.usePathname).mockReturnValue('/dashboard')
+      const markup = renderWithI18n(createElement(VelvetAppTopBar, { role: 'ADVERTISER' }))
+
+      expect(markup).toContain('velvet-app-top-bar-nav')
+      expect(markup).toContain('href="/dashboard"')
+      expect(markup).toContain('href="/dashboard/analytics"')
+      expect(markup).toContain('href="/dashboard/availability"')
+      expect(markup).toContain('href="/dashboard/concierge"')
+      expect(markup).toContain('velvet-app-top-nav-more-btn')
+    })
+
+    it('renders compact desktop standalone navigation links for CLIENT (Section 3)', () => {
+      vi.mocked(nextNavigation.usePathname).mockReturnValue('/cliente')
+      const markup = renderWithI18n(createElement(VelvetAppTopBar, { role: 'CLIENT' }))
+
+      expect(markup).toContain('velvet-app-top-bar-nav')
+      expect(markup).toContain('href="/"')
+      expect(markup).toContain('href="/?buscar=1"')
+      expect(markup).toContain('href="/cliente"')
+      expect(markup).toContain('velvet-app-top-nav-more-btn')
+    })
   })
 
   describe('5. Role-Aware /app Launcher (Sections 9, 42, 43, 44, 45)', () => {

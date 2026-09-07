@@ -4384,6 +4384,11 @@ body:has(.profile-detail-page) { overflow-x: clip; }
     color: var(--velvet-espresso, #1F1A18);
   }
 
+  /* Suppress web dashboard header in all standalone window sizes since VelvetAppTopBar handles unified app navigation */
+  .velvet-dashboard-header {
+    display: none !important;
+  }
+
   /* Fixed Bottom Navigation (Mobile & Tablet) */
   .velvet-app-bottom-nav {
     display: flex !important;
@@ -4405,25 +4410,64 @@ body:has(.profile-detail-page) { overflow-x: clip; }
     box-shadow: 0 -4px 20px rgba(33, 27, 25, 0.04);
   }
 
-  /* Hide bottom nav on large desktop standalone windows (>= 1024px) */
+  /* Desktop Standalone Navigation (>= 1024px) */
   @media (min-width: 1024px) {
     .velvet-app-bottom-nav {
       display: none !important;
     }
+
+    .velvet-app-top-bar-nav {
+      display: flex !important;
+      align-items: center;
+      gap: 12px;
+      margin: 0 16px;
+    }
+
+    .velvet-app-top-nav-link {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--velvet-muted, #736B63);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+
+    .velvet-app-top-nav-link:hover {
+      color: var(--velvet-espresso, #1F1A18);
+      background: rgba(59, 32, 63, 0.05);
+    }
+
+    .velvet-app-top-nav-link.active,
+    .velvet-app-top-nav-link[aria-current="page"] {
+      color: var(--velvet-espresso, #1F1A18);
+      font-weight: 600;
+      background: rgba(59, 32, 63, 0.08);
+    }
+
+    .velvet-app-top-nav-more-btn {
+      color: var(--velvet-muted, #736B63);
+    }
   }
 
-  /* Content bottom padding in App Mode so bottom nav doesn't overlap scrollable elements */
+  /* Content bottom padding in Mobile/Tablet App Mode so bottom nav doesn't overlap scrollable elements */
   @media (max-width: 1023px) {
+    .velvet-app-top-bar-nav {
+      display: none !important;
+    }
+
     .velvet-app-main-content,
     .dashboard-container,
     .velvet-client-container,
     .velvet-dashboard {
       padding-bottom: calc(68px + max(16px, env(safe-area-inset-bottom))) !important;
-    }
-
-    /* Suppress web dashboard header on mobile standalone since App Top Bar & Bottom Nav handle navigation */
-    .velvet-dashboard-header {
-      display: none !important;
     }
   }
 }
