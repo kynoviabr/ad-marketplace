@@ -454,9 +454,13 @@ Executed only **after** the GTM Ready Gate is achieved:
     - *Reversible Onboarding*: Stepper now renders completed steps as interactive links; explicit Back CTA (`← Voltar`) on all steps after the first; non-blocking KYC with clear age-verification lead notice and review affordance (`Voltar e revisar meu perfil`).
     - *Quiet Top Bar & More Sheet Language Switcher*: Removed persistent PT/EN toggle from header; added quiet top bar menu button; integrated native segmented language switcher pills (`Português` / `English`) with cookie persistence and path localization in `VelvetAppMoreSheet`.
     - *Summary-First Profile UX & Reduced Density*: In standalone App Mode, profile editing defaults to 7 structured cards with formatted values (`Sim` / `Não` / `Não informado`) and focused section-by-section editing.
+  - **PX4.8.1 — KYC / Didit Entry & Resume Flow Correction**: **COMPLETE (100% IMPLEMENTED & AUTOMATED PASS ON HOSTED DEV)**.
+    - *Actionable Verification Flow*: Eliminated dead-end in `VerificationStatusCard.tsx` where active sessions (`PENDING` / `IN_PROGRESS`) only displayed "Atualizar status". Added primary CTA `Continuar verificação` (initiating/resuming session via `startVerificationAction`) and secondary `Voltar e revisar meu perfil`, with `Atualizar status` preserved as a tertiary action (`.verification-tertiary-action`).
+    - *Server Action Resumption & In-Memory Deduplication*: Refactored `startVerificationAction()` and `resumeVerificationAction()` to allow continuing `PENDING` and `IN_PROGRESS` verification without throwing `"Sua verificação já está em andamento"`. Added 15-minute in-memory cache and in-flight promise deduplication against rapid double-clicks.
+    - *Truthful State Separation & Labels*: Decoupled `IN_REVIEW` ("Verificação em análise") from `PENDING` ("Aguardando conclusão") and `EXPIRED` ("Sessão expirada"). Aligned all 7 verification status labels and localized helper copy in PT-BR and EN.
 - **Current Gate**: **HOSTED DEV APP CHECKPOINT — AUTOMATED PASS (PHYSICAL APP GATE PENDING)**.
 - **Physical Device Gate**:
-  - Real iPhone Safari PWA: Retest required for PX4.8 UX consolidation. Real Didit physical verification flow remains PENDING.
+  - Real iPhone Safari PWA: Retest required for PX4.8 UX consolidation + PX4.8.1 Didit entry & resume flow correction. Real Didit physical verification flow remains PENDING.
   - Real Android Chromium PWA: PENDING.
 - **VELVET APP EXPERIENCE RELEASE-VERIFIED**: **NO** (Physical Device Gate required).
 - **PX6 SAFE TO START**: **NO** (Physical Device Gate must complete first).
