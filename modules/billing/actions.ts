@@ -132,12 +132,26 @@ export async function grantFounderBenefitAction(
 
     const periodEnd = new Date()
     periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 3)
-    const result = await createFounderFreeLaunch({ accountUserId: target.account_user_id, grantedBy: adminAccount.id, periodEnd: periodEnd.toISOString() })
-    if (result.success) {
-      await admin.from('billing_admin_audit_logs').insert({ actor_account_user_id: adminAccount.id, target_account_user_id: target.account_user_id, action: 'FOUNDER_GRANTED', subject_id: result.data.id, metadata: { profile_id: target.id } })
-      revalidatePath('/admin/billing')
+
+    // Atomic RPC admin_grant_founder_benefit creates subscription and audit log entry (action: 'FOUNDER_GRANTED')
+    const { data: rpcResult, error: rpcError } = await admin.rpc('admin_grant_founder_benefit', {
+      p_actor_account_user_id: adminAccount.id,
+      p_profile_id: validated.data.profileId,
+    })
+
+    if (rpcError) {
+      return { success: false, error: rpcError.message || 'Falha ao conceder benefício Founder.' }
     }
-    return result
+
+    const subId = (rpcResult as any)?.subscription_id
+    const { data: sub } = await admin
+      .from('subscriptions')
+      .select('*')
+      .eq('id', subId)
+      .single()
+
+    revalidatePath('/admin/billing')
+    return { success: true, data: sub as Subscription }
   } catch (err) {
     console.error('[billing:founderGrant] Error:', err instanceof Error ? err.message : err)
     return { success: false, error: 'Ocorreu um erro ao conceder o benefício Founder.' }
@@ -150,15 +164,17 @@ export async function revokeFounderBenefitAction(input: RevokeFounderBenefitInpu
     const validated = RevokeFounderBenefitSchema.safeParse(input)
     if (!validated.success) return { success: false, error: 'Perfil inválido.' }
     const admin = createAdminClient()
-    const { data: profile } = await admin.from('professional_profiles').select('id, account_user_id').eq('id', validated.data.profileId).maybeSingle()
-    if (!profile) return { success: false, error: 'Perfil profissional não encontrado.' }
-    const { data: subscriptions } = await admin.from('subscriptions').select('id, plan:subscription_plans!inner(code)').eq('account_user_id', profile.account_user_id).in('status', ['ACTIVE', 'PAST_DUE', 'GRACE_PERIOD', 'INCOMPLETE'])
-    const founder = (subscriptions ?? []).find((item: any) => (Array.isArray(item.plan) ? item.plan[0] : item.plan)?.code === 'FOUNDER')
-    if (!founder) return { success: false, error: 'Benefício Founder ativo não encontrado.' }
-    const now = new Date().toISOString()
-    const { error } = await admin.from('subscriptions').update({ status: 'EXPIRED', subscription_state: 'EXPIRED', canceled_at: now, cancellation_reason: 'ADMIN_FOUNDER_REVOKED', updated_at: now }).eq('id', founder.id)
-    if (error) return { success: false, error: 'Não foi possível revogar o benefício Founder.' }
-    await admin.from('billing_admin_audit_logs').insert({ actor_account_user_id: adminAccount.id, target_account_user_id: profile.account_user_id, action: 'FOUNDER_REVOKED', subject_id: founder.id, metadata: { profile_id: profile.id } })
+
+    // Atomic RPC admin_revoke_founder_benefit revokes subscription and audit log entry (action: 'FOUNDER_REVOKED')
+    const { error: rpcError } = await admin.rpc('admin_revoke_founder_benefit', {
+      p_actor_account_user_id: adminAccount.id,
+      p_profile_id: validated.data.profileId,
+    })
+
+    if (rpcError) {
+      return { success: false, error: rpcError.message || 'Não foi possível revogar o benefício Founder.' }
+    }
+
     revalidatePath('/admin/billing')
     return { success: true, data: undefined }
   } catch (err) {

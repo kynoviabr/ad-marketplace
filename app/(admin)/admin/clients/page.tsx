@@ -39,19 +39,18 @@ export default async function AdminClientsPage() {
     const current = membership?.membership_type ?? 'FREE'
     const newType = current === 'VIP' ? 'FREE' : 'VIP'
     
-    if (newType === 'VIP') {
-      await adminClient.from('client_memberships').upsert({ account_id: accountId, membership_type: 'VIP' })
-    } else {
-      await adminClient.from('client_memberships').upsert({ account_id: accountId, membership_type: 'FREE' })
-    }
-    
-    // Audit admin changes
-    await adminClient.from('billing_admin_audit_logs').insert({
-      actor_account_user_id: adminAccount.id,
-      target_account_user_id: accountId,
-      action: newType === 'VIP' ? 'ENTITLEMENT_OVERRIDE_GRANTED' : 'ENTITLEMENT_OVERRIDE_REVOKED',
-      metadata: { override_type: 'VIP_MEMBERSHIP' }
+    // Atomic mutation + audit log via PostgreSQL RPC (PX7 / Backlog Item B)
+    // Audited as actor_account_user_id: adminAccount.id and target_account_user_id: accountId
+    const { error: rpcError } = await adminClient.rpc('admin_toggle_client_vip', {
+      p_actor_account_user_id: adminAccount.id,
+      p_target_account_user_id: accountId,
+      p_membership_type: newType,
     })
+
+    if (rpcError) {
+      throw new Error(`Falha ao alterar VIP: ${rpcError.message}`)
+    }
+
     revalidatePath('/admin/clients')
   }
 

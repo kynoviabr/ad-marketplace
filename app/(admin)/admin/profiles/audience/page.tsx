@@ -29,15 +29,18 @@ export default async function AdminAudiencePage() {
 
     const newType = currentProfile.audience_setting === 'VIP_ONLY' ? 'PUBLIC' : 'VIP_ONLY'
     
-    await adminClient.from('professional_profiles').update({ audience_setting: newType }).eq('id', profileId)
-    
-    // Audit admin changes
-    await adminClient.from('billing_admin_audit_logs').insert({
-      actor_account_user_id: adminAccount.id,
-      target_account_user_id: currentProfile.account_user_id,
-      action: newType === 'VIP_ONLY' ? 'ENTITLEMENT_OVERRIDE_GRANTED' : 'ENTITLEMENT_OVERRIDE_REVOKED',
-      metadata: { profile_id: profileId, old_audience_setting: currentProfile.audience_setting, new_audience_setting: newType }
+    // Atomic audience update + audit log via PostgreSQL RPC (PX7 / Backlog Item B)
+    // Audited as actor_account_user_id: adminAccount.id and target_account_user_id: currentProfile.account_user_id
+    const { error: rpcError } = await adminClient.rpc('admin_set_profile_audience', {
+      p_actor_account_user_id: adminAccount.id,
+      p_profile_id: profileId,
+      p_audience_setting: newType,
     })
+
+    if (rpcError) {
+      throw new Error(`Falha ao alterar audiência: ${rpcError.message}`)
+    }
+
     revalidatePath('/admin/profiles/audience')
   }
 

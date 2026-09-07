@@ -12,38 +12,13 @@ import {
   updateAvailabilitySettings,
 } from './dal'
 import { getLocalDateInTimezone, isValidIanaTimezone } from './engine'
+import { assertProfileOwnership } from '@/modules/profiles/guards'
 import type { AvailabilityException, AvailabilitySettings, DayOfWeek, WeeklyAvailabilityRule } from './types'
 
 export interface AgendaActionResult<T = void> {
   success: boolean
   data?: T
   error?: string
-}
-
-/**
- * Asserts that the authenticated caller owns the target professional profile,
- * or possesses the ADMIN role. Throws or returns an error otherwise.
- */
-async function assertProfileOwnership(profileId: string): Promise<{ accountId: string; isAdmin: boolean }> {
-  const account = await requireAccount()
-  const isAdmin = account.role === 'ADMIN'
-
-  if (isAdmin) {
-    return { accountId: account.id, isAdmin: true }
-  }
-
-  const admin = createAdminClient()
-  const { data: profile, error } = await admin
-    .from('professional_profiles')
-    .select('id, account_user_id')
-    .eq('id', profileId)
-    .maybeSingle()
-
-  if (error || !profile || profile.account_user_id !== account.id) {
-    throw new Error('Não autorizado: você não possui permissão para gerenciar esta agenda.')
-  }
-
-  return { accountId: account.id, isAdmin: false }
 }
 
 /**

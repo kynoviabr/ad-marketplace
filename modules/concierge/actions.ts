@@ -17,6 +17,8 @@ import {
   updateConversationStatus,
   updateProfessionalInquiryStatus,
 } from './dal'
+import { assertProfileOwnership } from '@/modules/profiles/guards'
+import { isDistributedRateLimited } from '@/modules/security/rate-limiter'
 import { isWebPublicConciergeReady } from './gate'
 import { processConciergeTurn } from './runtime'
 import type {
@@ -35,28 +37,6 @@ export interface ConciergeActionResult<T = void> {
   success: boolean
   data?: T
   error?: string
-}
-
-async function assertProfileOwnership(profileId: string): Promise<{ accountId: string; isAdmin: boolean }> {
-  const account = await requireAccount()
-  const isAdmin = account.role === 'ADMIN'
-
-  if (isAdmin) {
-    return { accountId: account.id, isAdmin: true }
-  }
-
-  const admin = createAdminClient()
-  const { data: profile, error } = await admin
-    .from('professional_profiles')
-    .select('id, account_user_id')
-    .eq('id', profileId)
-    .maybeSingle()
-
-  if (error || !profile || profile.account_user_id !== account.id) {
-    throw new Error('Não autorizado: você não possui permissão para gerenciar este concierge.')
-  }
-
-  return { accountId: account.id, isAdmin: false }
 }
 
 export async function updateConciergeSettingsAction(
@@ -287,10 +267,29 @@ export async function sendPublicChatMessageAction(
       return { success: false, error: 'Sessão de visitante inválida.' }
     }
 
+    const trimmed = (message || '').trim()
+    if (!trimmed) {
+      return { success: false, error: 'Mensagem não pode ser vazia.' }
+    }
+
+    // Distributed Rate Limit: max 40 turns per hour per visitor session (fail-closed)
+    const isSessionLimited = await isDistributedRateLimited(
+      `concierge:session:${visitorSessionId}`,
+      40,
+      3600,
+      { failClosed: true }
+    )
+    if (isSessionLimited) {
+      return {
+        success: false,
+        error: 'Limite de mensagens atingido. Por favor, aguarde alguns minutos.',
+      }
+    }
+
     const conversation = await getOrCreateConversation(profileId, visitorSessionId, 'WEB_PUBLIC', false)
     const result = await processConciergeTurn({
       conversation,
-      visitorMessage: message,
+      visitorMessage: trimmed,
       isTest: false,
     })
 

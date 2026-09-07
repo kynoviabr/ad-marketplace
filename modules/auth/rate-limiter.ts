@@ -11,8 +11,9 @@
  * For multi-instance production deployments, replace with a Redis/KV adapter.
  */
 import { createHmac } from 'node:crypto'
+import { isDistributedRateLimited } from '@/modules/security/rate-limiter'
 
-export const DISTRIBUTED_AUTH_RATE_LIMITING_READY = false as const
+export const DISTRIBUTED_AUTH_RATE_LIMITING_READY = true as const
 
 // Limits per IP-derived key per window
 export const AUTH_RATE_LIMITS = {
@@ -62,6 +63,18 @@ export function isAuthRateLimited(
 
   record.count += 1
   return false
+}
+
+/**
+ * Distributed rate limit check for auth endpoints across all instances.
+ */
+export async function isAuthDistributedRateLimited(
+  derivedKey: string,
+  action: keyof typeof AUTH_RATE_LIMITS
+): Promise<boolean> {
+  const { limit, windowSeconds } = AUTH_RATE_LIMITS[action]
+  const storeKey = `auth:${action}:${derivedKey}`
+  return isDistributedRateLimited(storeKey, limit, windowSeconds, { failClosed: false })
 }
 
 /** Test helper: reset all rate limit state. */

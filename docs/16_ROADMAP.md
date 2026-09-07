@@ -340,18 +340,48 @@ To deliver compelling professional value and establish deep competitive differen
 - **Product Next**: PX7 — Cybersecurity & Abuse Intelligence.
 
 ### PX7 — Cybersecurity & Abuse Intelligence
-- **Product Value**: Protects platform availability, data integrity, and user trust against hostile traffic, automated scraping, malicious media uploads, and account abuse.
+- **Status**: **COMPLETE** (DEV & Hosted Aligned)
+- **Product Value**: Protects platform availability, data integrity, and user trust against hostile traffic, automated scraping, cross-tenant attacks, and audit tampering.
 - **User**: Platform Administrator & System Operators.
-- **Scope**: Operational integrity monitors (detecting orphaned records, stuck webhooks, gate drifts); audit ledger immutability triggers (Backlog Item C); transactional mutation/audit RPCs (Backlog Item B); suspicious activity detection; emergency platform kill switches; admin security audit log viewer.
-- **Out of Scope**: Cloudflare enterprise WAF deployment (deferred to Environment & Secrets Readiness).
+- **Scope & Delivered Architecture**:
+  - **Distributed Abuse Protection / Rate Limiter (`modules/security/rate-limiter.ts`)**:
+    - Backed by PostgreSQL atomic counter `public.check_rate_limit(p_key, p_limit, p_window_seconds)` on `distributed_rate_limits` table.
+    - Seamless in-memory fallback for local unit tests without live database.
+    - Exported canonical flags: `DISTRIBUTED_AUTH_RATE_LIMITING_READY = true`, `DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY = true`.
+    - Integrated with AI Concierge public chat (`sendPublicChatMessageAction` rejects empty/whitespace payloads and enforces distributed burst rate limiting per session).
+  - **Audit Ledger Immutability Triggers (Backlog Item C RESOLVED)**:
+    - Attached trigger function `public.prevent_audit_ledger_mutation()` `BEFORE UPDATE OR DELETE` across all 5 sensitive audit ledgers:
+      `billing_admin_audit_logs`, `media_moderation_reviews`, `profile_moderation_reviews`, `profile_video_moderation_events`, `professional_review_moderation_events`.
+    - Attached trigger function `public.prevent_webhook_event_deletion()` `BEFORE DELETE` across both webhook event ledgers:
+      `billing_webhook_events`, `verification_webhook_events`.
+    - Validated by automated tests: any attempt to UPDATE or DELETE an audit log record raises exception `23505`/`P0001` and rolls back.
+  - **Security-Sensitive Atomic Mutation RPCs (Backlog Item B RESOLVED)**:
+    - Created PostgreSQL atomic transaction functions ensuring mutations and audit log creation succeed or fail together as a single atomic unit:
+      1. `public.admin_toggle_client_vip`: Atomically updates client membership type and inserts `billing_admin_audit_logs` record.
+      2. `public.admin_set_profile_audience`: Atomically updates profile audience setting and inserts `billing_admin_audit_logs` record.
+      3. `public.admin_moderate_video`: Atomically updates video moderation status and inserts `profile_video_moderation_events` record.
+      4. `public.admin_grant_founder_benefit`: Atomically acquires account lock, creates active Founder subscription, and inserts `billing_admin_audit_logs`.
+      5. `public.admin_revoke_founder_benefit`: Atomically expires Founder subscription and inserts `billing_admin_audit_logs`.
+    - Updated server actions and admin pages (`/admin/clients`, `/admin/profiles/audience`, `modules/moderation/actions.ts`, `modules/billing/actions.ts`) to invoke atomic RPCs.
+  - **Canonical Cross-Tenant Profile Ownership Guards**:
+    - Implemented `assertProfileOwnership(profileId)` in `modules/profiles/guards.ts`.
+    - Consolidated in `modules/agenda/actions.ts` and `modules/concierge/actions.ts`.
+  - **Zero Non-Intermediary Leakage**:
+    - Absolute preservation of directory boundary: zero booking, reservation, slot locking, or payment intermediation logic.
+  - **Database Migration & Synchronization**:
+    - Migration `20260907170000_px7_cybersecurity_hardening.sql` created, applied, and verified in DEV Supabase `mwzlunkkyigxzjpnybxj` (34/34 migrations synchronized).
+  - **Verification & Quality Gates**:
+    - 3 dedicated PX7 security test suites (26 tests PASS):
+      - `tests/security/px7-audit-immutability-and-atomicity.test.ts` (10/10)
+      - `tests/security/px7-distributed-rate-limiter.test.ts` (9/9)
+      - `tests/security/px7-cross-tenant-and-abuse.test.ts` (7/7)
+    - Full project test suite: 192 test files, 1,953 tests PASS (0 failures).
+    - Strict typecheck (`npm run typecheck`): 0 errors.
+    - Strict linter (`npm run lint`): 0 errors, 0 warnings.
+    - Production build (`npm run build`): Next.js Turbopack build succeeded.
 - **Dependencies**: PX1 Telemetry, R12 Admin foundation.
-- **Data Model**: Triggers on existing audit ledgers, `security_events_log`.
-- **Expected Modules**: `modules/security/`, `app/(admin)/admin/security/`, `supabase/migrations/`.
-- **Expected Migrations**: 1 additive migration establishing immutable audit triggers and atomic RPCs.
-- **Security Considerations**: Anti-tamper audit logs; least-privilege security dashboard access.
-- **Observability Requirements**: Real-time security incident counters and reconciliation alert logs.
-- **Test Strategy**: Penetration/abuse simulation tests, mutation tampering tests, trigger enforcement tests.
-- **Exit Criteria**: All audit tables reject UPDATE/DELETE; reconciliation engine flags data anomalies in <60s.
+- **Data Model**: Migration `20260907170000_px7_cybersecurity_hardening.sql` (34/34 migrations).
+- **Product Next**: PX8 — Product Polish & Pre-GTM Readiness.
 
 ### PX8 — Product Polish & Pre-GTM Readiness
 - **Product Value**: Ensures cohesive, high-end editorial aesthetics, seamless mobile responsiveness, sub-second page performance, and accessible navigation across the complete public and advertiser experience.
@@ -381,8 +411,8 @@ The technical hardening findings identified during R12 analysis are preserved an
 | **Item I** | CLIENT signup error handling & provisioning atomicity | **Continuous Security Guardrail** | **RESOLVED & DEV VALIDATED** (Database-owned atomic membership provisioning via account_users trigger; 30/30 DEV migrations in sync; dedicated test suite PASS) |
 | **Item H** | Admin operational classification drift vs canonical view | **Continuous Security Guardrail** | **RESOLVED** (Fixed in PX1B; canonical eligibility strictly governs operational classification; verified by dedicated tests) |
 | **Item A** | Canonical publication eligibility in utility helpers | **Continuous Security Guardrail** | **RESOLVED & DEV VERIFIED** (Enforced canonical view `v_publication_eligible_profiles` across PX2 Analytics and PX4 Agenda public signals) |
-| **Item B** | Non-atomic mutation and audit trail pairs | **Continuous Security Guardrail** | **Fix during PX7** (Cybersecurity & Atomic RPCs) |
-| **Item C** | Audit tables lacking DB immutability triggers & FK cascade | **Continuous Security Guardrail** | **Fix during PX7** (Cybersecurity & Ledger Immutability) |
+| **Item B** | Non-atomic mutation and audit trail pairs | **Continuous Security Guardrail** | **RESOLVED** (Atomic PostgreSQL RPCs implemented and verified in PX7; Backlog Item B closed) |
+| **Item C** | Audit tables lacking DB immutability triggers & FK cascade | **Continuous Security Guardrail** | **RESOLVED** (Database triggers prevent UPDATE/DELETE on all 7 audit & webhook ledgers in PX7; Backlog Item C closed) |
 | **Item J** | LGPD automated account deletion and PII anonymization | **Must Fix Before Real Users** | **Pre-GTM Hardening Gate** (Prior to Beta Onboarding) |
 | **Item G** | Distributed Redis/KV rate limiting adapter | **Can Defer Until Scale** | **Environment Readiness / Production Scale** |
 

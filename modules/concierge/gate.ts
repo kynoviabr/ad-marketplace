@@ -15,6 +15,7 @@
 
 import 'server-only'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY } from './rate-limiter'
 
 export interface PublicConciergeReadinessResult {
   ready: boolean
@@ -39,8 +40,9 @@ export async function isWebPublicConciergeReady(
     reasons.push('RETENTION_POLICY_NOT_APPROVED')
   }
 
-  // Gate 3: Distributed Rate Limiting Readiness (Section 36)
-  const distributedRateLimitReady = process.env.DISTRIBUTED_RATE_LIMIT_READY === 'true'
+  // Gate 3: Distributed Rate Limiting Readiness (PX7 / Section 36)
+  const distributedRateLimitReady =
+    DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY && process.env.DISTRIBUTED_RATE_LIMIT_READY === 'true'
   if (!distributedRateLimitReady) {
     reasons.push('DISTRIBUTED_RATE_LIMIT_NOT_READY')
   }

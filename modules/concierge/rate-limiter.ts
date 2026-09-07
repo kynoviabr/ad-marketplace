@@ -1,14 +1,12 @@
 /**
- * Concierge Rate Limiter — PX5.1 Integrity Hardening
+ * Concierge Rate Limiter — PX7 Cybersecurity & Abuse Intelligence
  *
- * Operational Mode: LOCAL_BEST_EFFORT (in-memory)
- * NOT globally distributed across multiple instances.
- *
- * PRE-PRODUCTION BLOCKER: DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY = false
- * For multi-instance horizontal scaling, replace with a Redis/KV adapter.
+ * Operational Mode: DISTRIBUTED_ATOMIC (PostgreSQL RPC + in-memory fast-path)
+ * Enforced across all Next.js serverless instances.
  */
+import { isDistributedRateLimited } from '@/modules/security/rate-limiter'
 
-export const DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY = false as const
+export const DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY = true as const
 
 export const CONCIERGE_RATE_LIMITS = {
   CONVERSATION_TURN: { limit: 20, windowSeconds: 3600 }, // 20 turns / hour per conversation
@@ -46,6 +44,18 @@ export function isConciergeRateLimited(
 
   record.count += 1
   return false
+}
+
+/**
+ * Checks and increments distributed rate limit counter across instances.
+ */
+export async function isConciergeDistributedRateLimited(
+  key: string,
+  limitType: keyof typeof CONCIERGE_RATE_LIMITS = 'CONVERSATION_TURN'
+): Promise<boolean> {
+  const { limit, windowSeconds } = CONCIERGE_RATE_LIMITS[limitType]
+  const storeKey = `concierge:${limitType}:${key}`
+  return isDistributedRateLimited(storeKey, limit, windowSeconds, { failClosed: true })
 }
 
 /**
