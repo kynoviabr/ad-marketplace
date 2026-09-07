@@ -978,8 +978,8 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
 
       const slots = await getPublicAvailableSlots({
         profileSlug: 'eligible-model',
-        startDate: '2026-09-07',
-        endDate: '2026-09-07',
+        startDate: '2026-09-14',
+        endDate: '2026-09-14',
         locationSlug: 'moema',
       })
 

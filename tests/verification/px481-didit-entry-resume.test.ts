@@ -240,6 +240,31 @@ describe('PX4.8.1 — KYC / Didit Entry & Resume Flow', () => {
         expect(res.data.verificationUrl).toBe('https://verify.didit.me/session/sess_new_123')
       }
     })
+
+    it('Provider failure: returns sanitized user-facing error without leaking raw provider details or stack traces, and retry remains possible', async () => {
+      mockGetVerification.mockResolvedValue(null)
+      mockCreateSession.mockRejectedValue(new Error('Sensitive Didit API upstream token failure: 503 Service Unavailable'))
+
+      const res = await startVerificationAction()
+      expect(res.success).toBe(false)
+      if (!res.success) {
+        expect(res.error).toBe('Ocorreu um erro ao conectar ao serviço de verificação. Tente novamente mais tarde.')
+        expect(res.error).not.toContain('Sensitive')
+        expect(res.error).not.toContain('503')
+        expect(res.error).not.toContain('token')
+      }
+
+      // Verify retry remains possible afterwards
+      mockCreateSession.mockResolvedValue({
+        providerSessionId: 'sess_recovered',
+        verificationUrl: 'https://verify.didit.me/session/sess_recovered',
+      })
+      const retryRes = await startVerificationAction()
+      expect(retryRes.success).toBe(true)
+      if (retryRes.success) {
+        expect(retryRes.data.verificationUrl).toBe('https://verify.didit.me/session/sess_recovered')
+      }
+    })
   })
 
   describe('UI & Component Structure Invariants', () => {
