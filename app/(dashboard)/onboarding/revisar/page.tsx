@@ -64,17 +64,32 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
           {review.isPublic && review.slug ? <div className="review-live-actions">
             <Link className="onboarding-primary" href={`/perfil/${review.slug}`}><span>{t('review.viewProfile')}</span><span aria-hidden="true">→</span></Link>
             <Link className="onboarding-secondary" href="/dashboard">{t('review.goPanel')}</Link>
-          </div> : <><PublicationAction enabled={review.isCanonicallyEligible && !review.hasDataError} />{!review.isCanonicallyEligible ? (
-            <p className="review-blocked-summary" role="status">
-              {t('review.blocked')}{' '}
-              <Link
-                href={locale === 'en' ? '/en/ajuda/como-publicar-meu-perfil' : '/ajuda/como-publicar-meu-perfil'}
-                className="onboarding-inline-help-link"
-              >
-                {locale === 'en' ? 'Need help? Learn more →' : 'Precisa de ajuda? Saiba mais →'}
+          </div> : <>
+            {!review.readiness.find((item) => item.key === 'verification')?.ready ? (
+              <div className="review-verification-cta">
+                <Link href="/onboarding/verificacao" className="onboarding-primary">
+                  {t('verification.continueToVerification')}<span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            ) : null}
+            <PublicationAction enabled={review.isCanonicallyEligible && !review.hasDataError} />
+            {!review.isCanonicallyEligible ? (
+              <p className="review-blocked-summary" role="status">
+                {t('review.blocked')}{' '}
+                <Link
+                  href={locale === 'en' ? '/en/ajuda/como-publicar-meu-perfil' : '/ajuda/como-publicar-meu-perfil'}
+                  className="onboarding-inline-help-link"
+                >
+                  {locale === 'en' ? 'Need help? Learn more →' : 'Precisa de ajuda? Saiba mais →'}
+                </Link>
+              </p>
+            ) : null}
+            <div className="onboarding-actions review-actions-back">
+              <Link className="onboarding-secondary" href="/onboarding/verificacao">
+                ← {t('common.back')}
               </Link>
-            </p>
-          ) : null}</>}
+            </div>
+          </>}
         </section>
       </section>
       <OnboardingProgressSummary review={review} locale={locale} />

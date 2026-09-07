@@ -1066,8 +1066,8 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
                         id: 'rule-1',
                         profile_id: profileId,
                         day_of_week: 1,
-                        start_time: '10:00',
-                        end_time: '12:00',
+                        start_time: '20:00',
+                        end_time: '22:00',
                         location_id: null,
                         created_at: '2026-09-06T00:00:00Z',
                       },
@@ -1092,20 +1092,20 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
         return {}
       })
 
-      // Valid available slot: 2026-09-07 (Monday) 10:00–11:00
+      // Valid available slot: 2026-09-07 (Monday) 20:00–21:00
       const validCheck = await revalidateSlotAvailability({
         profileSlug: 'eligible-model',
-        startIso: '2026-09-07T10:00:00-03:00',
-        endIso: '2026-09-07T11:00:00-03:00',
+        startIso: '2026-09-07T20:00:00-03:00',
+        endIso: '2026-09-07T21:00:00-03:00',
       })
       expect(validCheck.available).toBe(true)
-      expect(validCheck.slot?.localStartTime).toBe('10:00')
+      expect(validCheck.slot?.localStartTime).toBe('20:00')
 
-      // Non-existent / unavailable slot: 2026-09-07 14:00–15:00
+      // Non-existent / unavailable slot: 2026-09-07 23:00–24:00
       const invalidCheck = await revalidateSlotAvailability({
         profileSlug: 'eligible-model',
-        startIso: '2026-09-07T14:00:00-03:00',
-        endIso: '2026-09-07T15:00:00-03:00',
+        startIso: '2026-09-07T23:00:00-03:00',
+        endIso: '2026-09-08T00:00:00-03:00',
       })
       expect(invalidCheck.available).toBe(false)
       expect(invalidCheck.reason).toBe('SLOT_UNAVAILABLE')

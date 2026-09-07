@@ -11,10 +11,16 @@ import * as authDal from '@/modules/auth/dal'
 import * as moderationGuards from '@/modules/moderation/guards'
 import * as nextNavigation from 'next/navigation'
 
-// Mock next/navigation
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn().mockReturnValue('/dashboard'),
   useSearchParams: vi.fn().mockReturnValue(new URLSearchParams()),
+  useRouter: vi.fn().mockReturnValue({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+  }),
   redirect: vi.fn((url: string) => {
     const error = new Error(`NEXT_REDIRECT: ${url}`)
     ;(error as any).digest = `NEXT_REDIRECT;replace;${url};307;;`

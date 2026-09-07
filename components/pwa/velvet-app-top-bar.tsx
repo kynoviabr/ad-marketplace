@@ -3,8 +3,6 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LanguageSelector } from '@/components/i18n'
-import { logoutAction } from '@/modules/auth/actions'
 import { useI18n } from '@/components/i18n/i18n-provider'
 import { VelvetAppMoreSheet } from './velvet-app-more-sheet'
 
@@ -129,23 +127,20 @@ export function VelvetAppTopBar({ role = 'ADVERTISER' }: VelvetAppTopBarProps) {
       ) : null}
 
       <div className="velvet-app-top-bar-right">
-        <LanguageSelector compact />
-        {role ? (
-          <form action={logoutAction}>
-            <button
-              type="submit"
-              className="velvet-app-top-bar-logout"
-              title={t('common.logout')}
-              aria-label={t('common.logout')}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </button>
-          </form>
-        ) : null}
+        <button
+          type="button"
+          onClick={() => setIsMoreOpen(true)}
+          className="velvet-app-top-bar-menu-btn"
+          aria-label={t('app.nav.more')}
+          aria-haspopup="dialog"
+          aria-expanded={isMoreOpen}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="19" cy="12" r="1.5" />
+            <circle cx="5" cy="12" r="1.5" />
+          </svg>
+        </button>
       </div>
 
       <VelvetAppMoreSheet isOpen={isMoreOpen} onClose={() => setIsMoreOpen(false)} role={role} />

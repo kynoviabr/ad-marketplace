@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { VerificationSafeDTO, VerificationStatus } from '@/modules/verification/types'
 import { continueAfterVerificationAction, getVerificationStatusAction, startVerificationAction } from '@/modules/verification/actions'
@@ -66,15 +67,26 @@ export function VerificationStatusCard({ initialVerification, initialVerifiedAdu
       {status === 'NOT_STARTED' && (
         <div className="verification-state">
           <h2 id="verification-panel-title">{t('verification.confirmIdentity')}</h2>
+          <p className="verification-lead-notice">{t('verification.leadNotice')}</p>
           <p>{t('verification.partnerRedirect')}</p>
           <ol className="verification-steps">
             <li><span>01</span>{t('verification.stepStart')}</li>
             <li><span>02</span>{t('verification.stepAnalysis')}</li>
             <li><span>03</span>{t('verification.stepReturn')}</li>
           </ol>
-          <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
-            {isPending ? t('verification.preparing') : t('verification.start')}<span aria-hidden="true">↗</span>
-          </button>
+          <div className="verification-actions">
+            <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
+              {isPending ? t('verification.preparing') : t('verification.start')}<span aria-hidden="true">↗</span>
+            </button>
+            <Link href="/onboarding/revisar" className="verification-secondary-action">
+              {t('verification.reviewProfile')}
+            </Link>
+          </div>
+          <div className="onboarding-nav-back">
+            <Link href="/onboarding/onde-atende" className="onboarding-secondary">
+              ← {t('common.back')}
+            </Link>
+          </div>
           <p className="verification-external-note">{t('verification.external')}</p>
         </div>
       )}
@@ -83,9 +95,19 @@ export function VerificationStatusCard({ initialVerification, initialVerifiedAdu
         <div className="verification-state">
           <h2 id="verification-panel-title">{t('verification.inProgress')}</h2>
           <p>{status === 'IN_REVIEW' ? t('verification.underReview') : t('verification.finishExternal')}</p>
-          <button type="button" className="onboarding-primary" onClick={refreshStatus} disabled={isPending}>
-            {isPending ? t('verification.checking') : t('verification.refresh')}<span aria-hidden="true">↻</span>
-          </button>
+          <div className="verification-actions">
+            <button type="button" className="onboarding-primary" onClick={refreshStatus} disabled={isPending}>
+              {isPending ? t('verification.checking') : t('verification.refresh')}<span aria-hidden="true">↻</span>
+            </button>
+            <Link href="/onboarding/revisar" className="verification-secondary-action">
+              {t('verification.reviewProfile')}
+            </Link>
+          </div>
+          <div className="onboarding-nav-back">
+            <Link href="/onboarding/onde-atende" className="onboarding-secondary">
+              ← {t('common.back')}
+            </Link>
+          </div>
         </div>
       )}
 
@@ -96,9 +118,14 @@ export function VerificationStatusCard({ initialVerification, initialVerifiedAdu
             <li><span aria-hidden="true">✓</span> {t('verification.identityConfirmed')}</li>
             <li><span aria-hidden="true">✓</span> {t('verification.ageConfirmed')}</li>
           </ul>
-          <button type="button" className="onboarding-primary" onClick={continueToPhotos} disabled={isPending}>
-            {isPending ? t('verification.continuing') : t('common.continue')}<span aria-hidden="true">→</span>
-          </button>
+          <div className="verification-actions">
+            <button type="button" className="onboarding-primary" onClick={continueToPhotos} disabled={isPending}>
+              {isPending ? t('verification.continuing') : t('common.continue')}<span aria-hidden="true">→</span>
+            </button>
+            <Link href="/onboarding/revisar" className="verification-secondary-action">
+              {t('verification.reviewProfile')}
+            </Link>
+          </div>
         </div>
       )}
 
@@ -106,9 +133,19 @@ export function VerificationStatusCard({ initialVerification, initialVerifiedAdu
         <div className="verification-state">
           <h2 id="verification-panel-title">{status === 'EXPIRED' ? t('verification.expired') : t('verification.failed')}</h2>
           <p>{status === 'EXPIRED' ? t('verification.expiredText') : t('verification.failedText')}</p>
-          <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
-            {isPending ? t('verification.preparing') : t('verification.retry')}<span aria-hidden="true">↗</span>
-          </button>
+          <div className="verification-actions">
+            <button type="button" className="onboarding-primary" onClick={startVerification} disabled={isPending}>
+              {isPending ? t('verification.preparing') : t('verification.retry')}<span aria-hidden="true">↗</span>
+            </button>
+            <Link href="/onboarding/revisar" className="verification-secondary-action">
+              {t('verification.reviewProfile')}
+            </Link>
+          </div>
+          <div className="onboarding-nav-back">
+            <Link href="/onboarding/onde-atende" className="onboarding-secondary">
+              ← {t('common.back')}
+            </Link>
+          </div>
         </div>
       )}
     </section>
