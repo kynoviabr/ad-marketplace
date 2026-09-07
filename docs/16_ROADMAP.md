@@ -458,9 +458,13 @@ Executed only **after** the GTM Ready Gate is achieved:
     - *Actionable Verification Flow*: Eliminated dead-end in `VerificationStatusCard.tsx` where active sessions (`PENDING` / `IN_PROGRESS`) only displayed "Atualizar status". Added primary CTA `Continuar verificação` (initiating/resuming session via `startVerificationAction`) and secondary `Voltar e revisar meu perfil`, with `Atualizar status` preserved as a tertiary action (`.verification-tertiary-action`).
     - *Server Action Resumption & In-Memory Deduplication*: Refactored `startVerificationAction()` and `resumeVerificationAction()` to allow continuing `PENDING` and `IN_PROGRESS` verification without throwing `"Sua verificação já está em andamento"`. Added 15-minute in-memory cache and in-flight promise deduplication against rapid double-clicks.
     - *Truthful State Separation & Labels*: Decoupled `IN_REVIEW` ("Verificação em análise") from `PENDING` ("Aguardando conclusão") and `EXPIRED` ("Sessão expirada"). Aligned all 7 verification status labels and localized helper copy in PT-BR and EN.
-- **Current Gate**: **HOSTED DEV APP CHECKPOINT — AUTOMATED PASS (PHYSICAL APP GATE PENDING)**.
+  - **PX4.8.2 — Hosted DEV Didit Configuration & Session Smoke**: **COMPLETE (100% RESOLVED & VERIFIED IN HOSTED DEV)**.
+    - *Hosted Provider Configuration Verified*: Proved that Vercel Hosted DEV (`prj_737boGVLj1t2iNQnLxWQ38xXlasb`, environment `Production`) possesses complete, active Didit credentials (`DIDIT_API_KEY`, `DIDIT_WORKFLOW_ID`, `DIDIT_WEBHOOK_SECRET`). Subsystem health probe `/admin/health` reports status `HEALTHY` (`Saudável`) with `Status de Configuração: Completo`.
+    - *Real Synthetic Session Creation*: Successfully executed canonical `startVerificationAction` against the live hosted runtime (`https://velvetgirls.club`). Verified that a real Didit session is generated, valid verification URL (`https://verify.didit.me/session/...`) is returned, and record is persisted in `identity_verifications` with `provider: didit` and `status: PENDING`.
+    - *Active Session Resume & Profile Review Roundtrip*: Successfully verified in-memory session reuse and profile review roundtrip on Hosted DEV with zero duplicate rows.
+- **Current Gate**: **HOSTED DEV APP CHECKPOINT — AUTOMATED PASS (PHYSICAL APP GATE READY FOR RETEST)**.
 - **Physical Device Gate**:
-  - Real iPhone Safari PWA: Retest required for PX4.8 UX consolidation + PX4.8.1 Didit entry & resume flow correction. Real Didit physical verification flow remains PENDING.
+  - Real iPhone Safari PWA: Ready for physical retest of Iniciar/Continuar verificação flow backed by live Didit provider on Hosted DEV.
   - Real Android Chromium PWA: PENDING.
 - **VELVET APP EXPERIENCE RELEASE-VERIFIED**: **NO** (Physical Device Gate required).
 - **PX6 SAFE TO START**: **NO** (Physical Device Gate must complete first).
