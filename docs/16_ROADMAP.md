@@ -277,9 +277,17 @@ To deliver compelling professional value and establish deep competitive differen
 - **Modules**: `app/app/page.tsx`, `components/pwa/`, `public/sw.js`, `app/manifest.ts`, `lib/i18n/messages/app-mode.ts`, `app/globals.css`.
 
 ### HOSTED DEV APP CHECKPOINT
-- **Status**: **AUTOMATED HOSTED VALIDATION PASS (PHYSICAL DEVICE GATE PENDING)**.
-- **Hosted Deployment**: Deployed to persistent hosted DEV environment (`https://velvetgirls.club`, deployment `dpl_EAaqW3LKE4NdFahL85t6NdbwQSTQ`, commit `0c0b02ed65d9f1ed200be7e8789ea768e6efb95d`).
+- **Status**: **AUTOMATED HOSTED VALIDATION PASS (PHYSICAL DEVICE GATE IN PROGRESS)**.
+- **Hosted Deployment**: Deployed to persistent hosted DEV environment (`https://velvetgirls.club`, deployment `dpl_9XVxLyke17MjoVefpi8srdwtwc1n`, commit `0651b9e01c4b057a340895eacb31a77a514431a1`).
 - **Objective**: Deploy the complete installable application stack (PX4.5 PWA + PX4.6 Install UX + PX4.7 App Experience) to the persistent hosted DEV environment (`https://velvetgirls.club`) and execute mandatory physical device verification.
+- **Physical Device Gate Status**:
+  - **IPHONE APP SHELL**: PARTIAL PASS
+  - **IPHONE TRI-STATE UX**: CORRECTED — REQUIRES RETEST (presentation copy updated to Sim / Não / Não informado; help text updated)
+  - **IPHONE DUPLICATE ONBOARDING HEADER**: CORRECTED — REQUIRES RETEST (standalone CSS suppresses .onboarding-header; VelvetAppTopBar provides unified header & step titles)
+  - **IPHONE DIDIT**: PENDING (tester intentionally did not complete KYC; integration operational)
+  - **ANDROID**: PENDING
+  - **VELVET APP EXPERIENCE RELEASE-VERIFIED**: NO
+  - **PX6 SAFE TO START**: NO
 - **Automated Validation Results**:
   - Base routes: 9/9 PASS (`/`, `/app`, `/manifest.webmanifest`, `/sw.js`, `/offline`, `/api/health`, `/login`, `/sao-paulo`, `/sao-paulo/moema`).
   - Protected route canonical gates: 7/7 PASS (307 redirect to `/login` for anonymous callers).
