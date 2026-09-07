@@ -449,7 +449,14 @@ Executed only **after** the GTM Ready Gate is achieved:
   - **PX4.6 — Install App UX**: **COMPLETE (100% RESOLVED)**.
   - **PX5 — AI Concierge Foundation**: **COMPLETE (100% RESOLVED IN DEV)**.
   - **PX5.1 — AI Concierge Integrity Audit & Security Gates**: **COMPLETE (100% RESOLVED IN DEV)**.
-  - **PX4.7 — Velvet App Experience**: **IMPLEMENTATION COMPLETE (AWAITING PHYSICAL DEVICE VERIFICATION)**.
+  - **PX4.7 — Velvet App Experience**: **IMPLEMENTATION COMPLETE**.
+  - **PX4.8 — Velvet App UX Consolidation**: **COMPLETE (100% IMPLEMENTED & AUTOMATED PASS ON HOSTED DEV)**.
+    - *Reversible Onboarding*: Stepper now renders completed steps as interactive links; explicit Back CTA (`← Voltar`) on all steps after the first; non-blocking KYC with clear age-verification lead notice and review affordance (`Voltar e revisar meu perfil`).
+    - *Quiet Top Bar & More Sheet Language Switcher*: Removed persistent PT/EN toggle from header; added quiet top bar menu button; integrated native segmented language switcher pills (`Português` / `English`) with cookie persistence and path localization in `VelvetAppMoreSheet`.
+    - *Summary-First Profile UX & Reduced Density*: In standalone App Mode, profile editing defaults to 7 structured cards with formatted values (`Sim` / `Não` / `Não informado`) and focused section-by-section editing.
 - **Current Gate**: **HOSTED DEV APP CHECKPOINT — AUTOMATED PASS (PHYSICAL APP GATE PENDING)**.
-- **Next Action**: Complete Physical App Gate (real iPhone Safari + real Android Chromium verification).
-- **Product Next (after Physical Gate)**: **PX6 — AI Concierge + Agenda & Inquiries Integration** (`PX6 SAFE TO START = NO` until physical gate signed off).
+- **Physical Device Gate**:
+  - Real iPhone Safari PWA: Retest required for PX4.8 UX consolidation. Real Didit physical verification flow remains PENDING.
+  - Real Android Chromium PWA: PENDING.
+- **VELVET APP EXPERIENCE RELEASE-VERIFIED**: **NO** (Physical Device Gate required).
+- **PX6 SAFE TO START**: **NO** (Physical Device Gate must complete first).
