@@ -52,7 +52,7 @@ export async function PublicFooter() {
           <Link href={localized('/privacidade')}>{t('footer.privacy')}</Link>
           <Link href={localized('/cookies')}>{t('footer.cookies')}</Link>
           <CookiePreferencesButton label={t('footer.cookiePreferences')} />
-          <LanguageSelector />
+          <LanguageSelector variant="popover" theme="dark" placement="top" showLabel />
         </nav>
       </div>
 

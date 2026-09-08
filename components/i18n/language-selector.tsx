@@ -10,6 +10,10 @@ export interface LanguageSelectorProps {
   compact?: boolean
   expanded?: boolean
   variant?: 'inline' | 'popover'
+  theme?: 'light' | 'dark'
+  placement?: 'top' | 'bottom'
+  showLabel?: boolean
+  className?: string
 }
 
 function BrazilFlag({ size = 20 }: { size?: number }) {
@@ -139,6 +143,10 @@ export function LanguageSelector({
   compact = false,
   expanded = false,
   variant = 'inline',
+  theme = 'light',
+  placement = 'bottom',
+  showLabel = false,
+  className = '',
 }: LanguageSelectorProps) {
   const { locale, t } = useI18n()
   const pathname = usePathname()
@@ -186,10 +194,21 @@ export function LanguageSelector({
 
   if (variant === 'popover') {
     const isPt = locale === 'pt-BR'
+    const popoverClasses = [
+      'velvet-language-selector',
+      'velvet-language-popover',
+      compact ? 'is-compact' : '',
+      `velvet-language-popover--${theme}`,
+      `velvet-language-popover--${placement}`,
+      className,
+    ]
+      .filter(Boolean)
+      .join(' ')
+
     return (
       <div
         ref={containerRef}
-        className={`velvet-language-selector velvet-language-popover${compact ? ' is-compact' : ''}`}
+        className={popoverClasses}
         role="group"
         aria-label={t('common.language')}
       >
@@ -201,7 +220,12 @@ export function LanguageSelector({
           aria-haspopup="listbox"
           aria-label={isPt ? 'Selecionar idioma (Português selecionado)' : 'Select language (English selected)'}
         >
-          {isPt ? <BrazilFlag size={20} /> : <UsaFlag size={20} />}
+          {isPt ? <BrazilFlag size={showLabel ? 18 : 20} /> : <UsaFlag size={showLabel ? 18 : 20} />}
+          {showLabel && (
+            <span className="velvet-language-trigger-text">
+              {isPt ? 'Português' : 'English'}
+            </span>
+          )}
           <ChevronDownIcon className="velvet-language-chevron" />
         </button>
 

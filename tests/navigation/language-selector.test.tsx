@@ -2,7 +2,7 @@ import React, { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { I18nProvider } from '@/components/i18n/i18n-provider'
-import { LanguageSelector } from '@/components/i18n/language-selector'
+import { LanguageSelector, type LanguageSelectorProps } from '@/components/i18n/language-selector'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 
@@ -14,7 +14,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 describe('Velvet Language Selector & Homepage Discovery Deduplication', () => {
-  function renderSelector(props: { compact?: boolean; expanded?: boolean; variant?: 'inline' | 'popover' } = {}, locale = 'pt-BR') {
+  function renderSelector(props: LanguageSelectorProps = {}, locale = 'pt-BR') {
     return renderToStaticMarkup(
       createElement(
         I18nProvider,
@@ -103,4 +103,44 @@ describe('Velvet Language Selector & Homepage Discovery Deduplication', () => {
       expect(contentFile).toContain('velvet-new-content-name')
     })
   })
+
+  describe('4. Public Footer Language Selector Standardization', () => {
+    it('standardizes PublicFooter to use LanguageSelector with variant="popover"', () => {
+      const footerFile = fs.readFileSync(
+        path.join(process.cwd(), 'components/public/public-footer.tsx'),
+        'utf-8'
+      )
+      expect(footerFile).toMatch(/<LanguageSelector[^>]*variant="popover"/)
+      expect(footerFile).toMatch(/<LanguageSelector[^>]*theme="dark"/)
+      expect(footerFile).toMatch(/<LanguageSelector[^>]*placement="top"/)
+      expect(footerFile).toMatch(/<LanguageSelector[^>]*showLabel/)
+      // Verifies no raw unconfigured LanguageSelector exists in the footer
+      expect(footerFile).not.toMatch(/<LanguageSelector\s*\/>/)
+    })
+
+    it('renders popover trigger with flag, label and chevron when showLabel=true', () => {
+      const htmlPt = renderSelector({ variant: 'popover', theme: 'dark', placement: 'top', showLabel: true }, 'pt-BR')
+      expect(htmlPt).toContain('velvet-language-popover--dark')
+      expect(htmlPt).toContain('velvet-language-popover--top')
+      expect(htmlPt).toContain('velvet-language-trigger')
+      expect(htmlPt).toContain('velvet-flag-circle')
+      expect(htmlPt).toContain('velvet-language-trigger-text')
+      expect(htmlPt).toContain('Português')
+      expect(htmlPt).toContain('velvet-language-chevron')
+
+      const htmlEn = renderSelector({ variant: 'popover', theme: 'dark', placement: 'top', showLabel: true }, 'en')
+      expect(htmlEn).toContain('English')
+    })
+
+    it('defines dark theme and upward placement rules in public stylesheet', () => {
+      const css = fs.readFileSync(
+        path.join(process.cwd(), 'app/velvet-public.css'),
+        'utf-8'
+      )
+      expect(css).toContain('.velvet-language-popover--dark')
+      expect(css).toContain('.velvet-language-popover--top')
+      expect(css).toContain('velvet-popover-in-up')
+    })
+  })
 })
+
