@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { LegalDocument, type LegalSection } from '@/components/public/legal-document'
 import { buildCanonicalUrl } from '@/modules/seo/canonical'
 import { getRequestLocale } from '@/lib/i18n/server'
+import { localizePathname } from '@/lib/i18n/routing'
+import type { Locale } from '@/lib/i18n/config'
 
 export const metadata: Metadata = {
   title: { absolute: 'Segurança | Velvet' },
@@ -9,22 +12,264 @@ export const metadata: Metadata = {
   alternates: { canonical: buildCanonicalUrl('/seguranca') },
 }
 
+function SecurityClosing({ locale, en }: { locale: Locale; en: boolean }) {
+  return (
+    <div className="velvet-security-closing">
+      <div className="velvet-trust-v-mark velvet-trust-v-mark--small" aria-hidden="true">
+        <span className="velvet-brand-monogram">v</span>
+      </div>
+      <h2>{en ? 'Want to learn more?' : 'Quer saber mais?'}</h2>
+      <p>
+        {en
+          ? 'Learn more about how verification works, our privacy policy, and platform terms.'
+          : 'Conheça também como funciona a verificação, nossa política de privacidade e os termos da plataforma.'}
+      </p>
+      <div className="velvet-security-links">
+        <Link href={localizePathname('/como-funciona', locale)} className="velvet-security-link">
+          {en ? 'Understand how we verify profiles →' : 'Entenda como verificamos os perfis →'}
+        </Link>
+        <Link href={localizePathname('/privacidade', locale)} className="velvet-security-link">
+          {en ? 'Privacy Policy →' : 'Política de Privacidade →'}
+        </Link>
+        <Link href={localizePathname('/termos', locale)} className="velvet-security-link">
+          {en ? 'Terms of Use →' : 'Termos de Uso →'}
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export default async function SecurityPage() {
-  const en = (await getRequestLocale()) === 'en'
-  if (en) return <LegalDocument eyebrow="TRUST AND PROTECTION" title="Safety at Velvet" introduction={<p>Safety is built in layers: adult access, identity and age verification, controlled access, private media, moderation and responsible use.</p>} showContents={false} sections={[
-    { id: 'verification', title: 'Identity and legal age', content: <p>Professionals must complete identity and age verification through a specialized provider before publication. Verification confirms only the scope and result of that procedure; it does not guarantee services, conduct or meetings.</p> },
-    { id: 'media', title: 'Private media and moderation', content: <p>Media is stored outside public access. Only approved content may be displayed through temporary delivery addresses; pending, rejected or quarantined files are not published.</p> },
-    { id: 'contact', title: 'Direct contact', content: <p>Velvet has no visitor-to-professional chat. Contact occurs through channels chosen by the professional. Never share credentials, identity documents or financial codes with strangers.</p> },
-    { id: 'responsibility', title: 'Responsible use', content: <p>Use unique passwords, verify the domain and report suspicious behavior through official channels. Technology reduces risk but cannot eliminate it.</p> },
-  ]} />
+  const locale = await getRequestLocale()
+  const en = locale === 'en'
+
+  if (en) {
+    const enSections: LegalSection[] = [
+      {
+        id: 'identity',
+        title: 'Identity and legal age verified',
+        content: (
+          <ul className="velvet-security-list">
+            <li>To advertise on Velvet, professionals must confirm their identity and prove they are 18 or older.</li>
+            <li>This step occurs before the profile can be published.</li>
+            <li>This helps reduce fake profiles and platform misuse.</li>
+            <li>Verification confirms identity and age, but is not a guarantee of conduct, services, or meetings.</li>
+          </ul>
+        ),
+      },
+      {
+        id: 'review',
+        title: 'Photos and content undergo review',
+        content: (
+          <ul className="velvet-security-list">
+            <li>Content is not published automatically.</li>
+            <li>Photos and media are reviewed before appearing on the profile.</li>
+            <li>Pending, unapproved, or re-examined items do not remain public.</li>
+            <li>This helps keep the platform consistent and compliant with rules.</li>
+          </ul>
+        ),
+      },
+      {
+        id: 'account',
+        title: 'Your account and information are protected',
+        content: (
+          <ul className="velvet-security-list">
+            <li>Each person only accesses what belongs to their own account.</li>
+            <li>Private details and verification data never appear on public profiles.</li>
+            <li>Velvet employs controls to safeguard restricted areas of the platform.</li>
+          </ul>
+        ),
+      },
+      {
+        id: 'moderation',
+        title: 'Moderation when something is wrong',
+        content: (
+          <ul className="velvet-security-list">
+            <li>Profiles and content may be reviewed whenever necessary.</li>
+            <li>When something violates rules or presents risk, Velvet may review, restrict, suspend, or remove publication.</li>
+            <li>The goal is to act with consistency and responsibility.</li>
+          </ul>
+        ),
+      },
+      {
+        id: 'contact',
+        title: 'Contact takes place directly',
+        content: (
+          <ul className="velvet-security-list">
+            <li>Velvet helps you discover profiles and understand who is advertising.</li>
+            <li>When a professional shares a contact channel, communication happens directly between you.</li>
+            <li>Velvet does not participate in negotiations, payments, or meetings.</li>
+            <li>Never send passwords, verification codes, IDs, or financial details to strangers.</li>
+          </ul>
+        ),
+      },
+      {
+        id: 'privacy',
+        title: 'Privacy comes before exposure',
+        content: (
+          <ul className="velvet-security-list">
+            <li>Not everything submitted to Velvet is published.</li>
+            <li>Verification details, internal account information, and private data remain outside public profiles.</li>
+            <li>Professionals choose which information they wish to feature.</li>
+          </ul>
+        ),
+      },
+      {
+        id: 'choices',
+        title: 'Safety also relies on smart choices',
+        content: (
+          <ul className="velvet-security-list">
+            <li>No platform eliminates all risks.</li>
+            <li>Use a unique password.</li>
+            <li>Keep your devices secure.</li>
+            <li>Check that you are actually on velvetgirls.club before signing in.</li>
+            <li>Never share access codes.</li>
+            <li>If something feels off, do not proceed.</li>
+          </ul>
+        ),
+      },
+    ]
+
+    return (
+      <LegalDocument
+        eyebrow="TRUST AND PROTECTION"
+        title="Safety at Velvet"
+        introduction={
+          <div className="velvet-security-intro">
+            <p>
+              Velvet was created so adults can discover and showcase profiles with
+              greater clarity, privacy, and control.
+            </p>
+            <p>
+              We verify the identity and legal age of those who advertise, review
+              content before publication, and protect information that should not be
+              public.
+            </p>
+            <p>
+              At the same time, we want to be transparent: Velvet helps people find
+              each other, but does not participate in contacts, agreements, or meetings
+              outside the platform.
+            </p>
+          </div>
+        }
+        sections={enSections}
+        showContents={false}
+        closing={<SecurityClosing locale={locale} en={true} />}
+      />
+    )
+  }
+
   const sections: LegalSection[] = [
-    { id: 'verificacao', title: 'Identidade e maioridade', content: <p>Profissionais precisam concluir verificação de identidade e confirmação de idade por fornecedor especializado antes de avançar para recursos de publicação. A Velvet é exclusivamente 18+.</p> },
-    { id: 'midia', title: 'Mídia privada e publicação aprovada', content: <p>As fotos são enviadas a armazenamento não público. Apenas conteúdo aprovado no fluxo de moderação pode ser exibido, e sua entrega usa endereços temporários. Arquivos pendentes, rejeitados ou isolados para análise não são publicados.</p> },
-    { id: 'acesso', title: 'Autenticação e isolamento de acesso', content: <p>Contas usam autenticação gerenciada e sessões protegidas. Ações da área profissional verificam a identidade da conta e restringem o acesso aos próprios recursos; operações privilegiadas permanecem no servidor.</p> },
-    { id: 'moderacao', title: 'Moderação e prevenção', content: <p>Perfis e mídias passam por estados controlados de revisão. Denúncias podem ser analisadas e conteúdo pode ser restringido, removido ou colocado em revisão quando houver risco, violação das regras ou obrigação legal.</p> },
-    { id: 'contato', title: 'Contato direto', content: <p>A Velvet não possui chat entre visitantes e profissionais. O contato ocorre diretamente pelo canal que a profissional escolheu publicar. Não envie documentos, credenciais ou dados financeiros a desconhecidos e interrompa interações suspeitas.</p> },
-    { id: 'dados', title: 'Proteção e minimização de dados', content: <p>Buscamos limitar dados às finalidades do serviço. Resultados internos de verificação, analytics brutos e informações de cobrança não fazem parte do perfil público. Métricas oferecidas à profissional são agregadas.</p> },
-    { id: 'responsabilidade', title: 'Uso responsável', content: <p>Use senhas exclusivas, mantenha dispositivos atualizados, confira o domínio antes de entrar e nunca compartilhe códigos de acesso. Nenhuma tecnologia elimina todos os riscos; segurança depende também das escolhas de cada pessoa.</p> },
+    {
+      id: 'identidade',
+      title: 'Identidade e maioridade verificadas',
+      content: (
+        <ul className="velvet-security-list">
+          <li>Para anunciar na Velvet, a profissional precisa confirmar sua identidade e comprovar que tem 18 anos ou mais.</li>
+          <li>Essa etapa acontece antes da publicação do perfil.</li>
+          <li>Isso ajuda a reduzir perfis falsos e o uso indevido da plataforma.</li>
+          <li>A verificação confirma identidade e maioridade, mas não é garantia de comportamento, serviço ou encontro.</li>
+        </ul>
+      ),
+    },
+    {
+      id: 'revisao',
+      title: 'Fotos e conteúdos passam por revisão',
+      content: (
+        <ul className="velvet-security-list">
+          <li>Conteúdos não são publicados automaticamente.</li>
+          <li>Fotos e mídias passam por revisão antes de aparecer no perfil.</li>
+          <li>Itens pendentes, não aprovados ou em nova análise não ficam públicos.</li>
+          <li>Isso ajuda a manter a plataforma mais consistente e dentro das regras.</li>
+        </ul>
+      ),
+    },
+    {
+      id: 'protecao',
+      title: 'Sua conta e suas informações são protegidas',
+      content: (
+        <ul className="velvet-security-list">
+          <li>Cada pessoa acessa apenas o que pertence à sua própria conta.</li>
+          <li>Informações privadas e dados de verificação não aparecem no perfil público.</li>
+          <li>A Velvet adota controles para proteger áreas reservadas da plataforma.</li>
+        </ul>
+      ),
+    },
+    {
+      id: 'moderacao',
+      title: 'Moderação quando algo não está certo',
+      content: (
+        <ul className="velvet-security-list">
+          <li>Perfis e conteúdos podem ser analisados sempre que necessário.</li>
+          <li>Quando algo viola regras ou apresenta risco, a Velvet pode revisar, restringir, suspender ou remover a exibição.</li>
+          <li>O objetivo é agir com consistência e responsabilidade.</li>
+        </ul>
+      ),
+    },
+    {
+      id: 'contato',
+      title: 'O contato acontece diretamente',
+      content: (
+        <ul className="velvet-security-list">
+          <li>A Velvet ajuda você a descobrir perfis e entender melhor quem está anunciando.</li>
+          <li>Quando a profissional publica um canal de contato, a conversa acontece diretamente entre vocês.</li>
+          <li>A Velvet não participa da negociação, do pagamento ou do encontro.</li>
+          <li>Nunca envie senhas, códigos, documentos ou dados financeiros a desconhecidos.</li>
+        </ul>
+      ),
+    },
+    {
+      id: 'privacidade',
+      title: 'Privacidade vem antes da exposição',
+      content: (
+        <ul className="velvet-security-list">
+          <li>Nem tudo o que é informado à Velvet deve aparecer publicamente.</li>
+          <li>Dados de verificação, informações internas da conta e dados privados ficam fora do perfil público.</li>
+          <li>A profissional também escolhe quais informações poderá apresentar no perfil.</li>
+        </ul>
+      ),
+    },
+    {
+      id: 'escolhas',
+      title: 'Segurança também depende de boas escolhas',
+      content: (
+        <ul className="velvet-security-list">
+          <li>Nenhuma plataforma elimina todos os riscos.</li>
+          <li>Use senha exclusiva.</li>
+          <li>Mantenha seus dispositivos protegidos.</li>
+          <li>Confira se está realmente em velvetgirls.club antes de entrar.</li>
+          <li>Nunca compartilhe códigos de acesso.</li>
+          <li>Se algo parecer errado, não prossiga.</li>
+        </ul>
+      ),
+    },
   ]
-  return <LegalDocument eyebrow="Confiança e proteção" title="Segurança na Velvet" introduction={<p>Segurança é construída em camadas: verificação, acesso controlado, mídia privada, moderação e uso responsável. Esta página apresenta os princípios do produto sem expor detalhes que possam enfraquecer esses controles.</p>} sections={sections} showContents={false} />
+
+  return (
+    <LegalDocument
+      eyebrow="Confiança e proteção"
+      title="Segurança na Velvet"
+      introduction={
+        <div className="velvet-security-intro">
+          <p>
+            A Velvet foi criada para que adultos possam descobrir e apresentar perfis
+            com mais clareza, privacidade e controle.
+          </p>
+          <p>
+            Verificamos a identidade e a maioridade de quem anuncia, revisamos
+            conteúdos antes da publicação e protegemos informações que não devem ficar
+            públicas.
+          </p>
+          <p>
+            Ao mesmo tempo, queremos ser transparentes: a Velvet ajuda pessoas a se
+            encontrarem, mas não participa dos contatos, acordos ou encontros
+            realizados fora da plataforma.
+          </p>
+        </div>
+      }
+      sections={sections}
+      showContents={false}
+      closing={<SecurityClosing locale={locale} en={false} />}
+    />
+  )
 }

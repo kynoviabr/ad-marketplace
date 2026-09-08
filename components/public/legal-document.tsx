@@ -12,12 +12,14 @@ export function LegalDocument({
   introduction,
   sections,
   showContents = true,
+  closing,
 }: {
   eyebrow: string
   title: string
   introduction: ReactNode
   sections: LegalSection[]
   showContents?: boolean
+  closing?: ReactNode
 }) {
   return (
     <article className="velvet-legal-document">
@@ -49,6 +51,12 @@ export function LegalDocument({
           </section>
         ))}
       </div>
+
+      {closing ? (
+        <footer className="velvet-legal-closing">
+          {closing}
+        </footer>
+      ) : null}
     </article>
   )
 }
