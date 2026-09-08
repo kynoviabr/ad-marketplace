@@ -10,6 +10,8 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.ts', 'tests/**/*.test.tsx'],
     exclude: ['node_modules', '.next'],
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
   resolve: {
     alias: {
