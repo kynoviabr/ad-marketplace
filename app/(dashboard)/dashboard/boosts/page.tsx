@@ -21,7 +21,7 @@ export default async function AdvertiserBoostsPage() {
             Você precisa criar seu perfil profissional antes de contratar destaques.
           </p>
           <Link
-            href="/onboarding/profile"
+            href="/onboarding"
             style={{
               display: 'inline-block',
               padding: '10px 20px',

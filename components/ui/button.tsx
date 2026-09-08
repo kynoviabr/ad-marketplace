@@ -3,12 +3,14 @@ import { type ButtonHTMLAttributes } from 'react'
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'ghost'
   loading?: boolean
+  loadingText?: string
 }
 
 export function Button({
   children,
   variant = 'primary',
   loading = false,
+  loadingText,
   disabled,
   className = '',
   ...props
@@ -20,7 +22,7 @@ export function Button({
       aria-busy={loading}
       {...props}
     >
-      {loading ? 'Aguarde...' : children}
+      {loading ? (loadingText ?? 'Carregando…') : children}
     </button>
   )
 }

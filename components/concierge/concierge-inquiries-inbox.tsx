@@ -273,7 +273,7 @@ export function ConciergeInquiriesInbox({
                     type="button"
                     className="inquiry-modal-close"
                     onClick={() => setSelectedInquiry(null)}
-                    aria-label="Fechar"
+                    aria-label={isPt ? 'Fechar' : 'Close'}
                   >
                     ✕
                   </button>

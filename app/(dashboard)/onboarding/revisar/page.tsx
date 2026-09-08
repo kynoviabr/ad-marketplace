@@ -85,7 +85,7 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
               </p>
             ) : null}
             <div className="onboarding-actions review-actions-back">
-              <Link className="onboarding-secondary" href="/onboarding/verificacao">
+              <Link className="onboarding-secondary" href="/onboarding/fotos">
                 ← {t('common.back')}
               </Link>
             </div>

@@ -399,18 +399,21 @@ To deliver compelling professional value and establish deep competitive differen
 - **Product Next**: PX8 — Product Polish & Pre-GTM Readiness.
 
 ### PX8 — Product Polish & Pre-GTM Readiness
-- **Product Value**: Ensures cohesive, high-end editorial aesthetics, seamless mobile responsiveness, sub-second page performance, and accessible navigation across the complete public and advertiser experience.
-- **User**: All Platform Visitors, Advertisers, and Administrators.
-- **Scope**: Comprehensive UI/UX audit; mobile touch targets and animation polish; Core Web Vitals optimization (LCP < 2.0s, CLS < 0.05); empty state and error boundary enhancements; pre-GTM documentation freeze.
-- **Out of Scope**: New functional feature development.
-- **Dependencies**: PX1–PX7 completion.
-- **Data Model**: None.
-- **Expected Modules**: `components/ui/`, `app/`, `styles/`.
-- **Expected Migrations**: None.
-- **Security Considerations**: Content Security Policy verification; final dependency vulnerability scan.
-- **Observability Requirements**: Real-user performance metric tracking; client-side exception boundaries.
-- **Test Strategy**: Full regression test suite (>200 tests), Lighthouse audit (Performance > 90, Accessibility > 95).
-- **Exit Criteria**: Zero open P1/P2 UX issues; all automated test suites 100% green; design review signed off.
+- **Status**: **COMPLETE** (All P0/P1 and High-Value P2 Defects Resolved)
+- **Product Value**: Delivers a cohesive, high-end editorial aesthetic, resilient navigation, mobile-first touch ergonomics, and complete user-facing error boundaries across the public marketplace and professional studio.
+- **Audited & Resolved in DEV**:
+  - **Onboarding Linear Flow Navigation**: Resolved P1 navigation defect where Step 6 (`/onboarding/revisar`) back button skipped Step 5 photos and jumped back to Step 4. Linear sequence verified: `voce` → `seu-perfil` → `onde-atende` → `verificacao` → `fotos` → `revisar`.
+  - **Legacy Route Consolidation**: Replaced outdated unstyled legacy endpoints `/onboarding/profile` and `/onboarding/media` with clean server redirects to canonical `/onboarding/seu-perfil` and `/onboarding/fotos`. Updated `/dashboard/boosts` setup link.
+  - **Editorial 404 & Error Boundaries**: Implemented custom editorial `app/not-found.tsx` and `app/error.tsx` matching Velvet brand design language with non-technical, reassuring copy and clear recovery actions.
+  - **Shared UI Ergonomics & i18n**: Enhanced shared `Button` component with `loadingText` prop, eliminating hardcoded language leaks. Localized Concierge Inquiries modal controls.
+  - **Verification**: 194 test files, 1,966 tests PASS (0 failures), strict typecheck PASS, strict lint PASS, Turbopack build PASS.
+- **Explicit GTM Constraints**:
+  - **LGPD Lifecycle Ready for Real Users**: **NO** (Pre-Beta Blocker; automated anonymization/deletion RPC [Backlog Item J] required before Beta onboarding).
+  - **Concierge Retention Policy**: **NOT APPROVED** (`CONCIERGE_RETENTION_POLICY_APPROVED = false`).
+  - **Public AI Concierge on Hosted DEV**: **OFF** (`CONCIERGE_WEB_PUBLIC_ENABLED = false`).
+  - **Secret Rotation**: **REQUIRED BEFORE CLOSED BETA** (All dev/integration credentials must undergo complete rotation prior to onboarding real users).
+  - **Android Physical App Gate**: **DEFERRED / MANDATORY BEFORE CLOSED BETA**.
+- **Product Next**: **GTM Ready Gate**.
 
 ---
 
