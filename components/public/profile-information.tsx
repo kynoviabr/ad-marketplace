@@ -9,11 +9,18 @@ export interface ProfileInformationListItem {
   annotation?: string
 }
 
+export interface ProfileOfferingGroup {
+  key: string
+  label: string
+  items: string[]
+}
+
 interface ProfileInformationProps {
   title: string
   facts: ProfileInformationFact[]
   serviceAreas: ProfileInformationListItem[]
   serviceAreasLabel: string
+  offeringGroups?: ProfileOfferingGroup[]
 }
 
 /**
@@ -26,6 +33,7 @@ export function ProfileInformation({
   facts,
   serviceAreas,
   serviceAreasLabel,
+  offeringGroups,
 }: ProfileInformationProps) {
   if (!facts.length && !serviceAreas.length) return null
 
@@ -44,6 +52,25 @@ export function ProfileInformation({
         </dl>
       ) : null}
 
+      {offeringGroups && offeringGroups.length ? (
+        <div className="profile-offerings-system">
+          <div className="profile-offerings-grid">
+            {offeringGroups.map(({ key, label, items }) => (
+              <div key={key} className="profile-offering-group">
+                <h3 className="profile-offering-title">{label}</h3>
+                <ul className="profile-offering-chips">
+                  {items.map((item) => (
+                    <li key={item} className="profile-offering-chip">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {serviceAreas.length ? (
         <div className="profile-information-list-group">
           <h3>{serviceAreasLabel}</h3>
@@ -60,3 +87,4 @@ export function ProfileInformation({
     </section>
   )
 }
+

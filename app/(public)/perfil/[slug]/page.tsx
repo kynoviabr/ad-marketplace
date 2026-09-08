@@ -10,6 +10,7 @@ import { ReviewForm } from '@/components/reviews/review-form'
 import { ProfileViewTracker } from '@/components/public/profile-view-tracker'
 import { WhatsAppCTA } from '@/components/search/whatsapp-cta'
 import { VelvetBadge } from '@/components/ui/velvet-badge'
+import { VelvetBrandMark } from '@/components/ui/velvet-brand-mark'
 import { PublicAvailabilityBadge } from '@/components/agenda/public-availability-badge'
 import { localizePathname } from '@/lib/i18n/routing'
 import { OFFERING_GROUPS } from '@/modules/offerings/types'
@@ -82,11 +83,12 @@ export default async function PublicProfilePage({ params }: Props) {
   const whatsappDigits = profile.whatsappPhone?.replace(/\D/g, '') ?? ''
   const whatsappUrl = whatsappDigits ? `https://wa.me/${whatsappDigits}` : null
   const bio = createBioPresentation(profile.bio)
-  const offeringInformation = OFFERING_GROUPS.flatMap((group) => {
+  const offeringSections = OFFERING_GROUPS.flatMap((group) => {
     const codes = profile.offerings[group] ?? []
     return codes.length ? [{
+      key: group,
       label: offeringText(`offering.group.${group.toLowerCase()}`),
-      value: codes.map((code) => offeringText(`offering.option.${code}`)).join(' · '),
+      items: codes.map((code) => offeringText(`offering.option.${code}`)),
     }] : []
   })
   const information = [
@@ -97,7 +99,7 @@ export default async function PublicProfilePage({ params }: Props) {
     profile.hairLength ? { label: t('profile.hairLength'), value: labels.length[profile.hairLength] } : null,
     profile.eyeColor ? { label: t('profile.eyes'), value: labels.eye[profile.eyeColor] } : null,
     profile.bodyType ? { label: t('profile.bodyType'), value: labels.body[profile.bodyType] } : null,
-  ].filter((item): item is { label: string; value: string } => Boolean(item)).concat(offeringInformation)
+  ].filter((item): item is { label: string; value: string } => Boolean(item))
   const serviceAreas = locations.map((location) => ({
     id: location.slug,
     label: location.name,
@@ -131,7 +133,7 @@ export default async function PublicProfilePage({ params }: Props) {
 
         <div className="profile-hero-identity">
           <div className="profile-badge-group">
-            <VelvetBadge variant="verified" className="profile-verification-badge" icon="✓">
+            <VelvetBadge variant="verified" className="profile-verification-badge" icon={<VelvetBrandMark size="chip" />}>
               {t('profile.verificationBadge')}
             </VelvetBadge>
             <PublicAvailabilityBadge signal={availabilitySignal} locale={locale} />
@@ -152,21 +154,21 @@ export default async function PublicProfilePage({ params }: Props) {
               >
                 {t('profile.whatsapp')} <span aria-hidden="true">↗</span>
               </WhatsAppCTA>
-              <div className="velvet-disclaimer velvet-disclaimer--contact">
-                <small className="velvet-disclaimer-primary">{t('profile.contactDisclaimer')}</small>
-                <small className="velvet-disclaimer-safety">{t('profile.contactSafety')}</small>
-              </div>
             </div>
           ) : null}
-
-          <ProfileInformation
-            title={t('profile.information')}
-            facts={information}
-            serviceAreas={serviceAreas}
-            serviceAreasLabel={t('profile.where')}
-          />
         </div>
       </section>
+
+      <div className="profile-detail-wrap profile-details-wrap">
+        <ProfileInformation
+          title={t('profile.information')}
+          facts={information}
+          serviceAreas={serviceAreas}
+          serviceAreasLabel={t('profile.where')}
+          offeringGroups={offeringSections}
+        />
+      </div>
+
 
       {bio.full ? (
         <section className="profile-overview">
@@ -232,22 +234,29 @@ export default async function PublicProfilePage({ params }: Props) {
 
       <aside className="profile-trust" aria-label={t('profile.verifiedProfile')}>
         <div className="profile-detail-wrap">
-          <VelvetBadge
-            variant="verified"
-            icon={
-              <span className="velvet-verified-chip-icon" aria-hidden="true">
-                <span className="velvet-brand-monogram">v</span>
-              </span>
-            }
-          >
-            {t('profile.verificationBadge')}
-          </VelvetBadge>
-          <p>{t('profile.verificationDisclaimer')}</p>
-          <Link href={localizePathname('/seguranca', locale)} className="velvet-link">
-            {t('profile.learnSafety')}
-          </Link>
+          <div className="profile-trust-card">
+            <div className="profile-trust-header">
+              <VelvetBadge
+                variant="verified"
+                icon={<VelvetBrandMark size="chip" />}
+              >
+                {t('profile.verificationBadge')}
+              </VelvetBadge>
+              <p className="profile-trust-verification-desc">{t('profile.verificationDisclaimer')}</p>
+            </div>
+            <div className="profile-trust-disclaimer">
+              <p className="profile-trust-disclaimer-primary">{t('profile.contactDisclaimer')}</p>
+              <p className="profile-trust-disclaimer-safety">{t('profile.contactSafety')}</p>
+            </div>
+            <div className="profile-trust-action">
+              <Link href={localizePathname('/seguranca', locale)} className="velvet-link">
+                {t('profile.learnSafety')}
+              </Link>
+            </div>
+          </div>
         </div>
       </aside>
+
 
       {whatsappUrl ? (
         <section className="profile-final-contact" aria-labelledby="profile-contact-title">
