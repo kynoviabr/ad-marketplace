@@ -32,10 +32,9 @@ describe('Velvet public Home regression hotfix — structural contract', () => {
     expect(header).not.toContain('{brandName}')
   })
 
-  it('preserves the approved asymmetric photographic hero and editorial search', () => {
+  it('preserves the approved editorial hero copy, portrait mural and editorial search', () => {
     expect(hero).toContain("t('home.heroTitle').split('\\n')")
-    expect(hero).toContain('velvet-home-hero-art')
-    expect(hero).toContain('velvet-home-hero-offset')
+    expect(hero).toContain('<HeroPortraitMural />')
     expect(hero).toContain('velvet-home-search')
     expect(home).toContain('<HomeHero profiles={profilesWithMedia.slice(0, 2)} />')
   })
