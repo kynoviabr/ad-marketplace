@@ -412,8 +412,25 @@ To deliver compelling professional value and establish deep competitive differen
   - **Concierge Retention Policy**: **NOT APPROVED** (`CONCIERGE_RETENTION_POLICY_APPROVED = false`).
   - **Public AI Concierge on Hosted DEV**: **OFF** (`CONCIERGE_WEB_PUBLIC_ENABLED = false`).
   - **Secret Rotation**: **REQUIRED BEFORE CLOSED BETA** (All dev/integration credentials must undergo complete rotation prior to onboarding real users).
-  - **Android Physical App Gate**: **DEFERRED / MANDATORY BEFORE CLOSED BETA**.
 - **Product Next**: **GTM Ready Gate**.
+
+### GTM Ready Gate Audit
+- **Status**: **PASS (PRODUCT & SECURITY ENGINEERING READY)**
+- **Audit Date**: 2026-09-07
+- **Classifications**:
+  - `PRODUCT_ENGINEERING_READY`: **YES** (PX1–PX8 complete, 0 P0/P1/P2 defects remaining).
+  - `SECURITY_ENGINEERING_READY`: **YES** (Guardrails D, F, E, I, H, A, B, C resolved, fail-closed rate limit verified).
+  - `DATABASE_PROMOTION_READY`: **YES** (34/34 migrations aligned, zero schema drift).
+  - `ENVIRONMENT_READINESS_SAFE_TO_START`: **YES** (Authorized to begin separate DEV/PROD environment provisioning).
+  - `CLOSED_BETA_READY`: **NO** (Mandatory pre-beta blockers remain).
+  - `SOFT_LAUNCH_READY`: **NO** (Requires Closed Beta completion).
+  - `COMMERCIAL_LAUNCH_READY`: **NO** (Requires real payment gateway integration).
+- **Mandatory Pre-Beta Blockers**:
+  1. **LGPD Lifecycle (Backlog Item J)**: Automated deletion and anonymization RPC required before real-user onboarding.
+  2. **Secret Rotation**: All credentials appearing in historical logs must undergo complete rotation when creating Production.
+  3. **Android Physical App Gate**: Physical device validation on Android Chrome PWA remains DEFERRED / MANDATORY before Closed Beta.
+  4. **Concierge Retention Policy**: NOT APPROVED (`CONCIERGE_RETENTION_POLICY_APPROVED = false`); public concierge remains OFF.
+- **Next Phase**: **Environment & Secrets Readiness**.
 
 ---
 
