@@ -54,7 +54,9 @@ export function HomeNewProfessionals({
             <div className="velvet-new-prof-meta">
               <h3>
                 {p.stage_name}
-                {p.show_age && p.public_age ? `, ${p.public_age}` : ''}
+                {p.show_age && p.public_age ? (
+                  <span className="velvet-profile-age">, {p.public_age}</span>
+                ) : null}
               </h3>
               <p>{p.primaryLocation?.name || 'São Paulo'}</p>
             </div>

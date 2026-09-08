@@ -108,16 +108,41 @@ export function HomeNewContent({
                   className="velvet-new-content-image"
                 />
                 <span className="velvet-media-type-chip">
-                  {c.type === 'VIDEO' ? 'VÍDEO' : 'FOTO'}
+                  {c.type === 'VIDEO' ? (
+                    <>
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <polygon points="6 3 20 12 6 21 6 3" />
+                      </svg>
+                      <span>VÍDEO</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                      <span>FOTO</span>
+                    </>
+                  )}
                 </span>
                 {c.type === 'VIDEO' && (
                   <div className="velvet-video-badge" aria-hidden="true">
-                    <span className="velvet-video-play-icon">▶</span>
+                    <span className="velvet-video-play-icon">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="7 4 19 12 7 20 7 4" />
+                      </svg>
+                    </span>
                   </div>
                 )}
                 {c.stageName && (
                   <div className="velvet-new-content-caption">
-                    <span className="velvet-new-content-name">{c.stageName}</span>
+                    <div className="velvet-new-content-byline">
+                      <span className="velvet-new-content-tag">
+                        {c.type === 'VIDEO' ? 'Vídeo no perfil' : 'Foto no perfil'}
+                      </span>
+                      <span className="velvet-new-content-name">{c.stageName}</span>
+                    </div>
+                    <span className="velvet-new-content-arrow" aria-hidden="true">→</span>
                   </div>
                 )}
               </Link>

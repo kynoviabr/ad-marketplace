@@ -7,6 +7,7 @@ import type { SearchResultDTO } from '@/modules/search/types'
 import { useI18n } from '@/components/i18n'
 import { localizePathname } from '@/lib/i18n/routing'
 import type { Locale } from '@/lib/i18n/config'
+import { VelvetVerifiedChip } from '@/components/ui/velvet-verified-chip'
 
 export interface PublicProfileCardProps {
   profile: SearchResultDTO
@@ -17,12 +18,23 @@ export interface PublicProfileCardProps {
   locale?: Locale
 }
 
-export function PublicProfileCard({ profile, mediaUrl, priority = false, variant = 'default', cityName = 'São Paulo', locale = 'pt-BR' }: PublicProfileCardProps) {
+export function PublicProfileCard({
+  profile,
+  mediaUrl,
+  priority = false,
+  variant = 'default',
+  cityName = 'São Paulo',
+  locale = 'pt-BR',
+}: PublicProfileCardProps) {
   const { t } = useI18n()
   const isSearch = variant === 'search'
+
   return (
-    <Link href={localizePathname(`/perfil/${profile.slug}`, locale)} className={`velvet-profile-card${isSearch ? ' velvet-profile-card--search' : ''}`}>
-      <div>
+    <Link
+      href={localizePathname(`/perfil/${profile.slug}`, locale)}
+      className={`velvet-profile-card${isSearch ? ' velvet-profile-card--search' : ''}`}
+    >
+      <div className="velvet-profile-card-inner">
         {/* Photo Container - 4:5 Aspect Ratio */}
         <div className="velvet-profile-photo">
           {mediaUrl ? (
@@ -36,15 +48,17 @@ export function PublicProfileCard({ profile, mediaUrl, priority = false, variant
             />
           ) : (
             <div className="velvet-photo-fallback" aria-hidden="true">
-              V
+              <span className="velvet-brand-monogram">V</span>
             </div>
           )}
 
           {/* Overlays */}
           <div className="velvet-profile-badges">
             {!isSearch && profile.isVerified && (
-              <div className="velvet-verified-mark"><i>V</i><span>{t('common.verified18')}</span>
-              </div>
+              <VelvetVerifiedChip
+                label={t('common.verified18')}
+                className="velvet-verified-mark"
+              />
             )}
             {profile.isSponsored && (
               <div className="velvet-sponsored-mark">
@@ -54,22 +68,36 @@ export function PublicProfileCard({ profile, mediaUrl, priority = false, variant
           </div>
         </div>
 
-        {/* Content Area - Minimalist */}
+        {/* Content Area - Editorial */}
         <div className="velvet-profile-meta">
-          <div>
-            <h3>
-              {profile.stageName}{profile.publicAge ? `, ${profile.publicAge}` : ''}
+          <div className="velvet-profile-head">
+            <h3 className="velvet-profile-name">
+              {profile.stageName}
+              {profile.publicAge ? (
+                <span className="velvet-profile-age">, {profile.publicAge}</span>
+              ) : null}
             </h3>
           </div>
 
           <div className="velvet-profile-location">
             {profile.primaryLocation ? (
-              <span>{isSearch ? `${profile.primaryLocation.name} · ${cityName}` : profile.primaryLocation.name}</span>
+              <span>
+                {isSearch
+                  ? `${profile.primaryLocation.name} · ${cityName}`
+                  : profile.primaryLocation.name}
+              </span>
             ) : (
               <span>{cityName}</span>
             )}
           </div>
-          {isSearch && profile.isVerified ? <div className="velvet-profile-verification"><i aria-hidden="true">V</i><span>{t('common.verified18')}</span></div> : null}
+          {isSearch && profile.isVerified ? (
+            <div className="velvet-profile-verification">
+              <i className="velvet-verified-chip-icon" aria-hidden="true">
+                <span className="velvet-brand-monogram">v</span>
+              </i>
+              <span>{t('common.verified18')}</span>
+            </div>
+          ) : null}
         </div>
       </div>
     </Link>
