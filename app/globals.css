@@ -220,6 +220,7 @@
   line-height: 1;
   color: var(--velvet-aubergine, #71357d);
   transform: translateY(-1px);
+  text-transform: none !important;
 }
 .velvet-compliance-dialog .velvet-overline {
   margin: 0;
@@ -2079,8 +2080,8 @@ h1 {
 .onboarding-secondary:hover { border-color: currentColor; }
 
 .onboarding-main--verification { min-height: 650px; align-items: center; }
-.verification-panel { width: 100%; max-width: 610px; padding: 34px 0 0; border-top: 1px solid var(--velvet-line); }
-.verification-mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--velvet-aubergine); border-radius: 50%; color: var(--velvet-aubergine-deep); font: 400 18px var(--velvet-serif); }
+.verification-mark { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(113, 53, 125, 0.32); border-radius: 50%; background: radial-gradient(circle at 50% 35%, #fff 0%, rgba(246, 241, 235, 0.95) 100%); color: var(--velvet-aubergine, #71357d); box-shadow: 0 2px 8px rgba(113, 53, 125, 0.08); }
+.verification-mark .velvet-brand-monogram { font-family: var(--velvet-serif, Georgia, serif); font-size: 22px; font-weight: 400; font-style: italic; line-height: 1; color: var(--velvet-aubergine, #71357d); transform: translateY(-1px); text-transform: none !important; }
 .verification-status-line { margin: 25px 0 46px; padding-bottom: 16px; display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid rgba(59, 32, 63, .12); color: var(--velvet-muted); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; }
 .verification-status-line b { color: var(--velvet-aubergine-deep); }
 .verification-state h2 { color: var(--velvet-espresso); font: 400 36px/1 var(--velvet-serif); letter-spacing: -.035em; }

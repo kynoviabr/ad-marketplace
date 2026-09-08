@@ -53,7 +53,7 @@ export default async function DashboardPage() {
         <Link href={actionHref}>{actionLabel}<span aria-hidden="true">↗</span></Link>
       </section>
       <section className="dashboard-preview" aria-labelledby="preview-title">
-        <div className="dashboard-preview-image">{review.previewPhotoUrl ? <Image src={review.previewPhotoUrl} alt={`Foto principal de ${name}`} fill priority sizes="(max-width: 768px) 100vw, 42vw" /> : <div aria-hidden="true">V</div>}</div>
+        <div className="dashboard-preview-image">{review.previewPhotoUrl ? <Image src={review.previewPhotoUrl} alt={`Foto principal de ${name}`} fill priority sizes="(max-width: 768px) 100vw, 42vw" /> : <div aria-hidden="true"><span className="velvet-brand-monogram">v</span></div>}</div>
         <div className="dashboard-preview-copy"><p className="dashboard-eyebrow">PERFIL PÚBLICO</p><h2 id="preview-title">{name}{profile?.publicAge ? <>, <span>{profile.publicAge}</span></> : null}</h2><p className="dashboard-preview-place">{review.primaryLocation ?? 'Região ainda não definida'}</p>
           <dl><div><dt>Publicação</dt><dd>{status.label}</dd></div><div><dt>Verificação</dt><dd>{review.readiness.find((item) => item.key === 'verification')?.ready ? 'Identidade e maioridade confirmadas' : 'Ação necessária'}</dd></div></dl>
           <div className="dashboard-preview-actions"><Link className="dashboard-primary-action" href={actionHref}>{actionLabel}</Link><Link href="/onboarding/seu-perfil">Editar perfil</Link></div>

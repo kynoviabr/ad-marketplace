@@ -228,7 +228,16 @@ export default async function PublicProfilePage({ params }: Props) {
 
       <aside className="profile-trust" aria-label={t('profile.verifiedProfile')}>
         <div className="profile-detail-wrap">
-          <VelvetBadge variant="verified" icon="✓">{t('profile.verificationBadge')}</VelvetBadge>
+          <VelvetBadge
+            variant="verified"
+            icon={
+              <span className="velvet-verified-chip-icon" aria-hidden="true">
+                <span className="velvet-brand-monogram">v</span>
+              </span>
+            }
+          >
+            {t('profile.verificationBadge')}
+          </VelvetBadge>
           <p>{t('profile.verificationDisclaimer')}</p>
           <Link href={localizePathname('/seguranca', locale)} className="velvet-link">
             {t('profile.learnSafety')}

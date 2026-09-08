@@ -5,6 +5,7 @@ import { localizePathname } from '@/lib/i18n/routing'
 import { buildCanonicalUrl, buildLanguageAlternates } from '@/modules/seo/canonical'
 import { JsonLd } from '@/components/seo/json-ld'
 import { getSeoConfig } from '@/modules/seo/config'
+import { VelvetVerifiedChip } from '@/components/ui/velvet-verified-chip'
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale()
@@ -275,11 +276,13 @@ export default async function AdvertisePage() {
             <div className="velvet-anuncie-hero-visual" aria-hidden="true">
               <div className="velvet-anuncie-card-preview">
                 <div className="velvet-anuncie-card-top">
-                  <span className="velvet-anuncie-card-badge">{content.hero.preview.badge}</span>
+                  <VelvetVerifiedChip label={content.hero.preview.badge} size="sm" />
                   <span className="velvet-anuncie-card-status">{content.hero.preview.status}</span>
                 </div>
                 <div className="velvet-anuncie-card-mockup">
-                  <div className="velvet-anuncie-card-avatar">V</div>
+                  <div className="velvet-anuncie-card-avatar">
+                    <span className="velvet-brand-monogram">v</span>
+                  </div>
                   <div className="velvet-anuncie-card-info">
                     <h3>{content.hero.preview.name}</h3>
                     <p>{content.hero.preview.location}</p>
@@ -452,7 +455,7 @@ export default async function AdvertisePage() {
               {content.finalCta.button} <span aria-hidden="true">→</span>
             </Link>
             <span className="velvet-anuncie-final-mark" aria-hidden="true">
-              V
+              <span className="velvet-brand-monogram">v</span>
             </span>
           </div>
         </div>

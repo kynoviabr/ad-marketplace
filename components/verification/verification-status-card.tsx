@@ -58,7 +58,9 @@ export function VerificationStatusCard({ initialVerification, initialVerifiedAdu
 
   return (
     <section className="verification-panel" aria-labelledby="verification-panel-title">
-      <div className="verification-mark" aria-hidden="true">V</div>
+      <div className="verification-mark" aria-hidden="true">
+        <span className="velvet-brand-monogram">v</span>
+      </div>
       <div className="verification-status-line" role="status" aria-live="polite">
         <span>{t('verification.state')}</span><b>{verificationStatusLabel(locale, status)}</b>
       </div>

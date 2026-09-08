@@ -48,7 +48,7 @@ export function PublicProfileCard({
             />
           ) : (
             <div className="velvet-photo-fallback" aria-hidden="true">
-              <span className="velvet-brand-monogram">V</span>
+              <span className="velvet-brand-monogram">v</span>
             </div>
           )}
 
@@ -92,10 +92,10 @@ export function PublicProfileCard({
           </div>
           {isSearch && profile.isVerified ? (
             <div className="velvet-profile-verification">
-              <i className="velvet-verified-chip-icon" aria-hidden="true">
-                <span className="velvet-brand-monogram">v</span>
-              </i>
-              <span>{t('common.verified18')}</span>
+              <VelvetVerifiedChip
+                label={t('common.verified18')}
+                size="sm"
+              />
             </div>
           ) : null}
         </div>

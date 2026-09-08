@@ -47,7 +47,7 @@ export function HomeNewProfessionals({
                 />
               ) : (
                 <div className="velvet-photo-fallback" aria-hidden="true">
-                  V
+                  <span className="velvet-brand-monogram">v</span>
                 </div>
               )}
             </div>

@@ -41,7 +41,7 @@ export default async function ReviewAndPublishPage({ searchParams }: { searchPar
         <article className="review-preview" aria-labelledby="preview-title">
           <div className="review-preview-label"><span>{t('review.publicPreview')}</span><em>{review.previewPhotoUrl ? t('review.approvedPhotoOnly') : t('review.noApprovedPhoto')}</em></div>
           <div className="review-portrait">
-            {review.previewPhotoUrl && preview ? <Image src={review.previewPhotoUrl} alt={`Foto de ${preview.stageName}`} fill sizes="(max-width: 768px) 100vw, 42vw" /> : <span aria-hidden="true">V</span>}
+            {review.previewPhotoUrl && preview ? <Image src={review.previewPhotoUrl} alt={`Foto de ${preview.stageName}`} fill sizes="(max-width: 768px) 100vw, 42vw" /> : <span aria-hidden="true" className="velvet-brand-monogram">v</span>}
           </div>
           {preview ? <div className="review-identity">
             <p>{review.primaryLocation ?? review.serviceAreas[0] ?? 'velvet. São Paulo'}</p>
