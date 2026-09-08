@@ -53,7 +53,7 @@ export default async function SecurityPage() {
             <li>To advertise on Velvet, professionals must confirm their identity and prove they are 18 or older.</li>
             <li>This step occurs before the profile can be published.</li>
             <li>This helps reduce fake profiles and platform misuse.</li>
-            <li>Verification confirms identity and age, but is not a guarantee of conduct, services, or meetings.</li>
+            <li>Verification confirms the identity and legal age of the advertiser. It is not a guarantee of conduct, service, payment, or meetings.</li>
           </ul>
         ),
       },
@@ -98,8 +98,8 @@ export default async function SecurityPage() {
           <ul className="velvet-security-list">
             <li>Velvet helps you discover profiles and understand who is advertising.</li>
             <li>When a professional shares a contact channel, communication happens directly between you.</li>
-            <li>Velvet does not participate in negotiations, payments, or meetings.</li>
-            <li>Never send passwords, verification codes, IDs, or financial details to strangers.</li>
+            <li>Velvet does not participate in negotiations, payments, hiring, or meetings, inside or outside the platform.</li>
+            <li>Never share passwords, access codes, documents, or banking details with unknown parties. If anything feels off, discontinue contact.</li>
           </ul>
         ),
       },
@@ -148,7 +148,7 @@ export default async function SecurityPage() {
             <p>
               At the same time, we want to be transparent: Velvet helps people find
               each other, but does not participate in contacts, agreements, or meetings
-              outside the platform.
+              held inside or outside the platform.
             </p>
           </div>
         }
@@ -168,7 +168,7 @@ export default async function SecurityPage() {
           <li>Para anunciar na Velvet, a profissional precisa confirmar sua identidade e comprovar que tem 18 anos ou mais.</li>
           <li>Essa etapa acontece antes da publicação do perfil.</li>
           <li>Isso ajuda a reduzir perfis falsos e o uso indevido da plataforma.</li>
-          <li>A verificação confirma identidade e maioridade, mas não é garantia de comportamento, serviço ou encontro.</li>
+          <li>A verificação confirma a identidade e a maioridade de quem anuncia. Ela não é uma garantia de comportamento, serviço, pagamento ou encontro.</li>
         </ul>
       ),
     },
@@ -213,8 +213,8 @@ export default async function SecurityPage() {
         <ul className="velvet-security-list">
           <li>A Velvet ajuda você a descobrir perfis e entender melhor quem está anunciando.</li>
           <li>Quando a profissional publica um canal de contato, a conversa acontece diretamente entre vocês.</li>
-          <li>A Velvet não participa da negociação, do pagamento ou do encontro.</li>
-          <li>Nunca envie senhas, códigos, documentos ou dados financeiros a desconhecidos.</li>
+          <li>A Velvet não participa da negociação, do pagamento, da contratação ou do encontro, dentro ou fora da plataforma.</li>
+          <li>Nunca compartilhe senhas, códigos de acesso, documentos ou dados bancários com desconhecidos. Se algo parecer estranho, interrompa o contato.</li>
         </ul>
       ),
     },
@@ -263,7 +263,7 @@ export default async function SecurityPage() {
           <p>
             Ao mesmo tempo, queremos ser transparentes: a Velvet ajuda pessoas a se
             encontrarem, mas não participa dos contatos, acordos ou encontros
-            realizados fora da plataforma.
+            realizados dentro ou fora da plataforma.
           </p>
         </div>
       }

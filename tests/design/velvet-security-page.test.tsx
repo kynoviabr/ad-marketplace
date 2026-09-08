@@ -73,10 +73,10 @@ describe('Velvet Public Security Page Refinement', () => {
   it('5. presents clear non-intermediary positioning and verification limits', () => {
     // Non-intermediary statements
     expect(pageSource).toMatch(/a Velvet ajuda pessoas a se\s+encontrarem,\s*mas não participa dos contatos/i)
-    expect(pageSource).toContain('A Velvet não participa da negociação, do pagamento ou do encontro.')
+    expect(pageSource).toContain('A Velvet não participa da negociação, do pagamento, da contratação ou do encontro, dentro ou fora da plataforma.')
 
     // Verification limits
-    expect(pageSource).toContain('A verificação confirma identidade e maioridade, mas não é garantia de comportamento, serviço ou encontro.')
+    expect(pageSource).toContain('A verificação confirma a identidade e a maioridade de quem anuncia. Ela não é uma garantia de comportamento, serviço, pagamento ou encontro.')
   })
 
   it('6. includes closing block with canonical routes and circular "v" monogram', () => {
@@ -108,7 +108,7 @@ describe('Velvet Public Security Page Refinement', () => {
 
   it('9. verifies footer verification disclaimer was updated to the approved clearer wording', () => {
     expect(publicPtBR['footer.verificationScope']).toBe(
-      'A verificação confirma a identidade e a maioridade de quem anuncia. Ela não é uma garantia de comportamento, serviço ou encontro.'
+      'A verificação confirma a identidade e a maioridade de quem anuncia. Ela não é uma garantia de comportamento, serviço, pagamento ou encontro.'
     )
     expect(publicEn['footer.verificationScope']).toContain('Verification confirms the identity and legal age of advertisers.')
   })

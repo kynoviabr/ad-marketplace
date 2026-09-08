@@ -58,7 +58,14 @@ export async function PublicFooter() {
 
       <div className="velvet-public-footer-legal">
         <small>{t('footer.adultsOnly', { year: currentYear })}</small>
-        <small>{t('footer.verificationScope')}</small>
+        <div className="velvet-public-footer-disclaimers">
+          <small className="velvet-public-footer-disclaimer-role">
+            {t('footer.roleDisclaimer')}
+          </small>
+          <small className="velvet-public-footer-disclaimer-verification">
+            {t('footer.verificationScope')}
+          </small>
+        </div>
       </div>
     </footer>
   )

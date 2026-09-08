@@ -152,7 +152,10 @@ export default async function PublicProfilePage({ params }: Props) {
               >
                 {t('profile.whatsapp')} <span aria-hidden="true">↗</span>
               </WhatsAppCTA>
-              <small>{t('profile.contactDisclaimer')}</small>
+              <div className="velvet-disclaimer velvet-disclaimer--contact">
+                <small className="velvet-disclaimer-primary">{t('profile.contactDisclaimer')}</small>
+                <small className="velvet-disclaimer-safety">{t('profile.contactSafety')}</small>
+              </div>
             </div>
           ) : null}
 
@@ -222,6 +225,7 @@ export default async function PublicProfilePage({ params }: Props) {
           noReviewsDescription: t('profile.noReviewsDescription'),
           ratingSummary: locale === 'en' ? `${reviews.averageRating.toFixed(1)} · ${reviews.totalReviews} reviews` : `${reviews.averageRating.toFixed(1).replace('.', ',')} · ${reviews.totalReviews} avaliações`,
           viewAll: locale === 'en' ? `View all ${reviews.totalReviews} reviews` : `Ver todas as ${reviews.totalReviews} avaliações`,
+          disclaimer: t('profile.reviewsDisclaimer'),
         }}
       />
       <div className="profile-detail-wrap"><ReviewForm profileId={detail.profileId} access={reviewAccess} locale={locale} /></div>
@@ -260,7 +264,11 @@ export default async function PublicProfilePage({ params }: Props) {
               >
                 {t('profile.whatsapp')} <span aria-hidden="true">↗</span>
               </WhatsAppCTA>
-              <small>{t('profile.contactDisclaimer')}</small>
+              <div className="velvet-disclaimer velvet-disclaimer--compact">
+                <small className="velvet-disclaimer-primary">
+                  {t('profile.compactContactDisclaimer')} {t('profile.compactContactSafety')}
+                </small>
+              </div>
             </div>
           </div>
         </section>

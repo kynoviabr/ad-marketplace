@@ -28,6 +28,7 @@ interface ProfileReviewsPreviewProps {
     noReviewsDescription: string
     ratingSummary: string
     viewAll: string
+    disclaimer?: string
   }
 }
 
@@ -79,6 +80,7 @@ export function ProfileReviewsPreview({ data, labels, viewAllHref }: ProfileRevi
           </article>
         ))}
       </div>
+      {labels.disclaimer ? <p className="velvet-disclaimer velvet-disclaimer--reviews">{labels.disclaimer}</p> : null}
       {viewAllHref ? <Link className="profile-reviews-view-all" href={viewAllHref}>{labels.viewAll} <span aria-hidden="true">→</span></Link> : null}
     </section>
   )

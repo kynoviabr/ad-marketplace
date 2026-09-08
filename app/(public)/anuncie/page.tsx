@@ -14,12 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: {
       absolute: en
-        ? 'Advertise on velvet. | Professional Profiles'
-        : 'Anuncie na velvet. | Perfis Profissionais',
+        ? 'Advertise on Velvet | Professional Profiles'
+        : 'Anuncie na Velvet | Perfis Profissionais',
     },
     description: en
-      ? 'Create your space, present your work elegantly, and manage your profile independently on velvet.'
-      : 'Crie seu espaço, apresente seu trabalho com elegância e gerencie seu perfil com autonomia na velvet.',
+      ? 'Create your space, present your profile with care, and manage your choices with autonomy on Velvet.'
+      : 'Crie seu espaço, apresente seu perfil com cuidado e gerencie suas escolhas com autonomia na Velvet.',
     alternates: {
       canonical: buildCanonicalUrl('/anuncie', undefined, locale),
       languages: buildLanguageAlternates('/anuncie'),
@@ -38,192 +38,255 @@ export default async function AdvertisePage() {
   const content = {
     hero: {
       overline: en ? 'FOR PROFESSIONALS' : 'PARA PROFISSIONAIS',
-      headline: en ? 'Your space. Your profile. Your connections.' : 'Seu espaço. Seu perfil. Suas conexões.',
-      points: en
+      headline: en
+        ? 'Your space.\nYour profile.\nYour way.'
+        : 'Seu espaço.\nSeu perfil.\nDo seu jeito.',
+      paragraphs: en
         ? [
-            'Create and manage your own professional profile with total autonomy.',
-            'Discerning clients discover your presentation through velvet. curation.',
-            'Direct contact happens through channels enabled by you, without intermediaries.',
-            'velvet. is an independent discovery platform and does not intermediate services.',
+            'Velvet is a space for you to present yourself with care, freedom, and clarity.',
+            'You choose what to display on your profile, where you are available, and how you prefer to be contacted. Before publication, we confirm your identity and legal age and review submitted content.',
+            'Once your profile is live, interested people can reach out directly through the channels you choose to provide.',
+            'Velvet helps your profile be discovered, but does not take part in conversations, negotiations, payments, or meetings arranged between you.',
           ]
         : [
-            'Crie e gerencie seu próprio perfil profissional com total autonomia.',
-            'Clientes selecionados descobrem sua apresentação pela curadoria da velvet.',
-            'O contato acontece diretamente pelos canais habilitados por você, sem intermediários.',
-            'A velvet. é uma plataforma de descoberta e não intermedia a prestação de serviços.',
+            'A Velvet é um espaço para você se apresentar com cuidado, liberdade e clareza.',
+            'Você escolhe o que quer mostrar no seu perfil, as regiões onde atende e como prefere ser contatada. Antes da publicação, confirmamos sua identidade e maioridade e revisamos o conteúdo enviado.',
+            'Depois que seu perfil estiver no ar, quem se interessar pode falar diretamente com você pelos canais que você escolher disponibilizar.',
+            'A Velvet ajuda seu perfil a ser descoberto, mas não participa das conversas, negociações, pagamentos ou encontros combinados entre vocês.',
           ],
       primaryCta: en ? 'Create my profile' : 'Criar meu perfil',
-      secondaryCta: en ? 'How it works' : 'Como funciona',
+      secondaryCta: en ? 'How it works' : 'Entenda como funciona',
       preview: {
-        badge: en ? '18+ VERIFIED' : '18+ VERIFICADA',
-        status: en ? 'Active on velvet.' : 'Ativo na velvet.',
+        badge: en ? '18+ VERIFIED' : 'VERIFICADA 18+',
         name: 'Helena',
         location: 'Jardins · São Paulo',
-        channels: en ? 'Direct contact: WhatsApp · Phone' : 'Contato direto: WhatsApp · Telefone',
+        footer: en ? 'Direct contact available' : 'Contato direto disponível',
       },
     },
     howItWorks: {
       overline: en ? 'STEP BY STEP' : 'PASSO A PASSO',
-      title: en ? 'How the journey works' : 'Como funciona a jornada',
+      title: en ? 'From registration to your published profile' : 'Do cadastro ao seu perfil publicado',
       subtitle: en
-        ? 'A transparent, structured path from registration to publication.'
-        : 'Um caminho transparente e estruturado desde o cadastro até a publicação.',
+        ? 'You can take everything at your own pace. Velvet guides you through the main steps and shows what remains before submitting your profile for review.'
+        : 'Você pode fazer tudo no seu ritmo. A Velvet acompanha você pelas principais etapas e mostra o que falta antes de enviar seu perfil para análise.',
       steps: en
         ? [
-            { num: '01', title: 'Create account', desc: 'Sign up with email and password for private account management.' },
-            { num: '02', title: 'Verify identity & legal age', desc: 'Mandatory, confidential 18+ verification before publication.' },
-            { num: '03', title: 'Build profile', desc: 'Define your stage name, editorial bio, and preferences.' },
-            { num: '04', title: 'Add photos & videos', desc: 'Upload high-resolution gallery photos and introductory videos.' },
-            { num: '05', title: 'Set services & regions', desc: 'Select operating neighborhoods and structured service preferences.' },
-            { num: '06', title: 'Submit for review', desc: 'Content and media guidelines moderation by our safety team.' },
-            { num: '07', title: 'Publish', desc: 'Your profile goes live on velvet. discovery with direct contact.' },
+            { num: '01', title: 'Create your account', desc: 'Start with your email and password to access your space on Velvet.' },
+            { num: '02', title: 'Confirm your identity and legal age', desc: 'Before publishing, you need to confirm your identity and prove you are 18 or older. This step is mandatory for all professionals.' },
+            { num: '03', title: 'Tell us a bit about yourself', desc: 'Choose your stage name, write your introduction, and add the details you want to show on your profile.' },
+            { num: '04', title: 'Choose your photos and videos', desc: 'Add the images and videos you wish to use in your presentation. Content is reviewed before becoming visible.' },
+            { num: '05', title: 'Share where you are available', desc: 'Select the areas of São Paulo where you want to appear and where you are available.' },
+            { num: '06', title: 'Review and submit', desc: 'Review your profile calmly and make any adjustments you like. When you are ready, submit it for review.' },
+            { num: '07', title: 'Publish your profile', desc: 'Once the required steps are completed and content is approved, your profile can appear in Velvet discovery. Anyone interested can reach out directly to you.' },
           ]
         : [
-            { num: '01', title: 'Criar conta', desc: 'Acesso seguro por e-mail e senha para gerenciar seu espaço com privacidade.' },
-            { num: '02', title: 'Verificar identidade e maioridade', desc: 'Procedimento confidencial e obrigatório 18+ antes da publicação.' },
-            { num: '03', title: 'Montar perfil', desc: 'Defina seu nome artístico, texto de apresentação e preferências.' },
-            { num: '04', title: 'Adicionar fotos e vídeos', desc: 'Carregue fotografias de alta resolução e vídeos de introdução.' },
-            { num: '05', title: 'Informar serviços e regiões', desc: 'Indique bairros em São Paulo e preferências de atendimento estruturadas.' },
-            { num: '06', title: 'Enviar para análise', desc: 'Moderação criteriosa de conteúdo de acordo com as diretrizes da plataforma.' },
-            { num: '07', title: 'Publicar', desc: 'Seu perfil passa a ser exibido na descoberta da velvet. com contato direto.' },
+            { num: '01', title: 'Crie sua conta', desc: 'Comece com seu e-mail e uma senha para acessar seu espaço na Velvet.' },
+            { num: '02', title: 'Confirme sua identidade e maioridade', desc: 'Antes de publicar, você precisa confirmar sua identidade e comprovar que tem 18 anos ou mais. Essa etapa é obrigatória para todas as profissionais.' },
+            { num: '03', title: 'Conte um pouco sobre você', desc: 'Escolha seu nome artístico, escreva sua apresentação e adicione as informações que deseja mostrar no perfil.' },
+            { num: '04', title: 'Escolha suas fotos e vídeos', desc: 'Adicione as imagens e vídeos que você quer usar na sua apresentação. O conteúdo passa por revisão antes de ficar visível.' },
+            { num: '05', title: 'Informe onde você atende', desc: 'Escolha as regiões de São Paulo onde deseja aparecer e onde costuma atender.' },
+            { num: '06', title: 'Revise e envie', desc: 'Confira seu perfil com calma e faça os ajustes que quiser. Quando estiver pronta, envie para análise.' },
+            { num: '07', title: 'Coloque seu perfil no ar', desc: 'Depois que as etapas necessárias estiverem concluídas e o conteúdo aprovado, seu perfil poderá aparecer na descoberta da Velvet. Quem se interessar poderá entrar em contato diretamente com você.' },
           ],
+      ctaText: en ? 'View the complete guide' : 'Ver o guia completo',
     },
     offers: {
-      overline: en ? 'PROFILE CAPABILITIES' : 'RECURSOS DO PERFIL',
-      title: en ? 'What the profile offers' : 'O que o seu perfil oferece',
+      overline: en ? 'YOUR PROFILE ON VELVET' : 'SEU PERFIL NA VELVET',
+      title: en ? 'A space to show who you are' : 'Um espaço para mostrar quem você é',
       subtitle: en
-        ? 'Clear and transparent: a dedicated presentation platform designed with elegance. We do not promise lead volumes, bookings, or income.'
-        : 'Clareza e transparência: uma ferramenta completa pensada para sua apresentação com elegância. Não prometemos volume de contatos, reservas ou renda.',
+        ? 'Your profile gathers the information you choose to share so people can get to know you better before getting in touch.'
+        : 'Seu perfil reúne as informações que você escolhe compartilhar para que as pessoas possam conhecer melhor você antes de entrar em contato.',
       items: en
         ? [
-            { title: 'Professional profile', desc: 'Editorial presentation with stage name, biography, languages, and characteristics.' },
-            { title: 'Photos and videos', desc: 'Visual media gallery with smooth playback and protected file delivery.' },
-            { title: 'Service areas', desc: 'Select zones and neighborhoods in São Paulo where you actually operate.' },
-            { title: 'Structured preferences', desc: 'Define service styles and preferences clearly without ambiguities.' },
-            { title: 'Real reviews', desc: 'Authentic reviews with professional response capability and moderation.' },
-            { title: 'Direct contact', desc: 'Enabled channels (WhatsApp, phone, Telegram) for communication without platform fees.' },
-            { title: 'Audience control', desc: 'Choose between open visibility (PUBLIC) or members-only access (VIP ONLY).' },
-            { title: 'Profile management', desc: 'Edit details, update media, or pause visibility anytime from your dashboard.' },
+            { title: 'Your presentation', desc: 'Show your stage name, biography, languages, and other details that feel right to you.' },
+            { title: 'Photos and videos', desc: 'Create a visual presentation with the photos and videos you select for your profile.' },
+            { title: 'Where you are available', desc: 'Indicate the areas of São Paulo where you are available and where you want to be discovered.' },
+            { title: 'About your services', desc: 'Share details and preferences that help people better understand your profile before reaching out.' },
+            { title: 'Reviews', desc: 'When available, reviews help share experiences within Velvet guidelines and undergo our moderation processes.' },
+            { title: 'Direct contact', desc: 'You choose which contact channels you want to provide. Conversations happen directly between you and the other person.' },
+            { title: 'Who can see your profile', desc: 'Choose the available visibility option that makes the most sense for you.' },
+            { title: 'Update whenever you like', desc: 'Update details and media or pause your profile whenever you need to, right from your space on Velvet.' },
           ]
         : [
-            { title: 'Perfil profissional', desc: 'Apresentação editorial com nome artístico, biografia, idiomas e características.' },
-            { title: 'Fotos e vídeos', desc: 'Galeria visual com reprodução fluida e entrega protegida de mídia.' },
-            { title: 'Regiões de atendimento', desc: 'Escolha bairros e regiões em São Paulo onde você realmente atende.' },
-            { title: 'Preferências estruturadas', desc: 'Defina estilos de atendimento e preferências com total clareza.' },
-            { title: 'Avaliações reais', desc: 'Avaliações autênticas com direito de resposta da profissional e moderação.' },
-            { title: 'Contato direto', desc: 'Canais habilitados por você (WhatsApp, telefone, Telegram) sem intermediários.' },
-            { title: 'Controle de audiência', desc: 'Defina a visibilidade do seu perfil como aberta (PÚBLICO) ou restrita (VIP ONLY).' },
-            { title: 'Gestão completa do perfil', desc: 'Atualize informações, altere fotos ou pause o perfil a qualquer momento no painel.' },
+            { title: 'Sua apresentação', desc: 'Mostre seu nome artístico, sua descrição, idiomas e outras informações que façam sentido para você.' },
+            { title: 'Fotos e vídeos', desc: 'Crie uma apresentação visual com as fotos e vídeos que escolher para o seu perfil.' },
+            { title: 'Onde você atende', desc: 'Informe as regiões de São Paulo onde costuma atender e onde deseja ser encontrada.' },
+            { title: 'Sobre o seu atendimento', desc: 'Compartilhe as informações e preferências que ajudam as pessoas a entender melhor o seu perfil antes do contato.' },
+            { title: 'Avaliações', desc: 'Quando disponíveis, avaliações ajudam a compartilhar experiências dentro das regras da Velvet e passam pelos nossos processos de moderação.' },
+            { title: 'Contato direto', desc: 'Você escolhe quais canais de contato quer disponibilizar. A conversa acontece diretamente entre você e a outra pessoa.' },
+            { title: 'Quem pode ver seu perfil', desc: 'Escolha a forma de visibilidade disponível que fizer mais sentido para você.' },
+            { title: 'Atualize quando quiser', desc: 'Troque informações e conteúdos ou pause seu perfil quando precisar, usando sua área na Velvet.' },
           ],
     },
     privacy: {
-      overline: en ? 'VERIFICATION & PRIVACY' : 'SEGURANÇA E PRIVACIDADE',
-      title: en ? '18+ Verification and privacy protection' : 'Verificação 18+ e privacidade rigorosa',
+      overline: en ? 'PRIVACY & VERIFICATION' : 'PRIVACIDADE E VERIFICAÇÃO',
+      title: en
+        ? 'Your identity is confirmed. Your stage name is what remains visible.'
+        : 'Sua identidade é confirmada. Seu nome artístico continua sendo o que aparece.',
       cards: en
         ? [
             {
-              title: 'Mandatory 18+ verification',
+              title: 'Verification of identity and legal age',
               paragraphs: [
-                'Identity and legal age verification is an absolute requirement for every published profile. It safeguards our community and confirms legal compliance.',
-                'The procedure is performed confidentially through a secure verification workflow. Verification status confirms adult eligibility without making external endorsements.',
+                'To publish on Velvet, every professional must confirm her identity and prove she is 18 or older.',
+                'This verification exists to help keep the platform strictly adult and reduce fake profiles.',
+                'It confirms identity and legal age. It is not an evaluation of your work and does not represent a guarantee regarding services, payments, or meetings.',
               ],
             },
             {
-              title: 'Strict civil data protection',
+              title: 'Your private information remains off your profile',
               paragraphs: [
-                'Your civil name, government ID (CPF), identification documents, and biometric data are NEVER displayed publicly or shared with visitors.',
-                'Your public profile uses strictly your stage name and the details you choose to share. Verification data is stored separately from public marketplace content.',
+                'The public sees your stage name and the details you chose to present.',
+                'Verification records and other private account details are never part of your public profile.',
               ],
             },
           ]
         : [
             {
-              title: 'Verificação obrigatória 18+',
+              title: 'Verificação de identidade e maioridade',
               paragraphs: [
-                'A confirmação de identidade e maioridade é exigência inegociável para publicação. Ela protege a comunidade e garante conformidade legal estrita.',
-                'O procedimento é conduzido de forma confidencial e digital. A verificação confirma a maioridade sem envolver promessas de serviços ou encontros.',
+                'Para publicar na Velvet, toda profissional precisa confirmar sua identidade e comprovar que tem 18 anos ou mais.',
+                'Essa verificação existe para ajudar a manter a plataforma exclusivamente adulta e reduzir o uso de perfis falsos.',
+                'Ela confirma identidade e maioridade. Não é uma avaliação do seu trabalho e não representa garantia sobre serviços, pagamentos ou encontros.',
               ],
             },
             {
-              title: 'Proteção total dos dados civis',
+              title: 'Suas informações privadas continuam fora do perfil',
               paragraphs: [
-                'Seu nome civil, CPF, fotos de documentos e dados de verificação NUNCA são publicados ou compartilhados com clientes ou visitantes.',
-                'Seu perfil público exibe exclusivamente seu nome artístico e o que você decidir compartilhar. Os registros de verificação ficam totalmente isolados do conteúdo público.',
+                'O público vê seu nome artístico e as informações que você escolheu apresentar.',
+                'Dados usados na verificação e outras informações privadas da sua conta não fazem parte do seu perfil público.',
               ],
             },
           ],
     },
     independence: {
-      overline: en ? 'PLATFORM BOUNDARIES' : 'AUTONOMIA E INDEPENDÊNCIA',
-      title: en ? 'Independence and transparency' : 'Independência e transparência',
+      overline: en ? 'YOUR AUTONOMY' : 'SUA AUTONOMIA',
+      title: en ? 'Your decisions remain your own' : 'Suas decisões continuam sendo suas',
       items: en
         ? [
-            { title: 'Discovery platform', desc: 'velvet. is exclusively a technology platform for discovering verified profiles. We are not an agency or employer.' },
-            { title: 'Professional autonomy', desc: 'Professionals act independently, defining their own schedules, conditions, and boundaries.' },
-            { title: 'Direct communication', desc: 'Clients and professionals communicate directly. velvet. does not join or monitor private conversations.' },
-            { title: 'No transaction intermediation', desc: 'velvet. charges no commissions on services and does not participate in negotiations or payments.' },
+            {
+              title: 'Velvet helps your profile be discovered',
+              desc: 'We provide the space for you to present yourself and for interested people to discover your profile. Velvet is not an agency, employer, or representative of the professional.',
+            },
+            {
+              title: 'You organize your routine',
+              desc: 'You decide your schedule, availability, boundaries, and how you conduct your work.',
+            },
+            {
+              title: 'You choose how you want to be reached',
+              desc: 'When you share WhatsApp, phone, or another channel, conversations happen directly between you. Velvet does not take part in or monitor private conversations.',
+            },
+            {
+              title: 'What you arrange stays between you',
+              desc: 'Velvet does not negotiate on your behalf and does not take part in payments, bookings, or meetings arranged inside or outside the platform.',
+            },
           ]
         : [
-            { title: 'Plataforma de descoberta', desc: 'A velvet. é exclusivamente uma plataforma tecnológica para descoberta de perfis verificados. Não somos agência nem empregadora.' },
-            { title: 'Autonomia profissional', desc: 'Profissionais atuam com total independência, definindo seus próprios horários, condições e limites.' },
-            { title: 'Comunicação direta', desc: 'Clientes e profissionais conversam diretamente. A velvet. não participa nem monitora conversas privadas.' },
-            { title: 'Sem intermediação de serviços', desc: 'A velvet. não cobra comissões sobre serviços e não participa de negociações financeiras entre as partes.' },
+            {
+              title: 'A Velvet ajuda seu perfil a ser encontrado',
+              desc: 'Criamos o espaço para você se apresentar e para que pessoas interessadas possam conhecer seu perfil. A Velvet não é agência, empregadora ou representante da profissional.',
+            },
+            {
+              title: 'Você organiza sua rotina',
+              desc: 'Você decide seus horários, disponibilidade, limites e como deseja conduzir seu trabalho.',
+            },
+            {
+              title: 'Você escolhe como quer ser contatada',
+              desc: 'Quando você disponibiliza WhatsApp, telefone ou outro canal, a conversa acontece diretamente entre vocês. A Velvet não participa nem acompanha conversas privadas.',
+            },
+            {
+              title: 'O que vocês combinam fica entre vocês',
+              desc: 'A Velvet não negocia em seu nome e não participa de pagamentos, contratações ou encontros combinados dentro ou fora da plataforma.',
+            },
           ],
+      safetyNote: en
+        ? 'Protect your personal information. Never share your password, access codes, or banking details with unknown people.'
+        : 'Cuide das suas informações pessoais. Nunca compartilhe sua senha, códigos de acesso ou dados bancários com desconhecidos.',
     },
     plans: {
-      overline: en ? 'PLANS & ACCESS' : 'PLANOS E ACESSO',
-      title: en ? 'Founder access: launch availability at no charge' : 'Posicionamento Founder: acesso sem custo no lançamento',
-      planTitle: en ? 'Founder Launch Plan' : 'Plano Founder de Lançamento',
-      price: en ? 'Free' : 'Gratuito',
-      priceSub: en ? 'during launch phase' : 'durante a fase de lançamento',
+      overline: en ? 'FOUNDER' : 'FOUNDER',
+      title: en
+        ? 'Start with Velvet with no monthly fee during the launch phase'
+        : 'Comece com a Velvet sem mensalidade na fase de lançamento',
+      planOverline: en ? 'FOUNDER · LAUNCH' : 'FOUNDER · LANÇAMENTO',
+      planTitle: en ? 'Founder Plan' : 'Plano Founder',
+      price: en ? 'No monthly fee' : 'Sem mensalidade',
+      priceSub: en ? 'during the launch phase' : 'durante a fase de lançamento',
+      intro: en
+        ? 'Founder is the program for the first professionals on Velvet in São Paulo. During this phase, you can create and maintain your profile under program conditions without paying a monthly fee.'
+        : 'O Founder é o programa das primeiras profissionais da Velvet em São Paulo. Durante essa fase, você pode criar e manter seu perfil dentro das condições do programa sem pagar mensalidade.',
       perks: en
         ? [
-            'Complete verified professional profile',
-            'Up to 10 photos in high resolution',
-            'Up to 3 introduction videos',
-            'Up to 5 service regions in São Paulo',
-            'Authentic client reviews capability',
-            'Audience control (PUBLIC / VIP ONLY)',
-            'No monthly charges during launch phase',
-            'Zero transaction fees or commission cuts',
+            'Professional profile with 18+ verification',
+            'Up to 10 photos',
+            'Up to 3 videos',
+            'Up to 5 service areas in São Paulo',
+            'Review features available for your profile',
+            'Options to control who can view your profile',
+            'No monthly fee during the Founder phase',
+            'Zero Velvet commission on arrangements made directly between you and another person',
           ]
         : [
-            'Perfil profissional verificado completo',
-            'Até 10 fotografias em alta resolução',
-            'Até 3 vídeos de apresentação',
+            'Perfil profissional com verificação 18+',
+            'Até 10 fotos',
+            'Até 3 vídeos',
             'Até 5 regiões de atendimento em São Paulo',
-            'Sistema de avaliações reais de clientes',
-            'Controle de audiência (PÚBLICO / VIP ONLY)',
-            'Sem mensalidade na fase de lançamento',
-            'Sem comissão sobre serviços ou atendimento',
+            'Recursos de avaliações disponíveis para o perfil',
+            'Opções para controlar quem pode visualizar seu perfil',
+            'Sem mensalidade durante a fase Founder',
+            'Sem comissão da Velvet sobre o que for combinado diretamente entre você e outra pessoa',
           ],
       note: en
-        ? 'No payment provider is currently integrated. Access is provided under the Founder launch terms with no automatic charges or hidden fees.'
-        : 'Nenhum provedor de pagamento está integrado no momento. O acesso é concedido nas condições de lançamento Founder, sem cobranças automáticas ou taxas ocultas.',
+        ? 'During the Founder phase, you do not need to register a credit card for recurring charges.'
+        : 'Durante a fase Founder, você não precisa cadastrar cartão para cobranças automáticas.',
     },
     safety: {
-      overline: en ? 'SAFETY & CONTROL' : 'SEGURANÇA E CONTROLE',
-      title: en ? 'You in full command of your presence' : 'Você no comando da sua presença',
+      overline: en ? 'YOU IN CONTROL' : 'VOCÊ NO CONTROLE',
+      title: en ? 'Your profile moves with your pace' : 'Seu perfil acompanha o seu momento',
       items: en
         ? [
-            { title: 'Visibility control', desc: 'Choose whether your profile is available to all visitors (PUBLIC) or reserved for members (VIP ONLY).' },
-            { title: 'Pause anytime', desc: 'Temporarily hide your profile with a single click in your dashboard without losing your content.' },
-            { title: 'Responsible moderation', desc: 'All uploaded media and profile updates undergo moderation to maintain space quality.' },
-            { title: 'Reporting & support', desc: 'Report inappropriate behavior or abuse through our dedicated safety and moderation team.' },
+            {
+              title: 'Choose how you want to appear',
+              desc: 'Use the available visibility options to decide how your profile can be found.',
+            },
+            {
+              title: 'Pause whenever you need to',
+              desc: 'Taking some time off? You can pause your profile and return later without starting over.',
+            },
+            {
+              title: 'Content reviewed before going live',
+              desc: 'Photos, videos, and other updates requiring moderation are reviewed before becoming visible.',
+            },
+            {
+              title: 'If you need help',
+              desc: 'Our Help Center brings together guidance on account, profile, photos, verification, safety, and other important topics.',
+            },
           ]
         : [
-            { title: 'Controle de visibilidade', desc: 'Escolha se seu perfil fica aberto a todos os visitantes (PÚBLICO) ou restrito a membros (VIP ONLY).' },
-            { title: 'Pausa a qualquer momento', desc: 'Oculte seu perfil temporariamente com um clique no painel, preservando todo o seu histórico.' },
-            { title: 'Moderação responsável', desc: 'Todas as fotos, vídeos e edições passam por moderação para manter a qualidade do catálogo.' },
-            { title: 'Denúncias e suporte', desc: 'Canais ativos para reportar problemas e condutas abusivas com acompanhamento pela equipe.' },
+            {
+              title: 'Escolha como quer aparecer',
+              desc: 'Use as opções de visibilidade disponíveis para decidir como seu perfil pode ser encontrado.',
+            },
+            {
+              title: 'Pause quando precisar',
+              desc: 'Vai ficar um tempo fora? Você pode pausar seu perfil e voltar depois sem precisar começar tudo novamente.',
+            },
+            {
+              title: 'Conteúdo revisado antes de aparecer',
+              desc: 'Fotos, vídeos e outras alterações que precisam de moderação são analisados antes de ficarem visíveis.',
+            },
+            {
+              title: 'Se precisar de ajuda',
+              desc: 'Nossa Central de Ajuda reúne orientações sobre conta, perfil, fotos, verificação, segurança e outros assuntos importantes.',
+            },
           ],
     },
     finalCta: {
-      overline: en ? 'START YOUR PROFILE' : 'COMECE SEU ESPAÇO',
-      headline: en ? 'Ready to create your space on velvet.?' : 'Pronta para criar seu espaço na velvet.?',
+      overline: en ? 'START YOUR PROFILE' : 'COMECE SEU PERFIL',
+      headline: en ? 'How about starting your space on Velvet?' : 'Que tal começar seu espaço na Velvet?',
       desc: en
-        ? 'It takes just a few minutes to start your profile and submit your confidential 18+ verification.'
-        : 'Leva apenas alguns minutos para iniciar seu perfil e enviar sua verificação 18+ confidencial.',
+        ? 'You can create your account now and complete your profile at your own pace. We show you every step — from your bio and photos to the required verification before publication.'
+        : 'Você pode criar sua conta agora e completar seu perfil com calma. Vamos mostrar cada etapa — desde sua apresentação e fotos até a verificação necessária antes da publicação.',
       button: en ? 'Create my profile' : 'Criar meu perfil',
     },
   }
@@ -234,10 +297,10 @@ export default async function AdvertisePage() {
         data={{
           '@context': 'https://schema.org',
           '@type': 'WebPage',
-          name: en ? 'Advertise on velvet.' : 'Anuncie na velvet.',
+          name: en ? 'Advertise on Velvet.' : 'Anuncie na Velvet.',
           description: en
-            ? 'Create your space, present your work elegantly, and manage your profile independently on velvet.'
-            : 'Crie seu espaço, apresente seu trabalho com elegância e gerencie seu perfil com autonomia na velvet.',
+            ? 'Create your space, present your profile with care, and manage your choices with autonomy on Velvet.'
+            : 'Crie seu espaço, apresente seu perfil com cuidado e gerencie suas escolhas com autonomia na Velvet.',
           url: canonicalUrl,
           inLanguage: locale,
           isPartOf: {
@@ -254,15 +317,21 @@ export default async function AdvertisePage() {
           <div className="velvet-anuncie-hero-grid">
             <div className="velvet-anuncie-hero-copy">
               <p className="velvet-overline">{content.hero.overline}</p>
-              <h1>{content.hero.headline}</h1>
-              <ul className="velvet-anuncie-hero-points">
-                {content.hero.points.map((pt) => (
-                  <li key={pt} className="velvet-anuncie-hero-point">
-                    <span className="velvet-anuncie-hero-point-bullet" aria-hidden="true" />
-                    <span>{pt}</span>
-                  </li>
+              <h1>
+                {content.hero.headline.split('\n').map((line, idx) => (
+                  <span key={idx}>
+                    {line}
+                    <br />
+                  </span>
                 ))}
-              </ul>
+              </h1>
+              <div className="velvet-anuncie-hero-body">
+                {content.hero.paragraphs.map((pt, idx) => (
+                  <p key={idx} className="velvet-anuncie-hero-desc">
+                    {pt}
+                  </p>
+                ))}
+              </div>
               <div className="velvet-anuncie-cta-group">
                 <Link href={signupHref} className="velvet-anuncie-btn-primary">
                   {content.hero.primaryCta} <span aria-hidden="true">→</span>
@@ -277,7 +346,6 @@ export default async function AdvertisePage() {
               <div className="velvet-anuncie-card-preview">
                 <div className="velvet-anuncie-card-top">
                   <VelvetVerifiedChip label={content.hero.preview.badge} size="sm" />
-                  <span className="velvet-anuncie-card-status">{content.hero.preview.status}</span>
                 </div>
                 <div className="velvet-anuncie-card-mockup">
                   <div className="velvet-anuncie-card-avatar">
@@ -289,7 +357,7 @@ export default async function AdvertisePage() {
                   </div>
                 </div>
                 <div className="velvet-anuncie-card-footer">
-                  <span>{content.hero.preview.channels}</span>
+                  <span>{content.hero.preview.footer}</span>
                 </div>
               </div>
             </div>
@@ -330,7 +398,7 @@ export default async function AdvertisePage() {
                 textUnderlineOffset: '4px',
               }}
             >
-              {en ? 'View detailed onboarding guide' : 'Ver guia detalhado passo a passo'} <span aria-hidden="true">→</span>
+              {content.howItWorks.ctaText} <span aria-hidden="true">→</span>
             </Link>
           </div>
         </div>
@@ -375,7 +443,7 @@ export default async function AdvertisePage() {
         </div>
       </section>
 
-      {/* 5. INDEPENDENCE */}
+      {/* 5. INDEPENDENCE / AUTONOMY */}
       <section className="velvet-anuncie-independence">
         <div className="velvet-anuncie-container">
           <header className="velvet-anuncie-section-header">
@@ -390,6 +458,9 @@ export default async function AdvertisePage() {
               </div>
             ))}
           </div>
+          <div className="velvet-anuncie-safety-note" role="note">
+            <p>{content.independence.safetyNote}</p>
+          </div>
         </div>
       </section>
 
@@ -403,7 +474,7 @@ export default async function AdvertisePage() {
           <div className="velvet-anuncie-founder-card">
             <div className="velvet-anuncie-founder-head">
               <div>
-                <p className="velvet-overline">FOUNDER · LAUNCH</p>
+                <p className="velvet-overline">{content.plans.planOverline}</p>
                 <h3>{content.plans.planTitle}</h3>
               </div>
               <div className="velvet-anuncie-founder-price">
@@ -411,6 +482,7 @@ export default async function AdvertisePage() {
                 <small>{content.plans.priceSub}</small>
               </div>
             </div>
+            <p className="velvet-anuncie-founder-intro">{content.plans.intro}</p>
             <ul className="velvet-anuncie-founder-perks">
               {content.plans.perks.map((perk) => (
                 <li key={perk} className="velvet-anuncie-founder-perk">

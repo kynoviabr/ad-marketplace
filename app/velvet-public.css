@@ -2344,6 +2344,20 @@
   gap: 12px;
 }
 
+.velvet-anuncie-hero-body {
+  margin: 0 0 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.velvet-anuncie-hero-desc {
+  margin: 0;
+  color: var(--public-muted);
+  font: 16px/1.55 var(--public-serif);
+  max-width: 580px;
+}
+
 .velvet-anuncie-hero-point {
   display: flex;
   align-items: flex-start;
@@ -2650,11 +2664,33 @@
   line-height: 1.55;
 }
 
+.velvet-anuncie-safety-note {
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: var(--public-surface);
+  border: 1px solid rgba(59, 32, 63, 0.16);
+  border-left: 3px solid var(--public-aubergine);
+}
+
+.velvet-anuncie-safety-note p {
+  margin: 0;
+  color: var(--public-espresso);
+  font-size: 13.5px;
+  line-height: 1.5;
+  font-family: var(--font-body, sans-serif);
+}
+
 /* 6. PLANS */
 .velvet-anuncie-plans {
   padding: clamp(56px, 7vw, 92px) 0;
   background: var(--public-surface);
   border-block: 1px solid rgba(59, 32, 63, 0.16);
+}
+
+.velvet-anuncie-founder-intro {
+  margin: 20px 0 24px;
+  color: var(--public-muted);
+  font: 15px/1.55 var(--public-serif);
 }
 
 .velvet-anuncie-founder-card {
@@ -4326,3 +4362,76 @@
     flex: 1;
   }
 }
+
+/* Velvet Layered Disclaimer System */
+.velvet-disclaimer {
+  font-family: var(--font-ui, system-ui, -apple-system, sans-serif);
+  font-size: clamp(13px, 1vw, 14.5px);
+  line-height: 1.55;
+  color: var(--color-text-secondary, #6b5e68);
+  margin: 0;
+}
+
+.velvet-disclaimer--contact {
+  margin-top: var(--space-2, 8px);
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.velvet-disclaimer--contact .velvet-disclaimer-primary {
+  margin: 0;
+  color: var(--color-text-secondary, #6b5e68);
+  font-size: clamp(13px, 1vw, 14px);
+  line-height: 1.5;
+}
+
+.velvet-disclaimer--contact .velvet-disclaimer-safety {
+  margin: 0;
+  color: var(--public-aubergine, #71357d);
+  font-size: clamp(12.5px, 0.95vw, 13.5px);
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.velvet-disclaimer--compact {
+  margin-top: var(--space-2, 8px);
+  max-width: 500px;
+}
+
+.velvet-disclaimer--compact .velvet-disclaimer-primary {
+  margin: 0;
+  font-size: clamp(12.5px, 0.95vw, 13.5px);
+  line-height: 1.45;
+  color: var(--color-text-secondary, #6b5e68);
+}
+
+.velvet-disclaimer--verification {
+  font-size: clamp(13.5px, 1.05vw, 15px);
+  line-height: 1.55;
+  color: var(--color-text-secondary, #6b5e68);
+  max-width: 640px;
+}
+
+.velvet-disclaimer--role {
+  font-size: clamp(13.5px, 1.05vw, 15px);
+  line-height: 1.55;
+  color: var(--color-text-secondary, #6b5e68);
+  max-width: 720px;
+}
+
+.velvet-disclaimer--reviews {
+  font-size: clamp(12.5px, 0.95vw, 13.5px);
+  line-height: 1.5;
+  color: var(--color-text-secondary, #6b5e68);
+  margin-top: var(--space-3, 12px);
+}
+
+.velvet-disclaimer--footer {
+  font-size: clamp(12px, 0.9vw, 13px);
+  line-height: 1.5;
+  color: var(--color-surface-alt, #d4c7d1);
+  max-width: 560px;
+}
+
