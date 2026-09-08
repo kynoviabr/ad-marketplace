@@ -45,7 +45,7 @@ export async function HomeLocations({ locationsByZone, profiles }: HomeLocations
                 href={localizePathname(`/sao-paulo/${loc.slug}`, locale)}
                 className="velvet-home-location"
               >
-                {portrait?.mediaUrl ? <span><Image src={portrait.mediaUrl} alt="" fill sizes="260px" /></span> : <span className="velvet-home-location-placeholder" aria-hidden="true">SP</span>}
+                {portrait?.mediaUrl ? <span className="velvet-home-location-thumb" style={{ position: 'relative', display: 'block', aspectRatio: '1.32', overflow: 'hidden' }}><Image src={portrait.mediaUrl} alt="" fill sizes="260px" /></span> : <span className="velvet-home-location-placeholder" aria-hidden="true">SP</span>}
                 <strong>{loc.name}<i aria-hidden="true">→</i></strong>
               </Link>
             )})}
