@@ -269,15 +269,15 @@
 }
 .velvet-compliance-primary {
   color: #fff;
-  background: var(--velvet-espresso, #211b19);
-  border: 1px solid var(--velvet-espresso, #211b19);
+  background: var(--velvet-aubergine, #71357d);
+  border: 1px solid var(--velvet-aubergine, #71357d);
 }
 .velvet-compliance-primary:hover {
-  background: #38302d;
-  border-color: #38302d;
+  background: var(--velvet-aubergine-deep, #3b203f);
+  border-color: var(--velvet-aubergine-deep, #3b203f);
 }
 .velvet-compliance-primary:active {
-  transform: scale(0.99);
+  transform: scale(0.98);
 }
 .velvet-compliance-secondary {
   color: var(--velvet-espresso, #211b19);

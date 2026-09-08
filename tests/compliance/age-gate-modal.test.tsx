@@ -165,4 +165,30 @@ describe('Velvet 18+ Age Gate Modal & Cookie Policy Navigation', () => {
       expect(html).toContain('aria-label="Informações legais"')
     })
   })
+
+  describe('6. Primary & Secondary CTA Visual Tokens', () => {
+    const fs = require('node:fs')
+    const path = require('node:path')
+    const globalsCss = fs.readFileSync(path.resolve(process.cwd(), 'app/globals.css'), 'utf8')
+
+    it('applies the canonical Velvet aubergine brand token to the primary CTA', () => {
+      expect(globalsCss).toMatch(/\.velvet-compliance-primary\s*\{[^}]*background:\s*var\(--velvet-aubergine,\s*#71357d\);/)
+      expect(globalsCss).toMatch(/\.velvet-compliance-primary\s*\{[^}]*border:\s*1px solid var\(--velvet-aubergine,\s*#71357d\);/)
+    })
+
+    it('applies deeper aubergine on primary CTA hover and subtle pressed state on active', () => {
+      expect(globalsCss).toMatch(/\.velvet-compliance-primary:hover\s*\{[^}]*background:\s*var\(--velvet-aubergine-deep,\s*#3b203f\);/)
+      expect(globalsCss).toMatch(/\.velvet-compliance-primary:active\s*\{[^}]*transform:\s*scale\(0\.98\);/)
+    })
+
+    it('preserves neutral outline treatment on secondary exit action', () => {
+      expect(globalsCss).toMatch(/\.velvet-compliance-secondary\s*\{[^}]*background:\s*transparent;/)
+      expect(globalsCss).toMatch(/\.velvet-compliance-secondary\s*\{[^}]*border:\s*1px solid #cfc6bb;/)
+    })
+
+    it('provides accessible Velvet aubergine focus ring on interactive compliance controls', () => {
+      expect(globalsCss).toMatch(/\.velvet-compliance-primary:focus-visible[\s\S]*outline:\s*2px solid var\(--velvet-aubergine,\s*#71357d\);/)
+    })
+  })
 })
+
