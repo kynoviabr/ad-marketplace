@@ -34,7 +34,7 @@ export function PublicDesktopNavigation({ isAuthenticated }: { isAuthenticated: 
 
       <div className="velvet-public-utility-nav">
         <span className="velvet-public-location-context">São Paulo</span>
-        <LanguageSelector compact />
+        <LanguageSelector compact variant="popover" />
         <Link
           href={localized(accountPath)}
           className="velvet-link velvet-link--navigation velvet-public-nav-link velvet-public-account-link"

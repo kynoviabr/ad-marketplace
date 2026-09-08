@@ -180,6 +180,18 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
   let priceId: string
 
   beforeAll(async () => {
+    // Proactively clean up any dangling synthetic test users or profiles from previous runs
+    const { data: danglingProfiles } = await admin
+      .from('professional_profiles')
+      .select('id, account_user_id')
+      .ilike('stage_name', 'Eligibility Test%')
+    if (danglingProfiles && danglingProfiles.length > 0) {
+      for (const p of danglingProfiles) {
+        try {
+          await admin.from('professional_profiles').update({ status: 'SUSPENDED' }).eq('id', p.id)
+        } catch {}
+      }
+    }
     const ids = await getLocationAndPlanIds()
     moemaId = ids.moemaId
     planId = ids.planId
@@ -191,6 +203,13 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
     for (const uid of cleanupAuthUserIds) {
       await admin.auth.admin.deleteUser(uid).catch(() => {})
     }
+    // Safety check: suspend any remaining test profiles
+    try {
+      await admin
+        .from('professional_profiles')
+        .update({ status: 'SUSPENDED' })
+        .ilike('stage_name', 'Eligibility Test%')
+    } catch {}
   })
 
   // =========================================================================
@@ -515,6 +534,8 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
 
     const inView = await isInView(profId)
     expect(inView).toBe(true)
+    // Downgrade immediately so synthetic profile does not linger in view
+    await admin.from('professional_profiles').update({ status: 'SUSPENDED' }).eq('id', profId)
   })
 
   it('Gate 8f: No subscription but valid billing override → IS in view', async () => {
@@ -535,6 +556,8 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
 
     const inView = await isInView(profId)
     expect(inView).toBe(true)
+    // Downgrade immediately so synthetic profile does not linger in view
+    await admin.from('professional_profiles').update({ status: 'SUSPENDED' }).eq('id', profId)
   })
 
   it('Gate 8g: Revoked billing override → NOT in view', async () => {
@@ -587,6 +610,8 @@ describe('FASE 11 — Canonical Publication Eligibility VIEW (v_publication_elig
 
     const inView = await isInView(profId)
     expect(inView).toBe(true)
+    // Downgrade immediately so synthetic profile does not linger in view
+    await admin.from('professional_profiles').update({ status: 'SUSPENDED' }).eq('id', profId)
   })
 
   // =========================================================================

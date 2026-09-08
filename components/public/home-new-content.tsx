@@ -10,6 +10,7 @@ interface ContentItem {
   type: string
   mediaUrl?: string | null
   profileSlug: string
+  stageName?: string | null
 }
 
 export function HomeNewContent({
@@ -97,7 +98,7 @@ export function HomeNewContent({
               <Link
                 href={`/perfil/${c.profileSlug}`}
                 className="velvet-new-content-card"
-                aria-label={`Mídia do perfil ${c.profileSlug}`}
+                aria-label={c.stageName ? `Conteúdo de ${c.stageName}` : `Mídia do perfil ${c.profileSlug}`}
               >
                 <Image
                   src={c.mediaUrl!}
@@ -106,9 +107,17 @@ export function HomeNewContent({
                   sizes="(max-width: 700px) 50vw, (max-width: 1024px) 25vw, 320px"
                   className="velvet-new-content-image"
                 />
+                <span className="velvet-media-type-chip">
+                  {c.type === 'VIDEO' ? 'VÍDEO' : 'FOTO'}
+                </span>
                 {c.type === 'VIDEO' && (
                   <div className="velvet-video-badge" aria-hidden="true">
                     <span className="velvet-video-play-icon">▶</span>
+                  </div>
+                )}
+                {c.stageName && (
+                  <div className="velvet-new-content-caption">
+                    <span className="velvet-new-content-name">{c.stageName}</span>
                   </div>
                 )}
               </Link>

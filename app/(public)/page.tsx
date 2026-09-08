@@ -70,8 +70,16 @@ export default async function HomePage() {
 
       <HomeHero profiles={profilesWithMedia.slice(0, 2)} />
       <PublicProfileGrid profiles={profilesWithMedia} />
-      <HomeNewProfessionals profiles={newProfessionals} title={locale === 'en' ? 'New Professionals' : 'Novas Modelos'} overline={locale === 'en' ? 'UPDATES' : 'NOVIDADES'} />
-      <HomeNewContent content={newContent} title={locale === 'en' ? 'New Content' : 'Novos Conteúdos'} overline={locale === 'en' ? 'NEW CONTENT' : 'NOVOS CONTEÚDOS'} />
+      <HomeNewProfessionals
+        profiles={newProfessionals}
+        title={locale === 'en' ? 'New Professionals' : 'Novas Modelos'}
+        overline={locale === 'en' ? 'NEW ARRIVALS' : 'RECÉM-CHEGADAS'}
+      />
+      <HomeNewContent
+        content={newContent}
+        title={locale === 'en' ? 'New Content' : 'Novos Conteúdos'}
+        overline={locale === 'en' ? 'PHOTOS & VIDEOS' : 'FOTOS & VÍDEOS'}
+      />
       <HomeLocations locationsByZone={locationsByZone} profiles={profilesWithMedia.slice(0, 5)} />
       <HomeTrustSection />
       <HomeAcquisition />

@@ -41,12 +41,34 @@ export async function getNewProfessionals(accountId: string | null, limit = 8) {
     .is('deleted_at', null)
     .in('profile_id', sortedData.map(p => p.id))
 
+  // Get primary locations
+  const { data: locs } = await admin
+    .from('professional_profile_locations')
+    .select('profile_id, is_primary, location:marketplace_locations(name)')
+    .in('profile_id', sortedData.map(p => p.id))
+    .eq('is_primary', true)
+
+  const locMap = new Map<string, { name: string }>()
+  if (locs) {
+    for (const l of locs as any[]) {
+      if (l.location?.name) {
+        locMap.set(l.profile_id, { name: l.location.name })
+      }
+    }
+  }
+
   const eligibleSet = new Set(ids)
 
   return Promise.all(sortedData.map(async p => {
     const m = media?.find(m => m.profile_id === p.id)
     const url = m ? await getApprovedMediaDeliveryUrl(m, { profileId: p.id, eligibleProfileIds: eligibleSet }) : null
-    return { ...p, mediaUrl: url, mediaWidth: m?.width, mediaHeight: m?.height }
+    return {
+      ...p,
+      mediaUrl: url,
+      mediaWidth: m?.width,
+      mediaHeight: m?.height,
+      primaryLocation: locMap.get(p.id) || null,
+    }
   }))
 }
 
@@ -61,13 +83,14 @@ export async function getNewContent(accountId: string | null, limit = 8) {
   const eligibleMap = new Map(eligible.map(e => [e.profile_id, e.profile_slug]))
   const eligibleIds = eligible.map(e => e.profile_id)
   
-  // Filter eligible IDs by audience setting
+  // Filter eligible IDs by audience setting and fetch profile stage_name
   const { data: profiles } = await admin.from('professional_profiles')
-    .select('id')
+    .select('id, stage_name, slug')
     .in('id', eligibleIds)
     .in('audience_setting', audienceSettingFilter)
   if (!profiles?.length) return []
   const allowedProfileIds = profiles.map(p => p.id)
+  const profileMap = new Map(profiles.map(p => [p.id, p]))
 
   const { data: media } = await admin.from('profile_media')
     .select('id, profile_id, storage_path, status, width, height, is_primary, approved_at')
@@ -106,9 +129,15 @@ export async function getNewContent(accountId: string | null, limit = 8) {
     } else if (item.type === 'VIDEO' && 'poster_storage_path' in item && item.poster_storage_path) {
       url = await getApprovedVideoPosterDeliveryUrl(item.poster_storage_path)
     }
-    const profileSlug = eligibleMap.get(item.profile_id)
+    const prof = profileMap.get(item.profile_id)
+    const profileSlug = prof?.slug || eligibleMap.get(item.profile_id)
     if (!url || !profileSlug) return null
-    return { ...item, mediaUrl: url, profileSlug }
+    return {
+      ...item,
+      mediaUrl: url,
+      profileSlug,
+      stageName: prof?.stage_name || null,
+    }
   }))
 
   return resolved.filter((item): item is NonNullable<typeof item> => item !== null).slice(0, limit)
