@@ -1016,99 +1016,105 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
     })
 
     it('revalidateSlotAvailability: canonical server revalidation enforces real availability', async () => {
-      const profileId = '11111111-1111-4111-a111-111111111111'
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-09-07T12:00:00-03:00'))
+      try {
+        const profileId = '11111111-1111-4111-a111-111111111111'
 
-      mockFrom.mockImplementation((table: string) => {
-        if (table === 'v_publication_eligible_profiles') {
-          return {
-            select: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({
-                  data: { profile_id: profileId, profile_status: 'ACTIVE' },
-                  error: null,
-                }),
-              }),
-            }),
-          }
-        }
-        if (table === 'professional_availability_settings') {
-          return {
-            select: () => ({
-              eq: () => ({
-                maybeSingle: async () => ({
-                  data: {
-                    profile_id: profileId,
-                    enabled: true,
-                    timezone: 'America/Sao_Paulo',
-                    slot_duration_minutes: 60,
-                    slot_interval_minutes: 60,
-                    minimum_notice_minutes: 0,
-                    maximum_advance_days: 30,
-                    buffer_before_minutes: 0,
-                    buffer_after_minutes: 0,
-                    created_at: '2026-09-06T00:00:00Z',
-                    updated_at: '2026-09-06T00:00:00Z',
-                  },
-                  error: null,
-                }),
-              }),
-            }),
-          }
-        }
-        if (table === 'professional_weekly_availability') {
-          return {
-            select: () => ({
-              eq: () => ({
-                order: () => ({
-                  order: async () => ({
-                    data: [
-                      {
-                        id: 'rule-1',
-                        profile_id: profileId,
-                        day_of_week: 1,
-                        start_time: '20:00',
-                        end_time: '22:00',
-                        location_id: null,
-                        created_at: '2026-09-06T00:00:00Z',
-                      },
-                    ],
+        mockFrom.mockImplementation((table: string) => {
+          if (table === 'v_publication_eligible_profiles') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: async () => ({
+                    data: { profile_id: profileId, profile_status: 'ACTIVE' },
                     error: null,
                   }),
                 }),
               }),
-            }),
+            }
           }
-        }
-        if (table === 'professional_availability_exceptions') {
-          const qb: any = {
-            gte: () => qb,
-            lte: () => qb,
-            order: () => ({
-              order: async () => ({ data: [], error: null }),
-            }),
+          if (table === 'professional_availability_settings') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: async () => ({
+                    data: {
+                      profile_id: profileId,
+                      enabled: true,
+                      timezone: 'America/Sao_Paulo',
+                      slot_duration_minutes: 60,
+                      slot_interval_minutes: 60,
+                      minimum_notice_minutes: 0,
+                      maximum_advance_days: 30,
+                      buffer_before_minutes: 0,
+                      buffer_after_minutes: 0,
+                      created_at: '2026-09-06T00:00:00Z',
+                      updated_at: '2026-09-06T00:00:00Z',
+                    },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
           }
-          return { select: () => ({ eq: () => qb }) }
-        }
-        return {}
-      })
+          if (table === 'professional_weekly_availability') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  order: () => ({
+                    order: async () => ({
+                      data: [
+                        {
+                          id: 'rule-1',
+                          profile_id: profileId,
+                          day_of_week: 1,
+                          start_time: '20:00',
+                          end_time: '22:00',
+                          location_id: null,
+                          created_at: '2026-09-06T00:00:00Z',
+                        },
+                      ],
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'professional_availability_exceptions') {
+            const qb: any = {
+              gte: () => qb,
+              lte: () => qb,
+              order: () => ({
+                order: async () => ({ data: [], error: null }),
+              }),
+            }
+            return { select: () => ({ eq: () => qb }) }
+          }
+          return {}
+        })
 
-      // Valid available slot: 2026-09-07 (Monday) 20:00–21:00
-      const validCheck = await revalidateSlotAvailability({
-        profileSlug: 'eligible-model',
-        startIso: '2026-09-07T20:00:00-03:00',
-        endIso: '2026-09-07T21:00:00-03:00',
-      })
-      expect(validCheck.available).toBe(true)
-      expect(validCheck.slot?.localStartTime).toBe('20:00')
+        // Valid available slot: 2026-09-07 (Monday) 20:00–21:00
+        const validCheck = await revalidateSlotAvailability({
+          profileSlug: 'eligible-model',
+          startIso: '2026-09-07T20:00:00-03:00',
+          endIso: '2026-09-07T21:00:00-03:00',
+        })
+        expect(validCheck.available).toBe(true)
+        expect(validCheck.slot?.localStartTime).toBe('20:00')
 
-      // Non-existent / unavailable slot: 2026-09-07 23:00–24:00
-      const invalidCheck = await revalidateSlotAvailability({
-        profileSlug: 'eligible-model',
-        startIso: '2026-09-07T23:00:00-03:00',
-        endIso: '2026-09-08T00:00:00-03:00',
-      })
-      expect(invalidCheck.available).toBe(false)
-      expect(invalidCheck.reason).toBe('SLOT_UNAVAILABLE')
+        // Non-existent / unavailable slot: 2026-09-07 23:00–24:00
+        const invalidCheck = await revalidateSlotAvailability({
+          profileSlug: 'eligible-model',
+          startIso: '2026-09-07T23:00:00-03:00',
+          endIso: '2026-09-08T00:00:00-03:00',
+        })
+        expect(invalidCheck.available).toBe(false)
+        expect(invalidCheck.reason).toBe('SLOT_UNAVAILABLE')
+      } finally {
+        vi.useRealTimers()
+      }
     })
 
     it('fails closed when profile is not in v_publication_eligible_profiles', async () => {

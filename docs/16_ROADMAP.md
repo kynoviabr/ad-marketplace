@@ -381,6 +381,21 @@ To deliver compelling professional value and establish deep competitive differen
     - Production build (`npm run build`): Next.js Turbopack build succeeded.
 - **Dependencies**: PX1 Telemetry, R12 Admin foundation.
 - **Data Model**: Migration `20260907170000_px7_cybersecurity_hardening.sql` (34/34 migrations).
+- **Product Next**: PX7.1 — Security Closure Verification.
+
+### PX7.1 — Security Closure Verification
+- **Status**: **COMPLETE** (All Gaps Closed & Verified)
+- **Scope & Closure Evidence**:
+  - **Distributed Rate Limiter Failure Semantics**: Enforced strict fail-closed behavior for `WEB_PUBLIC` Concierge turn processing (`options.failClosed = true`). When the rate limiter backend is down, AI generation is blocked, availability tools are never invoked, visitor message is not persisted (zero conversation spam), and a safe generic rate limit response is returned. Deterministic tests: `tests/security/px7-rate-limiter-failure-semantics.test.ts` (5/5 PASS).
+  - **Webhook Replay Protection**: Verified HMAC-SHA256 signature enforcement and idempotent deduplication via `verification_webhook_events` and `billing_webhook_events`. State transitions are terminal (`VERIFIED` cannot be downgraded; `finalize_billing_webhook_transition` RPC guarantees monotonic ordering).
+  - **Private Media Security**: Storage bucket `profile-media` is private. Public asset delivery requires `APPROVED` moderation status, valid ownership, and canonical publication eligibility via `v_publication_eligible_profiles`. EXIF metadata stripped.
+  - **Open Redirect & SSRF Safety**: Server-authoritative origin validation (`getTrustedAuthCallbackOrigin()`) and internal path sanitizer. 0 user-controlled server-side fetch targets.
+  - **Production Logging**: Structured metadata redaction across all operational loggers. Secret rotation confirmed as required before Closed Beta.
+  - **Hosted Security Headers**: Full CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy verified on `https://velvetgirls.club`.
+  - **Anti-Enumeration & Anti-Harvesting**: Constant-response auth error handling; hidden contacts (`show_whatsapp = false`) sanitized to `null` in public DTOs.
+  - **LGPD Readiness**: Formally audited as NOT READY for real users (requires automated anonymization/deletion RPC — Backlog Item J before Beta).
+  - **Concierge Retention Policy**: NOT APPROVED (`CONCIERGE_RETENTION_POLICY_APPROVED = false`); `WEB_PUBLIC` chat remains disabled on Hosted DEV.
+  - **Verification**: 193 test files, 1,958 tests PASS (0 failures), strict typecheck PASS, strict lint PASS, Turbopack build PASS.
 - **Product Next**: PX8 — Product Polish & Pre-GTM Readiness.
 
 ### PX8 — Product Polish & Pre-GTM Readiness

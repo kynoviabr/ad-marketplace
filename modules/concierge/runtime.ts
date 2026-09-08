@@ -22,7 +22,7 @@ import {
   updateConversationQualification,
   updateConversationStatus,
 } from './dal'
-import { isConciergeRateLimited } from './rate-limiter'
+import { isConciergeRateLimited, isConciergeDistributedRateLimited } from './rate-limiter'
 import { generateConciergeReply } from './provider'
 import { executeConciergeToolsBatch } from './tools'
 import type {
@@ -89,8 +89,17 @@ export async function processConciergeTurn(
     }
   }
 
-  // 4. Rate Limiting (Section 22)
-  if (isConciergeRateLimited(conversation.id, 'CONVERSATION_TURN')) {
+  // 4. Rate Limiting (Section 22 & PX7.1 Distributed Abuse Protection)
+  // For WEB_PUBLIC and non-test real visitor channels, enforce distributed rate limiting with fail-closed semantics.
+  // Internal dashboard test mode (isTest = true) uses the in-memory fast path.
+  const isLimited =
+    !isTest || conversation.channel === 'WEB_PUBLIC'
+      ? await isConciergeDistributedRateLimited(conversation.id, 'CONVERSATION_TURN', {
+          failClosed: true,
+        })
+      : isConciergeRateLimited(conversation.id, 'CONVERSATION_TURN')
+
+  if (isLimited) {
     return {
       replyText: SAFE_RATE_LIMIT_REPLY,
       intent: 'GENERAL',

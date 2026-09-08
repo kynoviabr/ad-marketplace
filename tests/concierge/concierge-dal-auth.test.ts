@@ -23,8 +23,10 @@ describe('PX5 — Concierge DAL & Live Supabase DEV Validation', () => {
     const { data: profile, error } = await admin
       .from('professional_profiles')
       .select('id, slug')
+      .eq('status', 'ACTIVE')
+      .order('created_at', { ascending: true })
       .limit(1)
-      .maybeSingle()
+      .single()
 
     expect(error).toBeNull()
     expect(profile).not.toBeNull()

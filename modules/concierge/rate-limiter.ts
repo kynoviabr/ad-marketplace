@@ -7,6 +7,7 @@
 import { isDistributedRateLimited } from '@/modules/security/rate-limiter'
 
 export const DISTRIBUTED_CONCIERGE_RATE_LIMITING_READY = true as const
+export const CONCIERGE_DISTRIBUTED_RATE_LIMIT_READY = true as const
 
 export const CONCIERGE_RATE_LIMITS = {
   CONVERSATION_TURN: { limit: 20, windowSeconds: 3600 }, // 20 turns / hour per conversation
@@ -48,14 +49,18 @@ export function isConciergeRateLimited(
 
 /**
  * Checks and increments distributed rate limit counter across instances.
+ * Default failClosed: true prevents consuming AI tokens when distributed enforcement cannot be established.
  */
 export async function isConciergeDistributedRateLimited(
   key: string,
-  limitType: keyof typeof CONCIERGE_RATE_LIMITS = 'CONVERSATION_TURN'
+  limitType: keyof typeof CONCIERGE_RATE_LIMITS = 'CONVERSATION_TURN',
+  options?: { failClosed?: boolean }
 ): Promise<boolean> {
   const { limit, windowSeconds } = CONCIERGE_RATE_LIMITS[limitType]
   const storeKey = `concierge:${limitType}:${key}`
-  return isDistributedRateLimited(storeKey, limit, windowSeconds, { failClosed: true })
+  return isDistributedRateLimited(storeKey, limit, windowSeconds, {
+    failClosed: options?.failClosed ?? true,
+  })
 }
 
 /**
