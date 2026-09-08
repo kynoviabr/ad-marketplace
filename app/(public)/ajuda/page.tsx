@@ -58,7 +58,7 @@ export default async function HelpCenterPage() {
         {/* Editorial Hero */}
         <section className="velvet-help-hero" aria-labelledby="help-hero-title">
           <div className="velvet-help-container">
-            <p className="velvet-help-eyebrow">
+            <p className="velvet-overline velvet-help-eyebrow">
               {en ? 'PROFESSIONAL SUPPORT & GUIDANCE' : 'SUPORTE E ORIENTAÇÃO PARA PROFISSIONAIS'}
             </p>
             <h1 id="help-hero-title" className="velvet-help-title">
@@ -104,7 +104,7 @@ export default async function HelpCenterPage() {
           <div className="velvet-help-container">
             <div className="velvet-help-banner-card">
               <div className="velvet-help-banner-info">
-                <span className="velvet-help-banner-eyebrow">
+                <span className="velvet-overline velvet-overline--inverse velvet-help-banner-eyebrow">
                   {en ? 'PERSONALIZED ASSISTANCE' : 'ATENDIMENTO INDIVIDUAL'}
                 </span>
                 <h2>{en ? 'Still have questions?' : 'Ainda tem dúvidas?'}</h2>

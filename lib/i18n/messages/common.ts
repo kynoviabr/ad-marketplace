@@ -51,7 +51,7 @@ export const commonEn = {
   'common.pageOf': 'Page {page} of {total}',
   'common.ageYears': '{age} years old',
   'common.verified': 'Verified',
-  'common.verified18': '18+ VERIFIED',
+  'common.verified18': 'VERIFIED 18+',
   'common.sponsored': 'Sponsored',
   'common.logout': 'Sign out',
   'common.dashboard': 'Dashboard',
