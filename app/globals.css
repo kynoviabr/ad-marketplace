@@ -168,26 +168,241 @@
 .velvet-institutional-page section p { margin: 0; }
 .velvet-institutional-actions { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 48px; border-top: 1px solid var(--velvet-line); }
 .velvet-institutional-actions a { min-height: 48px; padding: 14px 20px; border: 1px solid currentColor; }
-.velvet-compliance-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(20,17,15,.78); backdrop-filter: blur(12px); }
-.velvet-compliance-dialog { width: min(100%, 620px); max-height: calc(100dvh - 40px); overflow: auto; padding: clamp(28px, 6vw, 54px); color: #241f1b; background: #f7f3ec; box-shadow: 0 24px 80px rgba(0,0,0,.35); }
-.velvet-compliance-dialog h1 { margin: 12px 0 18px; font-family: var(--font-editorial); font-size: clamp(38px, 7vw, 58px); font-weight: 400; line-height: .98; }
-.velvet-compliance-dialog > p:not(.velvet-overline) { font-size: 17px; line-height: 1.6; }
-.velvet-compliance-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
-.velvet-compliance-actions button, .velvet-compliance-actions a { min-height: 50px; display: inline-flex; align-items: center; justify-content: center; padding: 13px 18px; border: 1px solid #241f1b; font: inherit; cursor: pointer; }
-.velvet-compliance-primary { color: #fff; background: #241f1b; }
-.velvet-compliance-secondary { color: #241f1b; background: transparent; }
-.velvet-compliance-link { border-color: transparent !important; background: transparent; text-decoration: underline; }
-.velvet-compliance-policy { display: inline-block; margin-top: 22px; text-decoration: underline; }
-.velvet-consent-categories { margin-top: 28px; border-top: 1px solid #cfc6bb; }
-.velvet-consent-categories label { display: flex; justify-content: space-between; gap: 24px; padding: 18px 0; border-bottom: 1px solid #cfc6bb; }
-.velvet-consent-categories span, .velvet-consent-categories small { display: block; }
-.velvet-consent-categories small { margin-top: 5px; line-height: 1.4; }
-.velvet-consent-categories input { width: 22px; height: 22px; accent-color: #241f1b; }
-.velvet-restricted-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; color: #241f1b; background: #f7f3ec; text-align: center; }
-.velvet-restricted-page span { font-family: var(--font-editorial); font-size: 30px; }
-.velvet-restricted-page h1 { margin: 28px 0 12px; font-size: clamp(38px, 8vw, 58px); }
-.velvet-restricted-page a { display: inline-block; margin-top: 24px; text-decoration: underline; }
-@media (max-width: 640px) { .velvet-institutional-page section { display: block; } .velvet-institutional-page section h2 { margin-bottom: 14px; } .velvet-compliance-actions { display: grid; } }
+.velvet-compliance-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(18, 14, 13, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.velvet-compliance-dialog {
+  width: min(100%, 560px);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+  padding: clamp(32px, 5vw, 46px);
+  color: var(--velvet-espresso, #211b19);
+  background: #faf8f5;
+  border: 1px solid rgba(201, 195, 183, 0.6);
+  border-radius: 4px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32), 0 4px 18px rgba(113, 53, 125, 0.06);
+}
+.velvet-age-gate-content {
+  display: flex;
+  flex-direction: column;
+}
+.velvet-age-gate-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+.velvet-age-gate-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(113, 53, 125, 0.28);
+  background: linear-gradient(135deg, rgba(113, 53, 125, 0.08) 0%, rgba(113, 53, 125, 0.02) 100%);
+  box-shadow: 0 2px 8px rgba(113, 53, 125, 0.08);
+}
+.velvet-brand-monogram {
+  font-family: var(--velvet-serif, Georgia, serif);
+  font-size: 22px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1;
+  color: var(--velvet-aubergine, #71357d);
+  transform: translateY(-1px);
+}
+.velvet-compliance-dialog .velvet-overline {
+  margin: 0;
+  color: var(--velvet-aubergine, #71357d);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.velvet-compliance-dialog h1 {
+  margin: 12px 0 14px;
+  font-family: var(--font-editorial);
+  font-size: clamp(32px, 6vw, 44px);
+  font-weight: 400;
+  line-height: 1.05;
+  letter-spacing: -.03em;
+  color: var(--velvet-espresso, #211b19);
+}
+.velvet-compliance-dialog > p:not(.velvet-overline),
+.velvet-compliance-description {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.62;
+  color: var(--velvet-muted, #5c564f);
+}
+.velvet-compliance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+.velvet-compliance-actions button,
+.velvet-compliance-actions a {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 22px;
+  border-radius: 2px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--duration-fast, 140ms) ease, border-color var(--duration-fast, 140ms) ease, color var(--duration-fast, 140ms) ease, transform 100ms ease;
+}
+.velvet-compliance-primary {
+  color: #fff;
+  background: var(--velvet-espresso, #211b19);
+  border: 1px solid var(--velvet-espresso, #211b19);
+}
+.velvet-compliance-primary:hover {
+  background: #38302d;
+  border-color: #38302d;
+}
+.velvet-compliance-primary:active {
+  transform: scale(0.99);
+}
+.velvet-compliance-secondary {
+  color: var(--velvet-espresso, #211b19);
+  background: transparent;
+  border: 1px solid #cfc6bb;
+}
+.velvet-compliance-secondary:hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: #baaFA3;
+}
+.velvet-compliance-secondary:active {
+  transform: scale(0.99);
+}
+.velvet-compliance-link {
+  border-color: transparent !important;
+  background: transparent;
+  color: var(--velvet-muted, #5c564f);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.velvet-compliance-link:hover {
+  color: var(--velvet-aubergine, #71357d);
+}
+.velvet-compliance-primary:focus-visible,
+.velvet-compliance-secondary:focus-visible,
+.velvet-compliance-link:focus-visible,
+.velvet-compliance-policy:focus-visible,
+.velvet-compliance-support-link:focus-visible {
+  outline: 2px solid var(--velvet-aubergine, #71357d);
+  outline-offset: 2px;
+}
+.velvet-compliance-support-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(201, 195, 183, 0.5);
+}
+.velvet-compliance-support-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--velvet-muted, #5c564f);
+  text-decoration: none;
+  letter-spacing: .01em;
+  transition: color var(--duration-fast, 140ms) ease;
+}
+.velvet-compliance-support-link:hover {
+  color: var(--velvet-aubergine, #71357d);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.velvet-compliance-support-divider {
+  font-size: 11px;
+  color: #c9c3b7;
+  user-select: none;
+}
+.velvet-compliance-policy {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--velvet-muted, #5c564f);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--duration-fast, 140ms) ease;
+}
+.velvet-compliance-policy:hover {
+  color: var(--velvet-aubergine, #71357d);
+}
+.velvet-consent-categories {
+  margin-top: 24px;
+  border-top: 1px solid #cfc6bb;
+}
+.velvet-consent-categories label {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+  border-bottom: 1px solid #cfc6bb;
+}
+.velvet-consent-categories span,
+.velvet-consent-categories small {
+  display: block;
+}
+.velvet-consent-categories small {
+  margin-top: 4px;
+  line-height: 1.4;
+  color: var(--velvet-muted, #5c564f);
+}
+.velvet-consent-categories input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--velvet-aubergine, #71357d);
+}
+.velvet-restricted-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--velvet-espresso, #211b19);
+  background: #faf8f5;
+  text-align: center;
+}
+.velvet-restricted-page span {
+  font-family: var(--font-editorial);
+  font-size: 30px;
+}
+.velvet-restricted-page h1 {
+  margin: 28px 0 12px;
+  font-size: clamp(38px, 8vw, 58px);
+}
+.velvet-restricted-page a {
+  display: inline-block;
+  margin-top: 24px;
+  text-decoration: underline;
+}
+@media (max-width: 640px) {
+  .velvet-institutional-page section { display: block; }
+  .velvet-institutional-page section h2 { margin-bottom: 14px; }
+  .velvet-compliance-dialog { padding: 26px 20px; }
+  .velvet-compliance-actions { display: grid; grid-template-columns: 1fr; width: 100%; }
+  .velvet-compliance-actions button, .velvet-compliance-actions a { width: 100%; justify-content: center; }
+  .velvet-compliance-support-nav { justify-content: center; gap: 8px; }
+}
 
 /* ============================================================
    VELVET DESIGN SYSTEM V1 — CANONICAL PRODUCT FOUNDATION
