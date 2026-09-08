@@ -161,7 +161,7 @@ export default async function HelpArticlePage({ params }: PageProps) {
             <header className="velvet-help-article-header">
               <div className="velvet-help-article-meta">
                 <span className="velvet-help-article-badge">
-                  {category?.icon && <span className="velvet-help-badge-icon">{category.icon}</span>}
+                  {category?.icon && <span className="velvet-help-badge-icon" aria-hidden="true">{category.icon}</span>}
                   <span>{categoryTitle}</span>
                 </span>
               </div>
@@ -220,7 +220,7 @@ export default async function HelpArticlePage({ params }: PageProps) {
                   return (
                     <Link key={rel.id} href={relHref} className="velvet-help-related-card">
                       <div className="velvet-help-related-cat">
-                        <span className="velvet-help-related-icon">{relCat?.icon}</span>
+                        <span className="velvet-help-related-icon" aria-hidden="true">{relCat?.icon}</span>
                         <span>{relCatTitle}</span>
                       </div>
                       <h3 className="velvet-help-related-card-title">{relTitle}</h3>
@@ -239,22 +239,22 @@ export default async function HelpArticlePage({ params }: PageProps) {
           <section className="velvet-help-article-footer-banner">
             <div className="velvet-help-banner-card">
               <div className="velvet-help-banner-info">
-                <span className="velvet-help-banner-eyebrow">
-                  {en ? 'QUESTIONS & SUPPORT' : 'DÚVIDAS & ORIENTAÇÃO'}
+                <span className="velvet-overline velvet-overline--inverse velvet-help-banner-eyebrow">
+                  {en ? 'KEEP EXPLORING' : 'CONTINUE POR AQUI'}
                 </span>
-                <h2>{en ? 'Need more guidance?' : 'Precisa de mais orientações?'}</h2>
+                <h2>{en ? 'Still have questions?' : 'Ainda ficou com alguma dúvida?'}</h2>
                 <p>
                   {en
-                    ? 'Explore our step-by-step onboarding guide or browse other topics in the Help Center.'
-                    : 'Consulte nosso guia passo a passo de onboarding ou explore outros tópicos na Central de Ajuda.'}
+                    ? 'You can explore our step-by-step guide to learn each step at your own pace, or browse other topics in the Help Center.'
+                    : 'Você pode consultar nosso guia passo a passo para conhecer cada etapa com calma ou explorar outros tópicos na Central de Ajuda.'}
                 </p>
               </div>
               <div className="velvet-help-banner-actions">
                 <Link href={comoComecarHref} className="velvet-help-btn-primary">
-                  {en ? 'View guide' : 'Ver guia passo a passo'}
+                  {en ? 'View step-by-step guide →' : 'Ver guia passo a passo →'}
                 </Link>
                 <Link href={ajudaHref} className="velvet-help-btn-secondary">
-                  {en ? 'All topics' : 'Todas as dúvidas'}
+                  {en ? 'All questions →' : 'Todas as dúvidas →'}
                 </Link>
               </div>
             </div>

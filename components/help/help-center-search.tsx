@@ -93,7 +93,7 @@ export function HelpCenterSearch({
       <div className="velvet-help-categories-section">
         <div className="velvet-help-categories-header">
           <h2 className="velvet-help-categories-title">
-            {isPt ? 'Categorias de atendimento' : 'Support categories'}
+            {isPt ? 'Encontre o que você precisa' : 'Find what you need'}
           </h2>
           {selectedCategory && (
             <button
@@ -105,7 +105,7 @@ export function HelpCenterSearch({
             </button>
           )}
         </div>
-        <div className="velvet-help-category-pills" role="tablist" aria-label={isPt ? 'Categorias' : 'Categories'}>
+        <div className="velvet-help-category-pills" role="tablist" aria-label={isPt ? 'Categorias de ajuda' : 'Help categories'}>
           <button
             type="button"
             role="tab"
@@ -113,12 +113,10 @@ export function HelpCenterSearch({
             onClick={() => setSelectedCategory(null)}
             className={`velvet-help-pill ${selectedCategory === null ? 'is-active' : ''}`}
           >
-            <span>✦</span>
-            <strong>{isPt ? 'Todas as dúvidas' : 'All topics'}</strong>
-            <small>({articles.length})</small>
+            <span aria-hidden="true">✦</span>
+            <strong>{isPt ? 'Todas as dúvidas' : 'All questions'}</strong>
           </button>
           {categories.map((cat) => {
-            const count = articles.filter((a) => a.categoryId === cat.id).length
             const isSelected = selectedCategory === cat.id
             return (
               <button
@@ -129,9 +127,8 @@ export function HelpCenterSearch({
                 onClick={() => setSelectedCategory(isSelected ? null : cat.id)}
                 className={`velvet-help-pill ${isSelected ? 'is-active' : ''}`}
               >
-                <span>{cat.icon}</span>
+                <span aria-hidden="true">{cat.icon}</span>
                 <strong>{isPt ? cat.titlePt : cat.titleEn}</strong>
-                {count > 0 && <small>({count})</small>}
               </button>
             )
           })}
