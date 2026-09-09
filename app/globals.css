@@ -2722,8 +2722,8 @@ body:has(.profile-detail-page) { overflow-x: clip; }
 .profile-whatsapp { min-height: 58px; margin-top: 34px; padding-inline: 20px; display: flex; align-items: center; justify-content: space-between; background: #71357d; color: #faf8f3; font: 700 10px var(--font-body); letter-spacing: .05em; }
 .profile-whatsapp:hover, .profile-whatsapp:focus-visible { background: var(--profile-aubergine); }
 .profile-hero-identity small, .profile-final-contact small { margin-top: 10px; display: block; color: #625d56; font-size: 9px; }
-.profile-section { padding-block: clamp(90px, 11vw, 160px); }
-.profile-section h2, .profile-trust h2, .profile-final-contact h2 { margin-top: 22px; font: 400 clamp(52px, 6vw, 88px)/.9 var(--velvet-serif); letter-spacing: -.055em; }
+.profile-section { padding-block: clamp(48px, 6vw, 64px); }
+.profile-section h2, .profile-trust h2, .profile-final-contact h2 { margin-top: 22px; font: 400 clamp(36px, 4vw, 56px)/1.1 var(--velvet-serif); letter-spacing: -.03em; }
 .profile-about { background: #faf8f3; }
 .profile-about .profile-detail-wrap { display: grid; grid-template-columns: .72fr 1fr; column-gap: clamp(50px, 9vw, 150px); }
 .profile-about .profile-kicker { grid-column: 1 / -1; }
@@ -2750,12 +2750,12 @@ body:has(.profile-detail-page) { overflow-x: clip; }
 .profile-gallery-grid.count-3 figure:first-child, .profile-gallery-grid.count-4 figure:first-child { grid-row: span 2; min-height: 940px; }
 .profile-gallery-grid.count-3 figure:not(:first-child), .profile-gallery-grid.count-4 figure:not(:first-child) { min-height: 461px; }
 .profile-gallery-grid.count-4 figure:last-child { grid-column: 1 / -1; min-height: 520px; }
-.profile-trust { padding-block: 115px; background: #faf8f3; }
-.profile-trust .profile-detail-wrap { display: grid; grid-template-columns: 90px 1fr; gap: 35px; }
+.profile-trust { padding-block: var(--space-7, 48px); background: #faf8f3; }
+.profile-trust .profile-detail-wrap { display: block; }
 .profile-trust i { width: 68px; height: 68px; font-size: 30px; }
-.profile-trust h2 { font-size: clamp(42px, 5vw, 70px); }
+.profile-trust h2 { font-size: clamp(36px, 4vw, 56px); }
 .profile-trust div > p:last-child { max-width: 620px; margin-top: 25px; color: #625d56; font: 15px/1.65 var(--velvet-serif); }
-.profile-final-contact { padding-block: 120px; background: var(--profile-aubergine); color: #faf8f3; }
+.profile-final-contact { padding-block: var(--space-7, 48px); background: var(--profile-aubergine); color: #faf8f3; }
 .profile-final-contact .profile-kicker { color: #c8aecc; }
 .profile-final-contact .profile-whatsapp { max-width: 440px; background: #faf8f3; color: var(--profile-aubergine); }
 .profile-final-contact .profile-whatsapp:hover { background: var(--profile-olive); color: var(--profile-espresso); }

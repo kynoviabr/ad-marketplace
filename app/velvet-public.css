@@ -1541,17 +1541,38 @@
   border-top: var(--border-default);
 }
 
+.profile-detail-page--r4 .profile-trust .profile-detail-wrap {
+  display: block;
+  width: min(100% - 32px, 1280px);
+  margin-inline: auto;
+}
+
 .profile-detail-page--r4 .profile-trust-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-6);
-  align-items: center;
+  align-items: start;
+}
+
+.profile-detail-page--r4 .profile-trust-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.profile-detail-page--r4 .profile-trust-item-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body);
+  font-weight: 600;
+  line-height: var(--leading-body);
 }
 
 .profile-detail-page--r4 .profile-trust-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: flex-start;
 }
 
@@ -1567,8 +1588,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  border-left: 2px solid color-mix(in srgb, var(--color-brand) 22%, var(--color-border));
-  padding-left: var(--space-4);
+  border-left: 1px solid var(--color-border);
+  padding-left: var(--space-5);
+}
+
+.profile-detail-page--r4 .profile-trust-safety {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-left: 1px solid var(--color-border);
+  padding-left: var(--space-5);
 }
 
 .profile-detail-page--r4 .profile-trust-disclaimer-primary {
@@ -1579,14 +1608,14 @@
 }
 
 .profile-detail-page--r4 .profile-trust-disclaimer-safety {
-  color: var(--color-brand-deep);
+  color: var(--color-text-secondary);
   font-family: var(--font-ui);
   font-size: var(--text-body-s);
-  font-weight: 500;
   line-height: var(--leading-body-s);
 }
 
 .profile-detail-page--r4 .profile-trust-action {
+  margin-top: var(--space-1);
   white-space: nowrap;
 }
 
@@ -1608,9 +1637,24 @@
   font-weight: 500;
 }
 
-
 .velvet-public-footer .velvet-public-footer-legal small {
   font-size: max(12px, var(--text-label));
+}
+
+.velvet-public-footer-disclaimers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 640px;
+}
+
+.velvet-public-footer-disclaimers small {
+  display: block;
+  color: var(--color-surface-alt);
+  font-family: var(--font-ui);
+  font-size: max(12px, var(--text-label));
+  line-height: 1.5;
+  letter-spacing: 0;
 }
 
 .profile-detail-page--r4 .profile-final-contact {
@@ -1685,11 +1729,12 @@
     grid-template-columns: 1fr;
     gap: var(--space-4);
   }
-  .profile-detail-page--r4 .profile-trust-disclaimer {
+  .profile-detail-page--r4 .profile-trust-disclaimer,
+  .profile-detail-page--r4 .profile-trust-safety {
     border-left: none;
     border-top: 1px solid var(--color-border);
     padding-left: 0;
-    padding-top: var(--space-3);
+    padding-top: var(--space-4);
   }
 }
 
@@ -1794,8 +1839,7 @@
   .profile-detail-page--r4 .profile-trust { padding-block: var(--space-6); }
 
   .profile-detail-page--r4 .profile-trust .profile-detail-wrap {
-    grid-template-columns: 1fr;
-    gap: var(--space-3);
+    display: block;
   }
 
   .profile-detail-page--r4 .profile-trust .velvet-link { width: fit-content; }

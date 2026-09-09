@@ -87,4 +87,25 @@ describe('Public profile layout reorganization & brand fidelity contracts', () =
     expect(css).toMatch(/@media \(max-width: 899px\)[\s\S]*?\.profile-detail-page--r4 \.profile-trust-card \{[\s\S]*?grid-template-columns: 1fr;/)
     expect(css).toMatch(/@media \(max-width: 767px\)[\s\S]*?\.profile-detail-page--r4 \.profile-offerings-grid \{[\s\S]*?grid-template-columns: 1fr;/)
   })
+
+  it('10. renders trust section as 3 clean cards with titles and safety link', () => {
+    const trustSection = route.slice(route.indexOf('<aside className="profile-trust"'), route.indexOf('</aside>'))
+    expect(trustSection).toContain('profile-trust-item profile-trust-header')
+    expect(trustSection).toContain('profile-trust-item profile-trust-disclaimer')
+    expect(trustSection).toContain('profile-trust-item profile-trust-safety')
+    expect(trustSection).toContain("t('profile.directContactTitle')")
+    expect(trustSection).toContain("t('profile.safetyCareTitle')")
+    expect(css).toContain('.profile-detail-page--r4 .profile-trust-card')
+    expect(css).toContain('grid-template-columns: repeat(3, minmax(0, 1fr));')
+  })
+
+  it('11. prevents trust block collapse by ensuring profile-detail-wrap is display: block', () => {
+    const globalsCss = read('app/globals.css')
+    expect(css).toContain('.profile-detail-page--r4 .profile-trust .profile-detail-wrap {\n  display: block;')
+    expect(globalsCss).not.toMatch(/\.profile-trust \.profile-detail-wrap \{\s*display:\s*grid;\s*grid-template-columns:\s*90px/)
+  })
+
+  it('12. ensures footer disclaimers are formatted with flex column and gap', () => {
+    expect(css).toContain('.velvet-public-footer-disclaimers {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-2);')
+  })
 })

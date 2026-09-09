@@ -235,7 +235,7 @@ export default async function PublicProfilePage({ params }: Props) {
       <aside className="profile-trust" aria-label={t('profile.verifiedProfile')}>
         <div className="profile-detail-wrap">
           <div className="profile-trust-card">
-            <div className="profile-trust-header">
+            <div className="profile-trust-item profile-trust-header">
               <VelvetBadge
                 variant="verified"
                 icon={<VelvetBrandMark size="chip" />}
@@ -244,14 +244,18 @@ export default async function PublicProfilePage({ params }: Props) {
               </VelvetBadge>
               <p className="profile-trust-verification-desc">{t('profile.verificationDisclaimer')}</p>
             </div>
-            <div className="profile-trust-disclaimer">
+            <div className="profile-trust-item profile-trust-disclaimer">
+              <h3 className="profile-trust-item-title">{t('profile.directContactTitle')}</h3>
               <p className="profile-trust-disclaimer-primary">{t('profile.contactDisclaimer')}</p>
-              <p className="profile-trust-disclaimer-safety">{t('profile.contactSafety')}</p>
             </div>
-            <div className="profile-trust-action">
-              <Link href={localizePathname('/seguranca', locale)} className="velvet-link">
-                {t('profile.learnSafety')}
-              </Link>
+            <div className="profile-trust-item profile-trust-safety">
+              <h3 className="profile-trust-item-title">{t('profile.safetyCareTitle')}</h3>
+              <p className="profile-trust-disclaimer-safety">{t('profile.contactSafety')}</p>
+              <div className="profile-trust-action">
+                <Link href={localizePathname('/seguranca', locale)} className="velvet-link">
+                  {t('profile.learnSafety')}
+                </Link>
+              </div>
             </div>
           </div>
         </div>
