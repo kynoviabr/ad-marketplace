@@ -214,7 +214,8 @@ export async function loginAction(
     redirect('/admin')
   }
 
-  if (account?.role === 'CLIENT') {
+  const destination = account?.role === 'CLIENT' ? '/cliente' : '/onboarding'
+  if (destination === '/cliente') {
     redirect('/cliente')
   }
 
@@ -222,8 +223,8 @@ export async function loginAction(
     if (account.onboarding_status === 'COMPLETED') {
       redirect('/dashboard')
     }
-    const destination = await resolveAdvertiserDestination(account as any)
-    redirect(destination)
+    const dest = await resolveAdvertiserDestination(account as any)
+    redirect(dest)
   }
 
   redirect('/onboarding')
