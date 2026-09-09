@@ -5,20 +5,21 @@ import { authOnboardingPtBR, authOnboardingEn } from '@/lib/i18n/messages/auth-o
 
 const ROOT = join(__dirname, '../..')
 
-describe('Auth /login Redesign: Single Editorial Portrait & Calmer Form', () => {
+describe('Auth /login Redesign: Vertical Editorial Carousel & Calmer Form', () => {
   const layoutContent = readFileSync(join(ROOT, 'app/(auth)/layout.tsx'), 'utf-8')
   const loginFormContent = readFileSync(join(ROOT, 'components/auth/login-form.tsx'), 'utf-8')
   const authEditorialPath = join(ROOT, 'components/auth/auth-editorial.tsx')
   const cssContent = readFileSync(join(ROOT, 'app/globals.css'), 'utf-8')
 
-  it('verifies AuthEditorial has exactly ONE primary approved portrait and no multi-image mural', () => {
+  it('renders a continuous vertical carousel with approved editorial portraits', () => {
     expect(existsSync(authEditorialPath)).toBe(true)
     const editorialContent = readFileSync(authEditorialPath, 'utf-8')
     expect(editorialContent).toContain('mural-01.jpg')
-    // Old multi-image collage removed
-    expect(editorialContent).not.toContain('mural-04.jpg')
-    expect(editorialContent).not.toContain('mural-12.jpg')
-    expect(editorialContent).not.toContain('mural-07.jpg')
+    expect(editorialContent).toContain('mural-09.jpg')
+    expect(editorialContent).toContain('mural-17.jpg')
+    expect(editorialContent).toContain('mural-25.jpg')
+    expect(editorialContent).toContain('auth-portrait-carousel-track')
+    expect(editorialContent).toContain('auth-portrait-carousel-group--clone')
     expect(editorialContent).toContain('href={localized(\'/signup\')}')
     expect(editorialContent).toContain('href={localized(\'/anuncie\')}')
   })
@@ -83,6 +84,9 @@ describe('Auth /login Redesign: Single Editorial Portrait & Calmer Form', () => 
     expect(cssContent).toContain('.auth-editorial-grid')
     expect(cssContent).toContain('.auth-editorial-copy-zone')
     expect(cssContent).toContain('.auth-single-portrait-frame')
+    expect(cssContent).toContain('.auth-portrait-carousel-track')
+    expect(cssContent).toContain('@keyframes auth-portrait-carousel-up')
+    expect(cssContent).toContain('@media (prefers-reduced-motion: reduce)')
     expect(cssContent).toContain('.auth-signup-secondary')
     // Mobile login first: .auth-container order: 1
     expect(cssContent).toMatch(/@media[^{]*\(max-width:\s*600px\)[\s\S]*?\.auth-container\s*\{[^}]*order:\s*1/)

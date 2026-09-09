@@ -8,6 +8,13 @@ interface AuthEditorialProps {
   locale?: Locale
 }
 
+const AUTH_EDITORIAL_PORTRAITS = [
+  { id: 'auth-mural-01', src: '/images/hero-mural/mural-01.jpg', objectPosition: '50% 20%' },
+  { id: 'auth-mural-09', src: '/images/hero-mural/mural-09.jpg', objectPosition: '50% 20%' },
+  { id: 'auth-mural-17', src: '/images/hero-mural/mural-17.jpg', objectPosition: '50% 25%' },
+  { id: 'auth-mural-25', src: '/images/hero-mural/mural-25.jpg', objectPosition: '50% 20%' },
+]
+
 export async function AuthEditorial({ locale = 'pt-BR' }: AuthEditorialProps) {
   const { t } = await getTranslations()
   const localized = (path: string) => localizePathname(path, locale)
@@ -67,17 +74,32 @@ export async function AuthEditorial({ locale = 'pt-BR' }: AuthEditorialProps) {
           </p>
         </div>
 
-        {/* Right column: Single vertically expressive approved editorial portrait */}
+        {/* Right column: Vertically moving editorial portrait carousel */}
         <div className="auth-editorial-portrait-zone" aria-hidden="true" role="presentation">
           <div className="auth-single-portrait-frame">
-            <Image
-              src="/images/hero-mural/mural-01.jpg"
-              alt=""
-              fill
-              sizes="(max-width: 900px) 100vw, (max-width: 1440px) 360px, 420px"
-              priority
-              className="auth-single-portrait-img"
-            />
+            <div className="auth-portrait-carousel-track">
+              {[false, true].map((isClone) => (
+                <div
+                  key={isClone ? 'clone' : 'primary'}
+                  className={`auth-portrait-carousel-group${isClone ? ' auth-portrait-carousel-group--clone' : ''}`}
+                >
+                  {AUTH_EDITORIAL_PORTRAITS.map((portrait, index) => (
+                    <div className="auth-portrait-carousel-slide" key={`${portrait.id}${isClone ? '-clone' : ''}`}>
+                      <Image
+                        src={portrait.src}
+                        alt=""
+                        fill
+                        sizes="(max-width: 900px) 100vw, (max-width: 1440px) 360px, 420px"
+                        priority={!isClone && index === 0}
+                        loading={isClone || index > 0 ? 'lazy' : undefined}
+                        className="auth-single-portrait-img"
+                        style={{ objectPosition: portrait.objectPosition }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
