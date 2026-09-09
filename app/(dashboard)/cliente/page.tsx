@@ -82,7 +82,7 @@ export default async function ClientAreaPage() {
           <span className="velvet-client-header-tag">{t('client.areaTitle')}</span>
         </div>
         <div className="velvet-client-header-actions">
-          <LanguageSelector compact />
+          <LanguageSelector variant="popover" theme="light" placement="bottom" showLabel />
           <form action={logoutAction}>
             <button type="submit" className="velvet-client-logout-btn">
               {t('common.logout')}

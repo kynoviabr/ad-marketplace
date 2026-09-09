@@ -25,13 +25,16 @@ describe('Velvet Language Selector & Homepage Discovery Deduplication', () => {
   }
 
   describe('1. Language Selector Variants', () => {
-    it('renders inline PT / EN text control by default', () => {
+    it('renders canonical popover by default without legacy raw PT / EN', () => {
       const html = renderSelector({ compact: true })
       expect(html).toContain('velvet-language-selector')
+      expect(html).toContain('velvet-language-popover')
+      expect(html).toContain('velvet-language-trigger')
+      expect(html).toContain('velvet-flag-circle')
+      expect(html).toContain('velvet-language-chevron')
       expect(html).toContain('is-compact')
-      expect(html).toContain('>PT<')
-      expect(html).toContain('>EN<')
-      expect(html).not.toContain('velvet-language-trigger')
+      expect(html).not.toContain('>PT<')
+      expect(html).not.toContain('>EN<')
     })
 
     it('renders circular Brazil flag and chevron in popover variant for pt-BR', () => {
@@ -54,11 +57,17 @@ describe('Velvet Language Selector & Homepage Discovery Deduplication', () => {
       expect(html).toContain('#3c3b6e') // US flag blue canton
     })
 
-    it('renders expanded full language names when expanded=true', () => {
-      const html = renderSelector({ expanded: true }, 'pt-BR')
-      expect(html).toContain('is-expanded')
-      expect(html).toContain('Português')
-      expect(html).toContain('English')
+    it('renders trigger label with full natural language name when showLabel or expanded is true', () => {
+      const htmlPt = renderSelector({ showLabel: true }, 'pt-BR')
+      expect(htmlPt).toContain('Português')
+      expect(htmlPt).toContain('velvet-language-trigger-text')
+
+      const htmlEn = renderSelector({ showLabel: true }, 'en')
+      expect(htmlEn).toContain('English')
+      expect(htmlEn).toContain('velvet-language-trigger-text')
+
+      const htmlExpanded = renderSelector({ expanded: true }, 'pt-BR')
+      expect(htmlExpanded).toContain('Português')
     })
   })
 

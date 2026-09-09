@@ -19,7 +19,7 @@ export async function ProfessionalDashboardHeader({ activeHref }: { activeHref: 
   return <header className="velvet-dashboard-header">
     <Link href="/dashboard" className="velvet-wordmark" aria-label={`Velvet — ${t('dashboard.overview')}`}>velvet<span>.</span></Link>
     <nav aria-label={t('dashboard.navigation')}>{nav.map(([label, href]) => <Link key={href} href={href} aria-current={href === activeHref ? 'page' : undefined}>{label}</Link>)}</nav>
-    <LanguageSelector compact />
+    <LanguageSelector compact variant="popover" theme="light" placement="bottom" />
     <form action={logoutAction}><button type="submit">{t('common.logout')}</button></form>
   </header>
 }

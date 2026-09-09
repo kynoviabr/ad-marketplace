@@ -2322,7 +2322,11 @@ h1 {
 
 .onboarding-shell { min-height: 100vh; color: var(--velvet-espresso); background: var(--velvet-paper); }
 .onboarding-header { height: 76px; padding: 0 clamp(24px, 4.2vw, 72px); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(59,32,63,.18); }
-.onboarding-exit { min-height: 44px; padding: 0 4px; border-bottom: 1px solid currentColor; color: var(--velvet-muted); font-size: 10px; }
+.onboarding-header-actions { display: flex; align-items: center; gap: clamp(14px, 2vw, 24px); }
+.onboarding-header .velvet-language-trigger { color: var(--velvet-espresso, #1f1a18); }
+.onboarding-header .velvet-language-trigger:hover,
+.onboarding-header .velvet-language-trigger[aria-expanded="true"] { color: var(--velvet-aubergine-deep, #2b1429); }
+.onboarding-exit { min-height: 44px; padding: 0 4px; border: 0; background: transparent; border-bottom: 1px solid currentColor; color: var(--velvet-muted); font-size: 10px; cursor: pointer; }
 .onboarding-progress { padding: 20px clamp(24px, 4.2vw, 72px); border-bottom: 1px solid rgba(59,32,63,.13); overflow-x: auto; scrollbar-width: none; }
 .onboarding-progress ol { min-width: 720px; display: grid; grid-template-columns: repeat(6, 1fr); list-style: none; }
 .onboarding-progress li { position: relative; padding-right: 18px; display: flex; align-items: center; gap: 10px; color: #8a857d; }

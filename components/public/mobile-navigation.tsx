@@ -175,7 +175,7 @@ export function MobileNavigation({ isAuthenticated }: MobileNavigationProps) {
               </div>
 
               <DrawerGroup label={t('navigation.sectionLanguage')}>
-                <LanguageSelector expanded />
+                <LanguageSelector variant="popover" theme="light" placement="top" showLabel />
               </DrawerGroup>
             </nav>
           </div>

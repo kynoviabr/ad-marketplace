@@ -21,10 +21,12 @@ export async function OnboardingShell({ children, currentStep = 1 }: { children:
         <Link href="/" className="velvet-wordmark" aria-label={t('navigation.home')}>
           velvet<span>.</span>
         </Link>
-        <form action={logoutAction}>
-          <button type="submit" className="onboarding-exit">{t('common.logout')}</button>
-        </form>
-        <LanguageSelector compact />
+        <div className="onboarding-header-actions">
+          <LanguageSelector variant="popover" theme="light" placement="bottom" showLabel />
+          <form action={logoutAction}>
+            <button type="submit" className="onboarding-exit">{t('common.logout')}</button>
+          </form>
+        </div>
       </header>
 
       <nav className="onboarding-progress" aria-label={t('onboarding.progress')}>

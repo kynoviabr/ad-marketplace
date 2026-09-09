@@ -142,14 +142,14 @@ function CheckIcon({ className = '' }: { className?: string }) {
 export function LanguageSelector({
   compact = false,
   expanded = false,
-  variant = 'inline',
+  variant = 'popover',
   theme = 'light',
   placement = 'bottom',
   showLabel = false,
   className = '',
 }: LanguageSelectorProps) {
   const { locale, t } = useI18n()
-  const pathname = usePathname()
+  const pathname = usePathname() || '/'
   const searchParams = useSearchParams()
   const query = searchParams.toString()
 
@@ -192,85 +192,78 @@ export function LanguageSelector({
     }
   }, [isOpen])
 
-  if (variant === 'popover') {
-    const isPt = locale === 'pt-BR'
-    const popoverClasses = [
-      'velvet-language-selector',
-      'velvet-language-popover',
-      compact ? 'is-compact' : '',
-      `velvet-language-popover--${theme}`,
-      `velvet-language-popover--${placement}`,
-      className,
-    ]
-      .filter(Boolean)
-      .join(' ')
-
-    return (
-      <div
-        ref={containerRef}
-        className={popoverClasses}
-        role="group"
-        aria-label={t('common.language')}
-      >
-        <button
-          type="button"
-          className="velvet-language-trigger"
-          onClick={() => setIsOpen((prev) => !prev)}
-          aria-expanded={isOpen}
-          aria-haspopup="listbox"
-          aria-label={isPt ? 'Selecionar idioma (Português selecionado)' : 'Select language (English selected)'}
-        >
-          {isPt ? <BrazilFlag size={showLabel ? 18 : 20} /> : <UsaFlag size={showLabel ? 18 : 20} />}
-          {showLabel && (
-            <span className="velvet-language-trigger-text">
-              {isPt ? 'Português' : 'English'}
-            </span>
-          )}
-          <ChevronDownIcon className="velvet-language-chevron" />
-        </button>
-
-        {isOpen && (
-          <ul className="velvet-language-menu" role="listbox" aria-label={t('common.language')}>
-            <li className="velvet-language-menu-item" role="none">
-              <a
-                href={destinationFor('pt-BR')}
-                onClick={(event) => changeLocale(event, 'pt-BR')}
-                className={`velvet-language-menu-link${isPt ? ' is-active' : ''}`}
-                role="option"
-                aria-selected={isPt}
-                lang="pt-BR"
-              >
-                <BrazilFlag size={18} />
-                <span>Português</span>
-                {isPt && <CheckIcon className="velvet-language-menu-check" />}
-              </a>
-            </li>
-            <li className="velvet-language-menu-item" role="none">
-              <a
-                href={destinationFor('en')}
-                onClick={(event) => changeLocale(event, 'en')}
-                className={`velvet-language-menu-link${!isPt ? ' is-active' : ''}`}
-                role="option"
-                aria-selected={!isPt}
-                lang="en"
-              >
-                <UsaFlag size={18} />
-                <span>English</span>
-                {!isPt && <CheckIcon className="velvet-language-menu-check" />}
-              </a>
-            </li>
-          </ul>
-        )}
-      </div>
-    )
-  }
+  const isPt = locale === 'pt-BR'
+  const effectiveShowLabel = showLabel || expanded
+  const popoverClasses = [
+    'velvet-language-selector',
+    'velvet-language-popover',
+    compact ? 'is-compact' : '',
+    expanded ? 'is-expanded' : '',
+    `velvet-language-popover--${theme}`,
+    `velvet-language-popover--${placement}`,
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <div className={`velvet-language-selector${compact ? ' is-compact' : ''}${expanded ? ' is-expanded' : ''}`} role="group" aria-label={t('common.language')}>
-      <a href={destinationFor('pt-BR')} onClick={(event) => changeLocale(event, 'pt-BR')} aria-current={locale === 'pt-BR' ? 'page' : undefined} lang="pt-BR">{expanded ? t('common.portuguese') : 'PT'}</a>
-      {!expanded && <span aria-hidden="true">/</span>}
-      <a href={destinationFor('en')} onClick={(event) => changeLocale(event, 'en')} aria-current={locale === 'en' ? 'page' : undefined} lang="en">{expanded ? t('common.english') : 'EN'}</a>
+    <div
+      ref={containerRef}
+      className={popoverClasses}
+      role="group"
+      aria-label={t('common.language')}
+    >
+      <button
+        type="button"
+        className="velvet-language-trigger"
+        onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label={isPt ? 'Selecionar idioma (Português selecionado)' : 'Select language (English selected)'}
+      >
+        {isPt ? <BrazilFlag size={effectiveShowLabel ? 18 : 20} /> : <UsaFlag size={effectiveShowLabel ? 18 : 20} />}
+        {effectiveShowLabel && (
+          <span className="velvet-language-trigger-text">
+            {isPt ? 'Português' : 'English'}
+          </span>
+        )}
+        <ChevronDownIcon className="velvet-language-chevron" />
+      </button>
+
+      {isOpen && (
+        <ul className="velvet-language-menu" role="listbox" aria-label={t('common.language')}>
+          <li className="velvet-language-menu-item" role="none">
+            <a
+              href={destinationFor('pt-BR')}
+              onClick={(event) => changeLocale(event, 'pt-BR')}
+              className={`velvet-language-menu-link${isPt ? ' is-active' : ''}`}
+              role="option"
+              aria-selected={isPt}
+              aria-current={isPt ? 'page' : undefined}
+              lang="pt-BR"
+            >
+              <BrazilFlag size={18} />
+              <span>Português</span>
+              {isPt && <CheckIcon className="velvet-language-menu-check" />}
+            </a>
+          </li>
+          <li className="velvet-language-menu-item" role="none">
+            <a
+              href={destinationFor('en')}
+              onClick={(event) => changeLocale(event, 'en')}
+              className={`velvet-language-menu-link${!isPt ? ' is-active' : ''}`}
+              role="option"
+              aria-selected={!isPt}
+              aria-current={!isPt ? 'page' : undefined}
+              lang="en"
+            >
+              <UsaFlag size={18} />
+              <span>English</span>
+              {!isPt && <CheckIcon className="velvet-language-menu-check" />}
+            </a>
+          </li>
+        </ul>
+      )}
     </div>
   )
 }
-
