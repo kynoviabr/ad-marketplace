@@ -8,16 +8,17 @@ describe('Auth Language Switcher Position', () => {
   const layoutContent = readFileSync(join(ROOT, 'app/(auth)/layout.tsx'), 'utf-8')
   const cssContent = readFileSync(join(ROOT, 'app/globals.css'), 'utf-8')
 
-  it('places LanguageSelector inside .auth-lang-switch outside of .auth-container', () => {
+  it('places canonical popover LanguageSelector inside .auth-lang-switch outside of .auth-container', () => {
     expect(layoutContent).toContain('<div className="auth-lang-switch">')
-    expect(layoutContent).toContain('<LanguageSelector />')
+    expect(layoutContent).toMatch(/<LanguageSelector\s+variant="popover"/)
     expect(layoutContent).toContain('<div className="auth-container">{children}</div>')
-    expect(layoutContent).not.toContain('<div className="auth-container"><LanguageSelector />')
+    expect(layoutContent).not.toContain('<div className="auth-container"><LanguageSelector')
   })
 
   it('preserves velvet. brand wordmark in AuthLayout', () => {
     expect(layoutContent).toContain('velvet<span>.</span>')
-    expect(layoutContent).toContain('className="velvet-wordmark auth-wordmark"')
+    expect(layoutContent).toContain('auth-wordmark')
+    expect(layoutContent).toContain('velvet-wordmark')
   })
 
   it('defines desktop positioning for .auth-lang-switch aligning with .auth-wordmark top: 30px', () => {

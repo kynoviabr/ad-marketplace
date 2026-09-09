@@ -1,7 +1,7 @@
 import { ForgotPasswordForm } from '@/components/auth/forgot-password-form'
 
 export const metadata = {
-  title: 'Recuperar senha — AD-Marketplace',
+  title: 'Recuperar senha — velvet.',
   robots: 'noindex, nofollow',
 }
 

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 export const metadata = {
-  title: 'Confirme seu e-mail — AD-Marketplace',
+  title: 'Confirme seu e-mail — velvet.',
   robots: 'noindex, nofollow',
 }
 

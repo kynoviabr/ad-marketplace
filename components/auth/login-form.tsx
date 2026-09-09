@@ -108,10 +108,13 @@ export function LoginForm({ errorParam }: LoginFormProps = {}) {
         {t('auth.signIn')}
       </Button>
 
-      <p className="auth-footer">
-        {t('auth.noAccount')}{' '}
-        <Link href="/signup">{t('auth.createAccount')}</Link>
-      </p>
+      <div className="auth-acquisition-block">
+        <p className="auth-acquisition-kicker">{t('auth.acquisitionKicker')}</p>
+        <p className="auth-acquisition-desc">{t('auth.acquisitionDesc')}</p>
+        <Link href="/signup" className="velvet-button velvet-button--secondary auth-acquisition-cta">
+          {t('auth.createProfileCta')} <span aria-hidden="true">→</span>
+        </Link>
+      </div>
     </form>
   )
 }

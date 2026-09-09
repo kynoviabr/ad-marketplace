@@ -1,7 +1,7 @@
 import { ResetPasswordForm } from '@/components/auth/reset-password-form'
 
 export const metadata = {
-  title: 'Nova senha — AD-Marketplace',
+  title: 'Nova senha — velvet.',
   robots: 'noindex, nofollow',
 }
 

@@ -8,24 +8,21 @@
 import Link from 'next/link'
 import { LanguageSelector } from '@/components/i18n'
 import { getTranslations } from '@/lib/i18n/server'
+import { AuthEditorial } from '@/components/auth/auth-editorial'
 
 export const metadata = { robots: { index: false, follow: false } }
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { t } = await getTranslations()
+  const { t, locale } = await getTranslations()
   return (
     <main className="auth-layout">
-      <Link href="/" className="velvet-wordmark auth-wordmark" aria-label={t('navigation.home')}>
+      <Link href={locale === 'en' ? '/en' : '/'} className="velvet-wordmark velvet-public-wordmark auth-wordmark" aria-label={t('navigation.home')}>
         velvet<span>.</span>
       </Link>
       <div className="auth-lang-switch">
-        <LanguageSelector />
+        <LanguageSelector variant="popover" theme="light" placement="bottom" showLabel />
       </div>
-      <aside className="auth-editorial" aria-hidden="true">
-        <p>{t('auth.professionals')}</p>
-        <strong>{t('auth.editorial').split('\n').map((line) => <span key={line}>{line}<br /></span>)}</strong>
-        <span>{t('auth.location')}</span>
-      </aside>
+      <AuthEditorial locale={locale} />
       <div className="auth-container">{children}</div>
     </main>
   )
