@@ -1,4 +1,8 @@
 export const adminPtBR = {
+  'admin.groupOperation': 'Operação',
+  'admin.groupCommercial': 'Comercial',
+  'admin.groupTechnology': 'Tecnologia',
+  'admin.overview': 'Visão geral',
   'admin.operations': 'Operações',
   'admin.panel': 'Painel Administrativo',
   'admin.photoModeration': 'Moderação de Fotos',
@@ -109,6 +113,10 @@ export const adminPtBR = {
 } as const
 
 export const adminEn = {
+  'admin.groupOperation': 'Operations',
+  'admin.groupCommercial': 'Commercial',
+  'admin.groupTechnology': 'Technology',
+  'admin.overview': 'Overview',
   'admin.operations': 'Operations',
   'admin.panel': 'Admin Panel',
   'admin.photoModeration': 'Photo moderation',
