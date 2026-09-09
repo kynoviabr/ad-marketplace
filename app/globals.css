@@ -1554,69 +1554,81 @@ h1 {
   line-height: 1.4;
 }
 
-/* Zone 2: Vertically moving editorial portraits (~40–48% of left panel) */
-.auth-editorial-portrait-zone {
+/* Zone 2: Dual Vertical Carousel Stream (Continuous vertical flow) */
+.auth-editorial-stream {
   display: flex;
+  gap: clamp(10px, 1.2vw, 16px);
+  height: clamp(520px, 72vh, 680px);
+  max-height: calc(100vh - 120px);
+  overflow: hidden;
+  position: relative;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
 }
 
-.auth-single-portrait-frame {
-  position: relative;
-  width: 100%;
-  max-width: 320px;
-  height: clamp(380px, 46vh, 480px);
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 16px 36px -8px rgba(33, 27, 25, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: #ded8cd;
-}
-
-.auth-portrait-carousel-track {
+.auth-stream-col {
   display: flex;
   flex-direction: column;
-  height: max-content;
-  will-change: transform;
-  animation: auth-portrait-carousel-up 24s linear infinite;
+  width: clamp(108px, 8vw, 134px);
+  flex: 0 0 auto;
+  overflow: hidden;
 }
 
-.auth-portrait-carousel-group {
+.auth-stream-track {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+.auth-stream-col--down .auth-stream-track {
+  animation: auth-stream-down 48s linear infinite;
+}
+
+.auth-stream-col--up .auth-stream-track {
+  animation: auth-stream-up 52s linear infinite;
+}
+
+.auth-stream-group {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding-bottom: 12px;
 }
 
-.auth-portrait-carousel-slide {
+.auth-stream-card {
   position: relative;
   width: 100%;
-  height: clamp(380px, 46vh, 480px);
-  flex: 0 0 auto;
+  aspect-ratio: 3 / 4;
+  border-radius: 6px;
   overflow: hidden;
   background: #ded8cd;
+  box-shadow: 0 4px 16px rgba(33, 27, 25, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  flex-shrink: 0;
 }
 
-.auth-single-portrait-img {
+.auth-stream-img {
   object-fit: cover;
-  filter: saturate(0.96) contrast(1.03);
+  filter: saturate(0.96) contrast(1.02);
 }
 
-@keyframes auth-portrait-carousel-up {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(0, -50%, 0); }
+@keyframes auth-stream-down {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes auth-stream-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .auth-portrait-carousel-track {
+  .auth-stream-col--down .auth-stream-track,
+  .auth-stream-col--up .auth-stream-track {
     animation: none !important;
     transform: none !important;
-  }
-
-  .auth-portrait-carousel-group--clone,
-  .auth-portrait-carousel-slide:not(:first-child) {
-    display: none;
   }
 }
 
@@ -3090,10 +3102,9 @@ body:has(.profile-detail-page) { overflow-x: clip; }
 @media (max-width: 900px) {
   .auth-layout { display: flex; flex-direction: column; }
   .auth-editorial { min-height: auto; padding: 48px 32px 56px; order: 2; }
-  .auth-editorial-grid { grid-template-columns: 1fr; gap: 28px; }
-  .auth-editorial-portrait-zone { order: -1; justify-content: flex-start; }
-  .auth-single-portrait-frame { max-width: 100%; height: 240px; }
-  .auth-portrait-carousel-slide { height: 240px; }
+  .auth-editorial-grid { grid-template-columns: 1fr; gap: 32px; }
+  .auth-editorial-stream { height: 260px; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%); }
+  .auth-stream-col { width: 120px; }
   .auth-container { min-height: auto; padding: 100px 32px 56px; order: 1; }
   .onboarding-main { padding-inline: 45px; grid-template-columns: .78fr 1.22fr; gap: 55px; }
   .onboarding-privacy { padding-inline: 45px; gap: 55px; }
@@ -3110,8 +3121,7 @@ body:has(.profile-detail-page) { overflow-x: clip; }
   .auth-lang-switch { top: 18px; right: 16px; }
   .auth-container { order: 1; padding: 36px 16px 48px; }
   .auth-editorial { order: 2; min-height: auto; padding: 36px 16px 56px; }
-  .auth-single-portrait-frame { height: 180px; }
-  .auth-portrait-carousel-slide { height: 180px; }
+  .auth-editorial-stream { display: none; }
   .auth-form { gap: 16px; width: 100%; }
   .auth-title { font-size: clamp(34px, 10vw, 44px); overflow-wrap: anywhere; }
   .auth-form .input { min-height: 52px; font-size: 16px; }

@@ -8,11 +8,20 @@ interface AuthEditorialProps {
   locale?: Locale
 }
 
-const AUTH_EDITORIAL_PORTRAITS = [
-  { id: 'auth-mural-01', src: '/images/hero-mural/mural-01.jpg', objectPosition: '50% 20%' },
-  { id: 'auth-mural-09', src: '/images/hero-mural/mural-09.jpg', objectPosition: '50% 20%' },
-  { id: 'auth-mural-17', src: '/images/hero-mural/mural-17.jpg', objectPosition: '50% 25%' },
-  { id: 'auth-mural-25', src: '/images/hero-mural/mural-25.jpg', objectPosition: '50% 20%' },
+const COLUMN_ONE_PORTRAITS = [
+  { id: 'col1-01', src: '/images/hero-mural/mural-01.jpg', objectPosition: '50% 20%' },
+  { id: 'col1-03', src: '/images/hero-mural/mural-03.jpg', objectPosition: '50% 20%' },
+  { id: 'col1-05', src: '/images/hero-mural/mural-05.jpg', objectPosition: '50% 25%' },
+  { id: 'col1-07', src: '/images/hero-mural/mural-07.jpg', objectPosition: '50% 20%' },
+  { id: 'col1-09', src: '/images/hero-mural/mural-09.jpg', objectPosition: '50% 20%' },
+]
+
+const COLUMN_TWO_PORTRAITS = [
+  { id: 'col2-02', src: '/images/hero-mural/mural-02.jpg', objectPosition: '50% 20%' },
+  { id: 'col2-04', src: '/images/hero-mural/mural-04.jpg', objectPosition: '50% 20%' },
+  { id: 'col2-06', src: '/images/hero-mural/mural-06.jpg', objectPosition: '50% 25%' },
+  { id: 'col2-08', src: '/images/hero-mural/mural-08.jpg', objectPosition: '50% 20%' },
+  { id: 'col2-10', src: '/images/hero-mural/mural-10.jpg', objectPosition: '50% 20%' },
 ]
 
 export async function AuthEditorial({ locale = 'pt-BR' }: AuthEditorialProps) {
@@ -22,7 +31,7 @@ export async function AuthEditorial({ locale = 'pt-BR' }: AuthEditorialProps) {
   return (
     <aside className="auth-editorial" aria-label={t('auth.professionals')}>
       <div className="auth-editorial-grid">
-        {/* Left column: Guaranteed contrast copy zone on solid Velvet surface */}
+        {/* Subcoluna A: Copy Zone (Guaranteed solid surface contrast) */}
         <div className="auth-editorial-copy-zone">
           <p className="auth-eyebrow">{t('auth.professionals')}</p>
 
@@ -74,26 +83,55 @@ export async function AuthEditorial({ locale = 'pt-BR' }: AuthEditorialProps) {
           </p>
         </div>
 
-        {/* Right column: Vertically moving editorial portrait carousel */}
-        <div className="auth-editorial-portrait-zone" aria-hidden="true" role="presentation">
-          <div className="auth-single-portrait-frame">
-            <div className="auth-portrait-carousel-track">
+        {/* Subcoluna B: Dual Vertical Carousel Stream (Continuous vertical flow) */}
+        <div className="auth-editorial-stream" aria-hidden="true" role="presentation">
+          {/* Column 1: slow downward drift */}
+          <div className="auth-stream-col auth-stream-col--down">
+            <div className="auth-stream-track">
               {[false, true].map((isClone) => (
                 <div
-                  key={isClone ? 'clone' : 'primary'}
-                  className={`auth-portrait-carousel-group${isClone ? ' auth-portrait-carousel-group--clone' : ''}`}
+                  key={isClone ? 'col1-clone' : 'col1-main'}
+                  className="auth-stream-group"
+                  aria-hidden={isClone ? 'true' : undefined}
                 >
-                  {AUTH_EDITORIAL_PORTRAITS.map((portrait, index) => (
-                    <div className="auth-portrait-carousel-slide" key={`${portrait.id}${isClone ? '-clone' : ''}`}>
+                  {COLUMN_ONE_PORTRAITS.map((p, idx) => (
+                    <div className="auth-stream-card" key={`${p.id}-${isClone ? 'c' : 'm'}`}>
                       <Image
-                        src={portrait.src}
+                        src={p.src}
                         alt=""
                         fill
-                        sizes="(max-width: 900px) 100vw, (max-width: 1440px) 360px, 420px"
-                        priority={!isClone && index === 0}
-                        loading={isClone || index > 0 ? 'lazy' : undefined}
-                        className="auth-single-portrait-img"
-                        style={{ objectPosition: portrait.objectPosition }}
+                        sizes="(max-width: 900px) 120px, 140px"
+                        priority={!isClone && idx === 0}
+                        loading={isClone || idx > 0 ? 'lazy' : undefined}
+                        className="auth-stream-img"
+                        style={{ objectPosition: p.objectPosition }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Column 2: slow upward drift */}
+          <div className="auth-stream-col auth-stream-col--up">
+            <div className="auth-stream-track">
+              {[false, true].map((isClone) => (
+                <div
+                  key={isClone ? 'col2-clone' : 'col2-main'}
+                  className="auth-stream-group"
+                  aria-hidden={isClone ? 'true' : undefined}
+                >
+                  {COLUMN_TWO_PORTRAITS.map((p, idx) => (
+                    <div className="auth-stream-card" key={`${p.id}-${isClone ? 'c' : 'm'}`}>
+                      <Image
+                        src={p.src}
+                        alt=""
+                        fill
+                        sizes="(max-width: 900px) 120px, 140px"
+                        loading="lazy"
+                        className="auth-stream-img"
+                        style={{ objectPosition: p.objectPosition }}
                       />
                     </div>
                   ))}

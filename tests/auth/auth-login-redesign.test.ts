@@ -5,34 +5,39 @@ import { authOnboardingPtBR, authOnboardingEn } from '@/lib/i18n/messages/auth-o
 
 const ROOT = join(__dirname, '../..')
 
-describe('Auth /login Redesign: Vertical Editorial Carousel & Calmer Form', () => {
+describe('Auth /login Redesign: Dual-Column Vertical Carousel & Calmer Form', () => {
   const layoutContent = readFileSync(join(ROOT, 'app/(auth)/layout.tsx'), 'utf-8')
   const loginFormContent = readFileSync(join(ROOT, 'components/auth/login-form.tsx'), 'utf-8')
   const authEditorialPath = join(ROOT, 'components/auth/auth-editorial.tsx')
   const cssContent = readFileSync(join(ROOT, 'app/globals.css'), 'utf-8')
 
-  it('renders a continuous vertical carousel with approved editorial portraits', () => {
+  it('renders a genuine two-column vertical continuous carousel with approved portraits', () => {
     expect(existsSync(authEditorialPath)).toBe(true)
     const editorialContent = readFileSync(authEditorialPath, 'utf-8')
+    expect(editorialContent).toContain('COLUMN_ONE_PORTRAITS')
+    expect(editorialContent).toContain('COLUMN_TWO_PORTRAITS')
+    expect(editorialContent).toContain('auth-editorial-stream')
+    expect(editorialContent).toContain('auth-stream-col--down')
+    expect(editorialContent).toContain('auth-stream-col--up')
+    expect(editorialContent).toContain('auth-stream-card')
+    expect(editorialContent).toContain('auth-stream-track')
     expect(editorialContent).toContain('mural-01.jpg')
-    expect(editorialContent).toContain('mural-09.jpg')
-    expect(editorialContent).toContain('mural-17.jpg')
-    expect(editorialContent).toContain('mural-25.jpg')
-    expect(editorialContent).toContain('auth-portrait-carousel-track')
-    expect(editorialContent).toContain('auth-portrait-carousel-group--clone')
+    expect(editorialContent).toContain('mural-02.jpg')
+    expect(editorialContent).toContain('mural-03.jpg')
     expect(editorialContent).toContain('href={localized(\'/signup\')}')
     expect(editorialContent).toContain('href={localized(\'/anuncie\')}')
+    // Single closed card look is removed
+    expect(editorialContent).not.toContain('auth-single-portrait-frame')
   })
 
-  it('guarantees text-over-photo is absent with separate copy and portrait visual zones', () => {
+  it('guarantees text-over-photo is absent with separate copy and dual-stream visual zones', () => {
     const editorialContent = readFileSync(authEditorialPath, 'utf-8')
     expect(editorialContent).toContain('auth-editorial-grid')
     expect(editorialContent).toContain('auth-editorial-copy-zone')
-    expect(editorialContent).toContain('auth-editorial-portrait-zone')
-    expect(editorialContent).toContain('auth-single-portrait-frame')
-    // No text nested inside portrait frame
-    expect(editorialContent).not.toMatch(/auth-single-portrait-frame[\s\S]*?<p/)
-    expect(editorialContent).not.toMatch(/auth-single-portrait-frame[\s\S]*?<h/)
+    expect(editorialContent).toContain('auth-editorial-stream')
+    // No text nested inside stream cards
+    expect(editorialContent).not.toMatch(/auth-stream-card[\s\S]*?<p/)
+    expect(editorialContent).not.toMatch(/auth-stream-card[\s\S]*?<h/)
   })
 
   it('renders AuthEditorial inside AuthLayout with canonical popover LanguageSelector', () => {
@@ -49,7 +54,6 @@ describe('Auth /login Redesign: Vertical Editorial Carousel & Calmer Form', () =
     expect(loginFormContent).toContain('auth.createProfileCta')
     expect(loginFormContent).toContain('href="/signup"')
     expect(loginFormContent).toContain('auth-signup-link')
-    // Heavy boxed card class removed
     expect(loginFormContent).not.toContain('auth-acquisition-block')
     expect(loginFormContent).not.toContain('auth-footer')
   })
@@ -79,14 +83,13 @@ describe('Auth /login Redesign: Vertical Editorial Carousel & Calmer Form', () =
     expect(authOnboardingPtBR['auth.acquisitionDesc']).toBe('Quer criar seu perfil profissional?')
   })
 
-  it('defines desktop split architecture and mobile login-first responsive styles', () => {
+  it('defines desktop split architecture with dual vertical streams and mobile login-first responsive styles', () => {
     expect(cssContent).toContain('.auth-layout')
     expect(cssContent).toContain('.auth-editorial-grid')
     expect(cssContent).toContain('.auth-editorial-copy-zone')
-    expect(cssContent).toContain('.auth-single-portrait-frame')
-    expect(cssContent).toContain('.auth-portrait-carousel-track')
-    expect(cssContent).toContain('@keyframes auth-portrait-carousel-up')
-    expect(cssContent).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(cssContent).toContain('.auth-editorial-stream')
+    expect(cssContent).toContain('.auth-stream-col')
+    expect(cssContent).toContain('.auth-stream-card')
     expect(cssContent).toContain('.auth-signup-secondary')
     // Mobile login first: .auth-container order: 1
     expect(cssContent).toMatch(/@media[^{]*\(max-width:\s*600px\)[\s\S]*?\.auth-container\s*\{[^}]*order:\s*1/)
