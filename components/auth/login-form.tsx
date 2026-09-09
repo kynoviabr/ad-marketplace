@@ -108,10 +108,11 @@ export function LoginForm({ errorParam }: LoginFormProps = {}) {
         {t('auth.signIn')}
       </Button>
 
-      <div className="auth-acquisition-block">
-        <p className="auth-acquisition-kicker">{t('auth.acquisitionKicker')}</p>
-        <p className="auth-acquisition-desc">{t('auth.acquisitionDesc')}</p>
-        <Link href="/signup" className="velvet-button velvet-button--secondary auth-acquisition-cta">
+      <div className="auth-signup-secondary">
+        <div className="auth-signup-separator" aria-hidden="true" />
+        <p className="auth-signup-kicker">{t('auth.acquisitionKicker')}</p>
+        <p className="auth-signup-desc">{t('auth.acquisitionDesc')}</p>
+        <Link href="/signup" className="auth-signup-link">
           {t('auth.createProfileCta')} <span aria-hidden="true">→</span>
         </Link>
       </div>
