@@ -62,6 +62,7 @@ export default async function ClientAreaPage() {
   ])
 
   if (!account) redirect('/login')
+  if (account.role === 'ADMIN') redirect('/admin')
   if (account.role !== 'CLIENT') redirect('/dashboard')
 
   const isEn = locale === 'en'

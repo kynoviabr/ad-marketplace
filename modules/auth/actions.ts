@@ -44,6 +44,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SignupSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema } from './schemas'
 import { CURRENT_TERMS_VERSION, CURRENT_PRIVACY_VERSION } from '@/lib/config/legal-versions'
+import { resolveAdvertiserDestination } from '@/modules/moderation/guards'
 import { deriveAuthRateLimitKey, isAuthRateLimited } from './rate-limiter'
 import type { ActionResult } from './types'
 
@@ -206,13 +207,25 @@ export async function loginAction(
   }
 
   const account = authData.user
-    ? (await createAdminClient().from('account_users').select('role').eq('auth_user_id', authData.user.id).maybeSingle()).data
+    ? (await createAdminClient().from('account_users').select('id, role, status, onboarding_status, onboarding_step').eq('auth_user_id', authData.user.id).maybeSingle()).data
     : null
 
-  const destination = account?.role === 'CLIENT' ? '/cliente' : '/onboarding'
-  if (destination === '/cliente') {
+  if (account?.role === 'ADMIN') {
+    redirect('/admin')
+  }
+
+  if (account?.role === 'CLIENT') {
     redirect('/cliente')
   }
+
+  if (account?.role === 'ADVERTISER') {
+    if (account.onboarding_status === 'COMPLETED') {
+      redirect('/dashboard')
+    }
+    const destination = await resolveAdvertiserDestination(account as any)
+    redirect(destination)
+  }
+
   redirect('/onboarding')
 }
 
@@ -285,7 +298,7 @@ export async function resetPasswordAction(
 
   const supabase = await createServerClient()
 
-  const { error } = await supabase.auth.updateUser({
+  const { data, error } = await supabase.auth.updateUser({
     password: parsed.data.password,
   })
 
@@ -296,7 +309,21 @@ export async function resetPasswordAction(
     }
   }
 
-  redirect('/dashboard')
+  let destination = '/dashboard'
+  if (data?.user) {
+    const account = (await createAdminClient().from('account_users').select('id, role, status, onboarding_status, onboarding_step').eq('auth_user_id', data.user.id).maybeSingle()).data
+    if (account?.role === 'ADMIN') {
+      destination = '/admin'
+    } else if (account?.role === 'CLIENT') {
+      destination = '/cliente'
+    } else if (account?.role === 'ADVERTISER') {
+      destination = account.onboarding_status === 'COMPLETED'
+        ? '/dashboard'
+        : await resolveAdvertiserDestination(account as any)
+    }
+  }
+
+  redirect(destination)
 }
 
 // ---------------------------------------------------------------------------

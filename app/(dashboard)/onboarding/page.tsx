@@ -8,6 +8,14 @@ export const dynamic = 'force-dynamic'
 export default async function OnboardingEntryPage() {
   const account = await requireAccount()
 
+  if (account.role === 'ADMIN') {
+    redirect('/admin')
+  }
+
+  if (account.role === 'CLIENT') {
+    redirect('/cliente')
+  }
+
   if (account.onboarding_status === 'COMPLETED') {
     redirect('/dashboard')
   }

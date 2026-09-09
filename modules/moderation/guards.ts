@@ -11,6 +11,14 @@ import { canProceedToProfessionalProfile } from '@/modules/verification/gates'
  * Incomplete onboarding → current onboarding step
  */
 export async function resolveAdvertiserDestination(account: AccountUser): Promise<string> {
+  if (account.role === 'ADMIN') {
+    return '/admin'
+  }
+
+  if (account.role === 'CLIENT') {
+    return '/cliente'
+  }
+
   if (account.onboarding_status === 'COMPLETED') {
     return '/dashboard'
   }
@@ -59,6 +67,37 @@ export async function requireAdmin(): Promise<AccountUser> {
     }
     const dest = await resolveAdvertiserDestination(account)
     redirect(dest)
+  }
+
+  return account
+}
+
+/**
+ * Server-side Advertiser Authorization Boundary.
+ *
+ * Verifies in order:
+ * 1. User is authenticated with active session
+ * 2. User account exists with status = 'ACTIVE'
+ * 3. User account has role = 'ADVERTISER'
+ *
+ * Unauthorized redirects:
+ * - ADMIN: denied from advertiser area, redirected to /admin
+ * - CLIENT: denied from advertiser area, redirected to /cliente
+ * - Other/unauthenticated: redirected to /login
+ */
+export async function requireAdvertiser(): Promise<AccountUser> {
+  const account = await requireAccount()
+
+  if (account.role === 'ADMIN') {
+    redirect('/admin')
+  }
+
+  if (account.role === 'CLIENT') {
+    redirect('/cliente')
+  }
+
+  if (account.role !== 'ADVERTISER') {
+    redirect('/login')
   }
 
   return account

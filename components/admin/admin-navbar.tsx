@@ -57,9 +57,6 @@ export function AdminNavbar() {
             ADMIN
           </span>
           <LanguageSelector compact variant="popover" theme="dark" placement="bottom" />
-          <Link href="/dashboard" style={{ color: '#9ca3af', fontSize: '0.875rem', textDecoration: 'none' }}>
-            {t('admin.goDashboard')}
-          </Link>
         </div>
       </div>
     </header>
