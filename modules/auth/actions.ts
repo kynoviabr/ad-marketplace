@@ -235,10 +235,15 @@ export async function loginAction(
 // ---------------------------------------------------------------------------
 
 export async function logoutAction(): Promise<void> {
-  const supabase = await createServerClient()
-  await supabase.auth.signOut()
+  try {
+    const supabase = await createServerClient()
+    await supabase.auth.signOut()
+  } catch (err) {
+    console.error('[auth:logoutAction] Sign out warning:', err)
+  }
   redirect('/login')
 }
+
 
 // ---------------------------------------------------------------------------
 // FORGOT PASSWORD

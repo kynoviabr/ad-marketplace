@@ -742,7 +742,7 @@ export async function updateAdminDisplayNameAction(
   input: { name: string } | FormData
 ): Promise<UpdateAdminDisplayNameResult> {
   try {
-    await requireAdmin()
+    const adminUser = await requireAdmin()
     const rawName = input instanceof FormData ? input.get('name') : input?.name
     if (typeof rawName !== 'string') {
       return { success: false, error: 'INVALID_INPUT', message: 'Nome inválido.' }
@@ -755,9 +755,9 @@ export async function updateAdminDisplayNameAction(
       return { success: false, error: 'NAME_TOO_LONG', message: 'O nome de exibição deve ter no máximo 60 caracteres.' }
     }
 
-    const supabase = await createServerClient()
-    const { error } = await supabase.auth.updateUser({
-      data: { name: trimmed },
+    const adminClient = createAdminClient()
+    const { error } = await adminClient.auth.admin.updateUserById(adminUser.auth_user_id, {
+      user_metadata: { name: trimmed },
     })
 
     if (error) {
@@ -794,16 +794,15 @@ export interface UpdateAdminPasswordResult {
  *
  * Enforces:
  * 1. ADMIN authorization via requireAdmin()
- * 2. Current-user session bound mutation via createServerClient().auth.updateUser()
+ * 2. Current-user session bound mutation via adminClient.auth.admin.updateUserById()
  * 3. Validation: minimum 8 characters, confirmation match
  * 4. Zero password logging / zero leak in reports or errors
- * 5. Supabase session cookies automatically refreshed
  */
 export async function updateAdminPasswordAction(
   input: { password: string; confirmPassword: string } | FormData
 ): Promise<UpdateAdminPasswordResult> {
   try {
-    await requireAdmin()
+    const adminUser = await requireAdmin()
 
     let password = ''
     let confirmPassword = ''
@@ -832,8 +831,8 @@ export async function updateAdminPasswordAction(
       }
     }
 
-    const supabase = await createServerClient()
-    const { error } = await supabase.auth.updateUser({
+    const adminClient = createAdminClient()
+    const { error } = await adminClient.auth.admin.updateUserById(adminUser.auth_user_id, {
       password,
     })
 
@@ -859,5 +858,6 @@ export async function updateAdminPasswordAction(
     }
   }
 }
+
 
 

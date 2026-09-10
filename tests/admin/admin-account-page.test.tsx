@@ -40,7 +40,6 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
 
-// Mock guards and server auth
 const mockRequireAdmin = vi.fn()
 vi.mock('@/modules/moderation/guards', () => ({
   requireAdmin: () => mockRequireAdmin(),
@@ -57,6 +56,18 @@ vi.mock('@/lib/supabase/server', () => ({
     },
   }),
 }))
+
+const mockAdminUpdateUserById = vi.fn()
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: () => ({
+    auth: {
+      admin: {
+        updateUserById: (...args: any[]) => mockAdminUpdateUserById(...args),
+      },
+    },
+  }),
+}))
+
 
 describe('AdminAccountPage Server Component', () => {
   beforeEach(() => {
@@ -177,6 +188,7 @@ describe('updateAdminDisplayNameAction Server Action', () => {
     vi.clearAllMocks()
     mockRequireAdmin.mockResolvedValue({
       id: 'acc-uuid-1234',
+      auth_user_id: 'auth-uuid-5678',
       role: 'ADMIN',
       status: 'ACTIVE',
     })
@@ -204,19 +216,19 @@ describe('updateAdminDisplayNameAction Server Action', () => {
   })
 
   it('successfully updates name in Supabase user_metadata', async () => {
-    mockUpdateUser.mockResolvedValueOnce({ data: { user: {} }, error: null })
+    mockAdminUpdateUserById.mockResolvedValueOnce({ data: { user: {} }, error: null })
 
     const result = await updateAdminDisplayNameAction({ name: '  Kynovia  ' })
     expect(result.success).toBe(true)
     expect(result.name).toBe('Kynovia')
     expect(result.message).toBe('Nome atualizado.')
-    expect(mockUpdateUser).toHaveBeenCalledWith({
-      data: { name: 'Kynovia' },
+    expect(mockAdminUpdateUserById).toHaveBeenCalledWith('auth-uuid-5678', {
+      user_metadata: { name: 'Kynovia' },
     })
   })
 
   it('handles FormData input safely', async () => {
-    mockUpdateUser.mockResolvedValueOnce({ data: { user: {} }, error: null })
+    mockAdminUpdateUserById.mockResolvedValueOnce({ data: { user: {} }, error: null })
 
     const formData = new FormData()
     formData.append('name', 'Operator QA')
@@ -232,6 +244,7 @@ describe('updateAdminPasswordAction Server Action', () => {
     vi.clearAllMocks()
     mockRequireAdmin.mockResolvedValue({
       id: 'acc-uuid-1234',
+      auth_user_id: 'auth-uuid-5678',
       role: 'ADMIN',
       status: 'ACTIVE',
     })
@@ -266,8 +279,8 @@ describe('updateAdminPasswordAction Server Action', () => {
     expect(result.message).toBe('As senhas não coincidem.')
   })
 
-  it('successfully updates password via supabase.auth.updateUser', async () => {
-    mockUpdateUser.mockResolvedValueOnce({ data: { user: {} }, error: null })
+  it('successfully updates password via adminClient.auth.admin.updateUserById', async () => {
+    mockAdminUpdateUserById.mockResolvedValueOnce({ data: { user: {} }, error: null })
 
     const result = await updateAdminPasswordAction({
       password: 'SecureAdminPassword123!',
@@ -275,8 +288,9 @@ describe('updateAdminPasswordAction Server Action', () => {
     })
     expect(result.success).toBe(true)
     expect(result.message).toBe('Senha alterada com sucesso.')
-    expect(mockUpdateUser).toHaveBeenCalledWith({
+    expect(mockAdminUpdateUserById).toHaveBeenCalledWith('auth-uuid-5678', {
       password: 'SecureAdminPassword123!',
     })
   })
 })
+
