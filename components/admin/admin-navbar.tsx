@@ -55,6 +55,34 @@ export function getShortDisplayName(user: AdminNavbarUser | null): string {
   return 'Admin'
 }
 
+/**
+ * Fast client-side session identity extractor from Supabase auth cookie.
+ * Provides immediate rendering without waiting for network round-trips.
+ */
+export function getClientAdminUser(): AdminNavbarUser | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const match = document.cookie.match(/sb-[^=]+-auth-token=([^;]+)/)
+    if (!match) return null
+    let raw = match[1]
+    if (raw.startsWith('base64-')) {
+      raw = atob(raw.slice(7))
+    }
+    const parsed = JSON.parse(decodeURIComponent(raw))
+    const email = parsed.user?.email || null
+    const rawName = parsed.user?.user_metadata?.name || parsed.user?.user_metadata?.full_name || null
+    const name = typeof rawName === 'string' && rawName.trim().length > 0 ? rawName.trim() : null
+    if (!email) return null
+    return {
+      email,
+      name,
+      role: 'ADMIN',
+    }
+  } catch {
+    return null
+  }
+}
+
 function LogoutIcon() {
   return (
     <svg
@@ -259,6 +287,14 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
   useEffect(() => {
     if (initialUser) return
     let cancelled = false
+
+    // 1. Instant client-side cookie resolve (zero latency)
+    const clientUser = getClientAdminUser()
+    if (clientUser) {
+      setUser(clientUser)
+    }
+
+    // 2. Authoritative server action fallback/update
     getAdminUserAction()
       .then((res) => {
         if (!cancelled && res) {
@@ -266,6 +302,7 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
         }
       })
       .catch(() => {})
+
     return () => {
       cancelled = true
     }
