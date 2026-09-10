@@ -681,3 +681,43 @@ export async function adminReactivateProfileAction(input: {
     notes: input.notes,
   })
 }
+
+export interface AdminNavbarUser {
+  email: string | null
+  name: string | null
+  role: 'ADMIN'
+}
+
+/**
+ * Server Action: Resolves current authenticated administrator identity for AdminNavbar.
+ *
+ * Privacy Invariant:
+ * Exposes ONLY safe identity fields: email, name (from user metadata if present), and role.
+ * NEVER leaks account UUID, civil data, internal tokens, or KYC records.
+ */
+export async function getAdminUserAction(): Promise<AdminNavbarUser | null> {
+  try {
+    await requireAdmin()
+    const supabase = await createServerClient()
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
+    if (error || !user) {
+      return null
+    }
+
+    const email = user.email ?? null
+    const rawName = user.user_metadata?.name || user.user_metadata?.full_name || null
+    const name = typeof rawName === 'string' && rawName.trim().length > 0 ? rawName.trim() : null
+
+    return {
+      email,
+      name,
+      role: 'ADMIN',
+    }
+  } catch {
+    return null
+  }
+}
+
