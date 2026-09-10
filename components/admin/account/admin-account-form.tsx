@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { LanguageSelector } from '@/components/i18n'
 import {
@@ -20,16 +20,16 @@ export function AdminAccountForm({ initialName, email, role }: AdminAccountFormP
 
   // Display Name State
   const [name, setName] = useState(initialName)
-  const [isSavingName, setIsSavingName] = useState(false)
+  const [isSavingName, startNameTransition] = useTransition()
   const [nameFeedback, setNameFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   // Password State
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [isSavingPassword, setIsSavingPassword] = useState(false)
+  const [isSavingPassword, startPasswordTransition] = useTransition()
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  async function handleUpdateName(e: React.FormEvent) {
+  function handleUpdateName(e: React.FormEvent) {
     e.preventDefault()
     setNameFeedback(null)
 
@@ -44,33 +44,33 @@ export function AdminAccountForm({ initialName, email, role }: AdminAccountFormP
       return
     }
 
-    setIsSavingName(true)
-    try {
-      const res = await updateAdminDisplayNameAction({ name: trimmed })
-      if (res.success) {
-        setNameFeedback({ type: 'success', message: res.message || 'Nome atualizado.' })
-        setName(res.name || trimmed)
+    startNameTransition(async () => {
+      try {
+        const res = await updateAdminDisplayNameAction({ name: trimmed })
+        if (res.success) {
+          setNameFeedback({ type: 'success', message: res.message || 'Nome atualizado.' })
+          setName(res.name || trimmed)
 
-        // Notify AdminNavbar immediately for instant reactive avatar/name update
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(
-            new CustomEvent<Partial<AdminNavbarUser>>('admin-user-updated', {
-              detail: { name: res.name || trimmed },
-            })
-          )
+          // Notify AdminNavbar immediately for instant reactive avatar/name update
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent<Partial<AdminNavbarUser>>('admin-user-updated', {
+                detail: { name: res.name || trimmed },
+              })
+            )
+          }
+          router.refresh()
+        } else {
+          setNameFeedback({ type: 'error', message: res.message || 'Falha ao atualizar nome.' })
         }
-        router.refresh()
-      } else {
-        setNameFeedback({ type: 'error', message: res.message || 'Falha ao atualizar nome.' })
+      } catch (err: any) {
+        console.error('[AdminAccountForm:name] Exception:', err)
+        setNameFeedback({ type: 'error', message: err?.message || 'Erro ao processar atualização do nome.' })
       }
-    } catch {
-      setNameFeedback({ type: 'error', message: 'Erro ao processar atualização do nome.' })
-    } finally {
-      setIsSavingName(false)
-    }
+    })
   }
 
-  async function handleUpdatePassword(e: React.FormEvent) {
+  function handleUpdatePassword(e: React.FormEvent) {
     e.preventDefault()
     setPasswordFeedback(null)
 
@@ -84,21 +84,21 @@ export function AdminAccountForm({ initialName, email, role }: AdminAccountFormP
       return
     }
 
-    setIsSavingPassword(true)
-    try {
-      const res = await updateAdminPasswordAction({ password, confirmPassword })
-      if (res.success) {
-        setPasswordFeedback({ type: 'success', message: res.message || 'Senha alterada com sucesso.' })
-        setPassword('')
-        setConfirmPassword('')
-      } else {
-        setPasswordFeedback({ type: 'error', message: res.message || 'Falha ao alterar senha.' })
+    startPasswordTransition(async () => {
+      try {
+        const res = await updateAdminPasswordAction({ password, confirmPassword })
+        if (res.success) {
+          setPasswordFeedback({ type: 'success', message: res.message || 'Senha alterada com sucesso.' })
+          setPassword('')
+          setConfirmPassword('')
+        } else {
+          setPasswordFeedback({ type: 'error', message: res.message || 'Falha ao alterar senha.' })
+        }
+      } catch (err: any) {
+        console.error('[AdminAccountForm:password] Exception:', err)
+        setPasswordFeedback({ type: 'error', message: err?.message || 'Erro ao processar atualização de senha.' })
       }
-    } catch {
-      setPasswordFeedback({ type: 'error', message: 'Erro ao processar atualização de senha.' })
-    } finally {
-      setIsSavingPassword(false)
-    }
+    })
   }
 
   return (

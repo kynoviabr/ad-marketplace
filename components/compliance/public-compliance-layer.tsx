@@ -16,6 +16,7 @@ const EXCLUDED_PATHS = [
   '/cookies',
   '/termos',
   '/privacidade',
+  '/admin',
 ]
 
 function setCookie(name: string, value: string) {
