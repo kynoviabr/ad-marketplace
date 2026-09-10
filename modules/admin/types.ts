@@ -13,6 +13,17 @@ import type { ProfileStatus, ContentModerationStatus } from '@/modules/profiles/
 import type { UserStatus } from '@/modules/auth/types'
 import type { VerificationStatus } from '@/modules/verification/types'
 import type { MediaStatus } from '@/modules/media/types'
+import type { ModerationReasonCode } from '@/modules/moderation/types'
+
+export const VALID_MODERATION_REASON_CODES: readonly ModerationReasonCode[] = [
+  'UNDERAGE_SUSPICION',
+  'EXPLICIT_ILLEGAL_CONTENT',
+  'LOW_QUALITY_OR_BLURRY',
+  'WATERMARK_OR_PROMOTIONAL',
+  'NON_HUMAN_OR_MISMATCH',
+  'VIOLENCE_OR_COERCION',
+  'OTHER_POLICY_VIOLATION',
+] as const
 
 /**
  * Reusable operational status classification.

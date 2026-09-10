@@ -4,18 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createServerClient } from '@/lib/supabase/server'
 import { requireAdmin } from '@/modules/moderation/guards'
-import type { AdminMediaType } from './types'
+import { type AdminMediaType, VALID_MODERATION_REASON_CODES } from './types'
 import type { ModerationReasonCode } from '@/modules/moderation/types'
-
-export const VALID_MODERATION_REASON_CODES: readonly ModerationReasonCode[] = [
-  'UNDERAGE_SUSPICION',
-  'EXPLICIT_ILLEGAL_CONTENT',
-  'LOW_QUALITY_OR_BLURRY',
-  'WATERMARK_OR_PROMOTIONAL',
-  'NON_HUMAN_OR_MISMATCH',
-  'VIOLENCE_OR_COERCION',
-  'OTHER_POLICY_VIOLATION',
-] as const
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

@@ -3,8 +3,8 @@ import {
   adminModerateMediaAction,
   adminApproveMediaAction,
   adminRejectMediaAction,
-  VALID_MODERATION_REASON_CODES,
 } from '@/modules/admin/actions'
+import { VALID_MODERATION_REASON_CODES } from '@/modules/admin/types'
 
 // Mock server-only and next/cache
 vi.mock('server-only', () => ({}))
