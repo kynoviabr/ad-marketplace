@@ -156,7 +156,13 @@ describe('AdminNavbar Architecture & Contract Invariants', () => {
       "// Canonical operational monitor contract: { href: '/admin/kyc', label: t('admin.kyc') }"
     )
   })
+
+  it('renders "Minha conta" link navigating to /admin/account in popover and mobile drawer', () => {
+    expect(navbarSource).toContain('href="/admin/account"')
+    expect(navbarSource).toContain('Minha conta')
+  })
 })
+
 
 describe('getAdminUserAction Security & Projection Invariant', () => {
   beforeEach(() => {

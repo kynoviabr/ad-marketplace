@@ -721,3 +721,143 @@ export async function getAdminUserAction(): Promise<AdminNavbarUser | null> {
   }
 }
 
+export interface UpdateAdminDisplayNameResult {
+  success: boolean
+  error?: string
+  message?: string
+  name?: string | null
+}
+
+/**
+ * Server Action: Updates current authenticated administrator's display name.
+ *
+ * Enforces:
+ * 1. ADMIN authorization via requireAdmin()
+ * 2. Current-user session bound mutation via createServerClient().auth.updateUser()
+ * 3. Validation: trimmed, non-empty, max 60 characters
+ * 4. Cache revalidation for /admin/account and /admin
+ * 5. Safe return value (never leaks UUIDs)
+ */
+export async function updateAdminDisplayNameAction(
+  input: { name: string } | FormData
+): Promise<UpdateAdminDisplayNameResult> {
+  try {
+    await requireAdmin()
+    const rawName = input instanceof FormData ? input.get('name') : input?.name
+    if (typeof rawName !== 'string') {
+      return { success: false, error: 'INVALID_INPUT', message: 'Nome inválido.' }
+    }
+    const trimmed = rawName.trim()
+    if (!trimmed) {
+      return { success: false, error: 'EMPTY_NAME', message: 'O nome de exibição não pode estar vazio.' }
+    }
+    if (trimmed.length > 60) {
+      return { success: false, error: 'NAME_TOO_LONG', message: 'O nome de exibição deve ter no máximo 60 caracteres.' }
+    }
+
+    const supabase = await createServerClient()
+    const { error } = await supabase.auth.updateUser({
+      data: { name: trimmed },
+    })
+
+    if (error) {
+      console.error('[admin:actions] Error updating admin display name:', error.message)
+      return { success: false, error: 'UPDATE_FAILED', message: error.message || 'Falha ao atualizar nome.' }
+    }
+
+    revalidatePath('/admin/account')
+    revalidatePath('/admin')
+
+    return {
+      success: true,
+      message: 'Nome atualizado.',
+      name: trimmed,
+    }
+  } catch (err: any) {
+    console.error('[admin:actions] Unexpected error updating display name:', err?.message)
+    return {
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: err?.message || 'Erro ao processar atualização.',
+    }
+  }
+}
+
+export interface UpdateAdminPasswordResult {
+  success: boolean
+  error?: string
+  message?: string
+}
+
+/**
+ * Server Action: Updates current authenticated administrator's password.
+ *
+ * Enforces:
+ * 1. ADMIN authorization via requireAdmin()
+ * 2. Current-user session bound mutation via createServerClient().auth.updateUser()
+ * 3. Validation: minimum 8 characters, confirmation match
+ * 4. Zero password logging / zero leak in reports or errors
+ * 5. Supabase session cookies automatically refreshed
+ */
+export async function updateAdminPasswordAction(
+  input: { password: string; confirmPassword: string } | FormData
+): Promise<UpdateAdminPasswordResult> {
+  try {
+    await requireAdmin()
+
+    let password = ''
+    let confirmPassword = ''
+
+    if (input instanceof FormData) {
+      password = typeof input.get('password') === 'string' ? (input.get('password') as string) : ''
+      confirmPassword = typeof input.get('confirmPassword') === 'string' ? (input.get('confirmPassword') as string) : ''
+    } else if (input) {
+      password = input.password || ''
+      confirmPassword = input.confirmPassword || ''
+    }
+
+    if (!password || password.length < 8) {
+      return {
+        success: false,
+        error: 'PASSWORD_TOO_SHORT',
+        message: 'A nova senha deve ter no mínimo 8 caracteres.',
+      }
+    }
+
+    if (password !== confirmPassword) {
+      return {
+        success: false,
+        error: 'PASSWORD_MISMATCH',
+        message: 'As senhas não coincidem.',
+      }
+    }
+
+    const supabase = await createServerClient()
+    const { error } = await supabase.auth.updateUser({
+      password,
+    })
+
+    if (error) {
+      console.error('[admin:actions] Error updating admin password:', error.message)
+      return {
+        success: false,
+        error: 'UPDATE_FAILED',
+        message: error.message || 'Falha ao alterar a senha.',
+      }
+    }
+
+    return {
+      success: true,
+      message: 'Senha alterada com sucesso.',
+    }
+  } catch (err: any) {
+    console.error('[admin:actions] Unexpected error changing admin password:', err?.message)
+    return {
+      success: false,
+      error: 'INTERNAL_ERROR',
+      message: 'Erro interno ao alterar a senha.',
+    }
+  }
+}
+
+

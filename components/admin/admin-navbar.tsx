@@ -103,6 +103,26 @@ function LogoutIcon() {
   )
 }
 
+function UserIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+
 
 export interface AdminNavItem {
   href: string
@@ -271,7 +291,7 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [user, setUser] = useState<AdminNavbarUser | null>(initialUser)
+  const [user, setUser] = useState<AdminNavbarUser | null>(() => initialUser || getClientAdminUser())
   const navContainerRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const userTriggerRef = useRef<HTMLButtonElement>(null)
@@ -283,18 +303,11 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
   const userTriggerId = `${navId}-user-trigger`
   const userMenuId = `${navId}-user-menu`
 
-  // Fetch admin user identity on mount if not provided as prop
+  // Authoritative server action fallback/update on mount if not provided as prop
   useEffect(() => {
     if (initialUser) return
     let cancelled = false
 
-    // 1. Instant client-side cookie resolve (zero latency)
-    const clientUser = getClientAdminUser()
-    if (clientUser) {
-      setUser(clientUser)
-    }
-
-    // 2. Authoritative server action fallback/update
     getAdminUserAction()
       .then((res) => {
         if (!cancelled && res) {
@@ -307,6 +320,32 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
       cancelled = true
     }
   }, [initialUser])
+
+
+  // Listen for admin user updates dispatched by account management
+  useEffect(() => {
+    function handleUserUpdate(event: Event) {
+      const customEvent = event as CustomEvent<Partial<AdminNavbarUser>>
+      if (customEvent.detail) {
+        setUser((prev) => {
+          if (!prev) return null
+          return {
+            ...prev,
+            ...customEvent.detail,
+          }
+        })
+      } else {
+        getAdminUserAction().then((res) => {
+          if (res) setUser(res)
+        })
+      }
+    }
+    window.addEventListener('admin-user-updated', handleUserUpdate)
+    return () => {
+      window.removeEventListener('admin-user-updated', handleUserUpdate)
+    }
+  }, [])
+
 
   // Close menus on outside click
   useEffect(() => {
@@ -679,6 +718,31 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
                 {/* Divider */}
                 <div style={{ borderTop: '1px solid #374151', margin: '0.25rem 0' }} />
 
+                {/* Minha conta link */}
+                <Link
+                  href="/admin/account"
+                  role="menuitem"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="admin-nav-link-hover"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    width: '100%',
+                    padding: '0.5rem 0.625rem',
+                    borderRadius: '0.375rem',
+                    textDecoration: 'none',
+                    backgroundColor: pathname === '/admin/account' ? '#374151' : 'transparent',
+                    color: pathname === '/admin/account' ? '#ffffff' : '#e5e7eb',
+                    fontSize: '0.8125rem',
+                    fontWeight: pathname === '/admin/account' ? 600 : 500,
+                    transition: 'all 120ms ease',
+                  }}
+                >
+                  <UserIcon />
+                  <span>Minha conta</span>
+                </Link>
+
                 {/* Actions: Sair */}
                 <form action={logoutAction} style={{ margin: 0, padding: 0 }}>
                   <button
@@ -828,7 +892,28 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid #374151', paddingTop: '0.5rem' }}>
+            <div style={{ borderTop: '1px solid #374151', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <Link
+                href="/admin/account"
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  padding: '0.5rem 0.625rem',
+                  borderRadius: '0.375rem',
+                  textDecoration: 'none',
+                  backgroundColor: pathname === '/admin/account' ? '#374151' : 'transparent',
+                  color: pathname === '/admin/account' ? '#ffffff' : '#e5e7eb',
+                  fontSize: '0.875rem',
+                  fontWeight: pathname === '/admin/account' ? 600 : 500,
+                }}
+              >
+                <UserIcon />
+                <span>Minha conta</span>
+              </Link>
+
               <form action={logoutAction} style={{ margin: 0, padding: 0 }}>
                 <button
                   type="submit"
