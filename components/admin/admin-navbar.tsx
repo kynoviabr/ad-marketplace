@@ -315,10 +315,15 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
 
     const fastClientUser = getClientAdminUser()
     if (fastClientUser) {
-      setUser(fastClientUser)
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setUser(fastClientUser)
+        }
+      })
     }
 
     getAdminUserAction()
+
       .then((res) => {
         if (!cancelled && res) {
           setUser(res)

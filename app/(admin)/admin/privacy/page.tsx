@@ -3,6 +3,7 @@ import { getAdminDataSubjectRequests } from '@/modules/privacy/dal'
 import { LGPD_RIGHTS } from '@/modules/privacy/types'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/format'
+import { PrivacyDryRunSimulator } from '@/components/admin/privacy-dry-run-simulator'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,6 +107,43 @@ export default async function AdminPrivacyPage() {
           </div>
         )}
       </div>
+
+      {/* LGPD-02A Lifecycle & Dry-Run Simulator */}
+      <PrivacyDryRunSimulator
+        initialSubjects={requests.slice(0, 10).map((r) => ({
+          requestId: r.id,
+          subjectId: r.requester_account_user_id,
+          requestType: r.request_type,
+        }))}
+        translations={{
+          simulatorTitle: t('admin.simulatorTitle'),
+          simulatorSubtitle: t('admin.simulatorSubtitle'),
+          dryRunWarning: t('admin.dryRunWarning'),
+          simulateButton: t('admin.simulateButton'),
+          simulating: t('admin.simulating'),
+          enterSubjectId: t('admin.enterSubjectId'),
+          selectFromDsr: t('admin.selectFromDsr'),
+          planSummary: t('admin.planSummary'),
+          plannedItems: t('admin.plannedItems'),
+          targetStore: t('admin.targetStore'),
+          actionPlanned: t('admin.actionPlanned'),
+          records: t('admin.records'),
+          rationale: t('admin.rationale'),
+          exportData: t('admin.exportData'),
+          exporting: t('admin.exporting'),
+          exportZip: t('admin.exportZip'),
+          exportJson: t('admin.exportJson'),
+          noPlanGenerated: t('admin.noPlanGenerated'),
+          actionDelete: t('admin.actionDelete'),
+          actionAnonymize: t('admin.actionAnonymize'),
+          actionDetach: t('admin.actionDetach'),
+          actionRetain: t('admin.actionRetain'),
+          actionExternalErasure: t('admin.actionExternalErasure'),
+          actionReviewRequired: t('admin.actionReviewRequired'),
+          unapprovedRetentionNote: t('admin.unapprovedRetentionNote'),
+        }}
+      />
     </div>
   )
 }
+

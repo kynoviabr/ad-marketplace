@@ -136,3 +136,78 @@ export async function getAdminDsrAuditTrailAction(
     return { success: false, error: message, code: 'FORBIDDEN' }
   }
 }
+
+/**
+ * Administrative action for simulating a subject lifecycle dry run (LGPD-02A).
+ * Strictly observational: ZERO mutations are executed.
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminSubjectLifecycleDryRunAction(
+  subjectAccountId: string
+): Promise<DsrActionResult<import('./lifecycle-types').LifecyclePlan>> {
+  try {
+    await requireAdmin()
+    if (!subjectAccountId || typeof subjectAccountId !== 'string') {
+      return { success: false, error: 'ID do titular inválido.', code: 'INVALID_ID' }
+    }
+
+    const { generateSubjectLifecyclePlan } = await import('./lifecycle-planner')
+    const plan = await generateSubjectLifecyclePlan(subjectAccountId)
+    return { success: true, data: plan }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao gerar simulação de ciclo de vida.'
+    return { success: false, error: message, code: 'PLAN_GENERATION_FAILED' }
+  }
+}
+
+/**
+ * Administrative action for generating a sanitized personal data export bundle (LGPD Art. 18).
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminSubjectExportBundleAction(
+  subjectAccountId: string
+): Promise<DsrActionResult<import('./lifecycle-types').SubjectExportBundle>> {
+  try {
+    await requireAdmin()
+    if (!subjectAccountId || typeof subjectAccountId !== 'string') {
+      return { success: false, error: 'ID do titular inválido.', code: 'INVALID_ID' }
+    }
+
+    const { generateSubjectExportBundle } = await import('./export-engine')
+    const bundle = await generateSubjectExportBundle(subjectAccountId)
+    return { success: true, data: bundle }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao gerar pacote de exportação.'
+    return { success: false, error: message, code: 'EXPORT_FAILED' }
+  }
+}
+
+/**
+ * Administrative action for downloading the subject export as a ZIP archive.
+ * Returns base64 binary buffer for direct browser download.
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminSubjectExportZipAction(
+  subjectAccountId: string
+): Promise<DsrActionResult<{ base64Zip: string; filename: string }>> {
+  try {
+    await requireAdmin()
+    if (!subjectAccountId || typeof subjectAccountId !== 'string') {
+      return { success: false, error: 'ID do titular inválido.', code: 'INVALID_ID' }
+    }
+
+    const { exportSubjectDataZip } = await import('./export-engine')
+    const zipBuffer = await exportSubjectDataZip(subjectAccountId)
+    const base64Zip = zipBuffer.toString('base64')
+    const filename = `lgpd-export-${subjectAccountId.slice(0, 8)}-${Date.now()}.zip`
+
+    return {
+      success: true,
+      data: { base64Zip, filename },
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao empacotar exportação ZIP.'
+    return { success: false, error: message, code: 'ZIP_FAILED' }
+  }
+}
+
