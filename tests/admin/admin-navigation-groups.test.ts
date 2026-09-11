@@ -28,7 +28,7 @@ describe('Admin Navigation Groups Structure', () => {
     expect(ADMIN_NAV_GROUPS.map((g) => g.id)).toEqual(['operation', 'commercial', 'technology'])
   })
 
-  it('configures OPERAÇÃO group with the designated 7 operational items', () => {
+  it('configures OPERAÇÃO group with the designated 8 operational items', () => {
     const opGroup = ADMIN_NAV_GROUPS.find((g) => g.id === 'operation')
     expect(opGroup).toBeDefined()
     expect(opGroup?.labelKey).toBe('admin.groupOperation')
@@ -41,6 +41,7 @@ describe('Admin Navigation Groups Structure', () => {
       '/admin/profiles',
       '/admin/kyc',
       '/admin/reports',
+      '/admin/privacy',
     ]
     expect(opGroup?.items.map((i) => i.href)).toEqual(expectedHrefs)
 
@@ -53,6 +54,7 @@ describe('Admin Navigation Groups Structure', () => {
       'admin.profileModeration',
       'admin.kyc',
       'admin.reports',
+      'admin.privacyLgpd',
     ])
   })
 
@@ -139,6 +141,12 @@ describe('Active Group & Item Path Resolution', () => {
     expect(res.item).toBe('/admin/reports')
   })
 
+  it('correctly resolves /admin/privacy to OPERAÇÃO', () => {
+    const res = findActive('/admin/privacy')
+    expect(res.group).toBe('operation')
+    expect(res.item).toBe('/admin/privacy')
+  })
+
   it('correctly resolves /admin/billing and clients to COMERCIAL', () => {
     const resBilling = findActive('/admin/billing')
     expect(resBilling.group).toBe('commercial')
@@ -180,6 +188,7 @@ describe('i18n Translation Completeness for Admin Navigation', () => {
     'admin.profileModeration',
     'admin.kyc',
     'admin.reports',
+    'admin.privacyLgpd',
     'admin.subscriptions',
     'admin.boosts',
     'admin.analytics',
@@ -195,6 +204,7 @@ describe('i18n Translation Completeness for Admin Navigation', () => {
     expect(ptBRMessages['admin.groupCommercial']).toBe('Comercial')
     expect(ptBRMessages['admin.groupTechnology']).toBe('Tecnologia')
     expect(ptBRMessages['admin.overview']).toBe('Visão geral')
+    expect(ptBRMessages['admin.privacyLgpd']).toBe('Privacidade / LGPD')
   })
 
   it('contains valid English translations for all nav keys', () => {
@@ -205,6 +215,7 @@ describe('i18n Translation Completeness for Admin Navigation', () => {
     expect(enMessages['admin.groupCommercial']).toBe('Commercial')
     expect(enMessages['admin.groupTechnology']).toBe('Technology')
     expect(enMessages['admin.overview']).toBe('Overview')
+    expect(enMessages['admin.privacyLgpd']).toBe('Privacy / LGPD')
   })
 })
 

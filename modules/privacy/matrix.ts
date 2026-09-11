@@ -106,10 +106,10 @@ export const DELETION_IMPACT_MATRIX: readonly DeletionImpactItem[] = [
     ],
     recommendedAction: 'RETAIN_WITH_JUSTIFICATION_REQUIRED',
     legalReviewStatus: 'LEGAL_APPROVAL_REQUIRED',
-    primaryRationale: 'Financial and tax compliance: Brazilian Tax Code (CTN Art. 174) and Civil Code (Art. 206) require retention of commercial transaction records for 5 years.',
+    primaryRationale: 'Financial and tax compliance: Brazilian Tax Code (CTN Art. 174) and Civil Code (Art. 206) require retention of commercial transaction records for statutory limitation periods (exact duration requires legal review).',
     integrityRisks: 'Premature deletion creates severe tax and commercial liabilities.',
     cascadeOrphanImpact: 'Subscriptions cascade on account_users; to retain, foreign key must be detached (SET NULL) or records moved to an immutable financial archive before account deletion.',
-    dependencies: ['Brazilian Tax & Commercial Law (5-year rule)'],
+    dependencies: ['Brazilian Tax & Commercial Law statutory requirements'],
   },
   {
     dataFamily: 'USER_REVIEWS_AND_FEEDBACK',

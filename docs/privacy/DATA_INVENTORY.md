@@ -1,9 +1,9 @@
 # Inventário Canônico de Dados Pessoais — Velvet
 
-> **Fase:** LGPD-01 — Data Inventory & Data Subject Rights Foundation  
-> **Data de Auditoria:** 10/09/2026  
+> **Fase:** LGPD-01.1 — Privacy Inventory Closure  
+> **Data de Auditoria:** 11/09/2026  
 > **Ambiente:** DEV (`mwzlunkkyigxzjpnybxj.supabase.co`)  
-> **Status:** AUDITADO E CONSOLIDADO  
+> **Status:** AUDITADO E CONSOLIDADO (RE-AUDITORIA DE DADOS SENSÍVEIS CONCLUÍDA)  
 
 ---
 
@@ -13,16 +13,30 @@ Este documento consolida o mapeamento exaustivo de todos os locais onde o **Velv
 
 ---
 
-## 2. Taxonomia de Classificação de Dados
+## 2. Taxonomia de Classificação e Níveis de Sensibilidade (LGPD Art. 5º, II)
 
-Os dados técnicos do Velvet são categorizados segundo as seguintes classes controladas:
+Os dados técnicos do Velvet são categorizados segundo duas dimensões complementares: a **Classificação Geral** e o **Nível Específico de Sensibilidade**.
+
+### 2.1. Níveis Específicos de Sensibilidade (LGPD-01.1)
+
+1. **`SENSITIVE_DATA_CONFIRMED`**: Dados que revelam categoricamente aspectos da vida sexual, dados de saúde ou processamento biométrico inequívoco.
+   * *Exemplos:* Modalidades e preferências sexuais declaradas explicitamente em `professional_profile_offerings` e `professional_offering_options` (`service_oral`, `service_anal`, `service_bdsm`, `service_fetishes`, `audience_couples`, `audience_men`, `audience_women`).
+   * *Biometria:* O processamento biométrico facial ocorre **no operador externo Didit** durante a validação de vivacidade.
+2. **`POTENTIALLY_SENSITIVE_FREE_TEXT`**: Campos de texto livre onde o usuário ou anunciante pode inserir espontaneamente dados pessoais sensíveis (preferências íntimas, histórico de saúde, orientação, etc.).
+   * *Exemplos:* `bio` de anunciantes, `concierge_faqs`, `concierge_messages`, comentários em `professional_reviews`, `professional_review_responses`, e narrativas de `content_reports`.
+3. **`HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE`**: Conteúdos de alto risco de privacidade ou dano material/moral que não se enquadram textualmente no rol taxativo do Art. 5º, II da LGPD sem interpretação jurídica prévia.
+   * *Exemplos:* Imagens e vídeos de ensaios adultos em buckets privados (`profile-media`, `profile-videos`), atributos físicos declarados, metadados de status KYC (`identity_verifications`).
+4. **`NOT_SENSITIVE`**: Dados cadastrais comuns, parâmetros técnicos e registros comerciais padrão.
+   * *Exemplos:* E-mail, status de assinatura, slugs de bairros, contadores analíticos e flags operacionais.
+
+### 2.2. Classes Gerais de Dados
 
 | Classificação | Definição Técnica | Exemplos no Velvet |
 | :--- | :--- | :--- |
 | `AUTHENTICATION` | Credenciais e dados de controle de acesso | Senhas com hash, e-mails de login, tokens de sessão |
 | `PRIVATE_PERSONAL` | Dados pessoais privados do titular | Telefones privados, timezone, preferências de agenda |
 | `PUBLIC_PERSONAL` | Dados publicados por escolha do titular para divulgação | Nome artístico, bio, fotos públicas, bairros de atendimento |
-| `SENSITIVE_OR_HIGH_RISK` | Mídias íntimas/sensíveis ou dados de alta criticidade | Fotos e vídeos armazenados em buckets privados |
+| `SENSITIVE_OR_HIGH_RISK` | Mídias íntimas ou preferências sexuais | Fotos/vídeos em buckets restritos, serviços sexuais ofertados |
 | `KYC_REFERENCE` | Registros de verificação de identidade e maioridade | ID de sessão de provedor, flags `identity_verified`, `age_verified` |
 | `USER_GENERATED_CONTENT` | Conteúdo gerado pelo usuário | Avaliações, respostas a reviews, descrições |
 | `FINANCIAL_REFERENCE` | Contratos e status de planos comerciais | Assinaturas de anunciantes, campanhas de boost |
@@ -36,74 +50,80 @@ Os dados técnicos do Velvet são categorizados segundo as seguintes classes con
 ## 3. Inventário Detalhado por Família de Dados
 
 ### 3.1. Identidade e Autenticação
-* **`auth.users`** (Supabase Auth): E-mail, hash de senha criptografada, telefone, `raw_user_meta_data`. Classificação: `AUTHENTICATION`.
-* **`public.account_users`**: Raiz da conta no domínio Velvet (`auth_user_id`, `role`, `status`, `onboarding_status`, versões de termos e privacidade aceitas). Classificação: `PRIVATE_PERSONAL`.
-* **`public.client_signup_intents`**: Tokens temporários de cadastro de cliente (10 min TTL, hash SHA-256). Classificação: `OPERATIONAL_SECURITY`.
+* **`auth.users`** (Supabase Auth): E-mail, hash de senha criptografada, telefone, `raw_user_meta_data`. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.account_users`**: Raiz da conta no domínio Velvet (`auth_user_id`, `role`, `status`, `onboarding_status`, versões de termos e privacidade aceitas). Sensibilidade: `NOT_SENSITIVE`.
+* **`public.client_signup_intents`**: Tokens temporários de cadastro de cliente (10 min TTL, hash SHA-256). Sensibilidade: `NOT_SENSITIVE`.
 
-### 3.2. Verificação de Identidade (KYC)
-* **`public.identity_verifications`**: Status da verificação Didit (`provider_session_id`, `identity_verified`, `age_verified`, `cpf_verified`, `verified_country`). Classificação: `KYC_REFERENCE`.  
-  *Nota de Minimização:* O Velvet **não armazena** imagens de documentos, selfies biométricas, datas completas de nascimento ou números de CPF em texto claro.
-* **`public.verification_webhook_events`**: Livro-razão de webhooks recebidos do Didit (`provider_event_id`, status de processamento). Classificação: `AUDIT_RECORD`.
+### 3.2. Verificação de Identidade (KYC) e Processamento Biométrico
+* **`public.identity_verifications`**: Status da verificação Didit (`provider_session_id`, `identity_verified`, `age_verified`, `cpf_verified`, `verified_country`). Sensibilidade: `HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE`.  
+  *Separação de Fluxos:*
+  * **Velvet Armazena Localmente:** Apenas flags booleanas (`age_verified`, `identity_verified`), ID da sessão e carimbos de data/hora. **Zero imagens de documentos, zero selfies e zero vetores biométricos são persistidos no Velvet.**
+  * **Didit Processa Externamente:** Extração de template biométrico facial, teste de vivacidade, OCR de documentos e checagem em cadastros oficiais (`SENSITIVE_DATA_CONFIRMED` no provedor).
+* **`public.verification_webhook_events`**: Livro-razão de webhooks recebidos do Didit (`provider_event_id`, status de processamento). Sensibilidade: `NOT_SENSITIVE`.
 
-### 3.3. Perfil Profissional e Conteúdo Comercial
-* **`public.professional_profiles`**: Nome artístico, bio, atributos físicos declarados, telefones de contato (WhatsApp, direto, Telegram), configurações de audiência (`PUBLIC`, `VIP_ONLY`). Classificação: `PUBLIC_PERSONAL`.
-* **`public.professional_profile_locations`**: Vínculo entre o perfil e bairros/cidades atendidos. Classificação: `PUBLIC_PERSONAL`.
-* **`public.professional_profile_offerings`**: Catálogo de serviços anunciados com valores praticados. Classificação: `PUBLIC_PERSONAL`.
+### 3.3. Perfil Profissional e Preferências Íntimas
+* **`public.professional_profiles`**: Nome artístico, bio (texto livre: `POTENTIALLY_SENSITIVE_FREE_TEXT`), atributos físicos declarados (`HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE`), telefones de contato, configurações de audiência (`PUBLIC`, `VIP_ONLY`).
+* **`public.professional_profile_locations`**: Vínculo entre o perfil e bairros/cidades atendidos. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.professional_profile_offerings` & `public.professional_offering_options`**: Catálogo de serviços adultos ofertados (`service_oral`, `service_anal`, `service_bdsm`, `service_fetishes`, etc.) e público-alvo atendido (`audience_men`, `audience_women`, `audience_couples`). Sensibilidade: **`SENSITIVE_DATA_CONFIRMED`** (Dado revelador de vida sexual sob o Art. 5º, II da LGPD).
 
 ### 3.4. Ativos de Mídia e Armazenamento (Storage)
-* **`public.profile_media`**: Metadados de fotos (dimensões, tipo MIME, status de moderação, ordenação). Classificação: `USER_GENERATED_CONTENT`.
-* **Bucket `profile-media`** (Privado): Arquivos de imagem criptografados/restritos. Entrega exclusiva por URLs assinadas (1 hora) sob aprovação e elegibilidade canônica. Classificação: `SENSITIVE_OR_HIGH_RISK`.
-* **`public.profile_videos`**: Metadados de vídeos curtos (duração, status de moderação, caminho de pôster). Classificação: `USER_GENERATED_CONTENT`.
-* **Bucket `profile-videos`** (Privado): Clipes de vídeo em formato MP4/WebM e pôsteres JPEG. URLs assinadas com 900s de validade. Classificação: `SENSITIVE_OR_HIGH_RISK`.
+* **`public.profile_media`**: Metadados de fotos (dimensões, tipo MIME, status de moderação, ordenação). Sensibilidade: `NOT_SENSITIVE`.
+* **Bucket `profile-media`** (Privado): Arquivos de imagem criptografados/restritos contendo ensaios fotográficos de anunciantes adultos. Sensibilidade: `HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE`.
+* **`public.profile_videos`**: Metadados de vídeos curtos. Sensibilidade: `NOT_SENSITIVE`.
+* **Bucket `profile-videos`** (Privado): Clipes de vídeo íntimos/profissionais em formato MP4/WebM. Sensibilidade: `HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE`.
 
-### 3.5. Auditoria de Moderação e Segurança Operacional
-* **`public.media_moderation_reviews`**: Histórico de aprovações/rejeições de fotos por administradores (`reviewer_id`, código de motivo, observações). Classificação: `AUDIT_RECORD`.
-* **`public.profile_moderation_reviews`**: Histórico de moderação de textos de perfil com snapshot de conteúdo. Classificação: `AUDIT_RECORD`.
-* **`public.profile_video_moderation_events`**: Histórico de moderação de vídeos. Classificação: `AUDIT_RECORD`.
-* **`public.professional_profile_status_events`**: Livro-razão estritamente imutável (append-only) de suspensões e reativações de anunciantes. Classificação: `AUDIT_RECORD`.
-* **`public.content_reports`**: Denúncias de abuso da comunidade. O identificador do denunciante é armazenado como hash HMAC-SHA256 (`reporter_hash`) com segredo de pimenta (`ABUSE_PEPPER`). Nenhum IP em texto claro é persistido. Classificação: `OPERATIONAL_SECURITY`.
+### 3.5. Auditoria de Moderação e Denúncias
+* **`public.media_moderation_reviews`**: Histórico de aprovações/rejeições de fotos (`reviewer_id`, código de motivo, observações). Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT` (nas observações do operador).
+* **`public.profile_moderation_reviews`**: Histórico de moderação de textos de perfil com snapshot de conteúdo. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
+* **`public.profile_video_moderation_events`**: Histórico de moderação de vídeos. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
+* **`public.professional_profile_status_events`**: Livro-razão estritamente imutável (append-only) de suspensões e reativações. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.content_reports`**: Denúncias de abuso da comunidade. Descrição da denúncia é texto livre (`POTENTIALLY_SENSITIVE_FREE_TEXT`). O identificador do denunciante é pseudonimizado via HMAC-SHA256 (`ABUSE_PEPPER`).
 
 ### 3.6. Faturamento, Planos e Monetização
-* **`public.subscriptions`**: Contratos de assinatura ativa dos profissionais, ciclo de faturamento e renovação. Classificação: `FINANCIAL_REFERENCE`.
-* **`public.billing_webhook_events`**: Livro-razão de webhooks de pagamento. Classificação: `AUDIT_RECORD`.
-* **`public.billing_overrides` & `public.entitlement_overrides`**: Concessões administrativas de gratuidade/testes. Classificação: `AUDIT_RECORD`.
-* **`public.billing_admin_audit_logs`**: Log de auditoria de alterações em limites ou status de faturamento por administradores. Classificação: `AUDIT_RECORD`.
-* **`public.profile_boosts`**: Campanhas de destaque patrocinado e janelas temporais de exibição. Classificação: `FINANCIAL_REFERENCE`.
+* **`public.subscriptions`**: Contratos de assinatura ativa dos profissionais. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.billing_webhook_events`**: Livro-razão de webhooks simulados (apenas mock ativo). Sensibilidade: `NOT_SENSITIVE`.
+* **`public.billing_overrides` & `public.entitlement_overrides`**: Concessões administrativas de gratuidade/Founder. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.billing_admin_audit_logs`**: Log de auditoria administrativa de cobrança. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.profile_boosts`**: Campanhas de destaque patrocinado. Sensibilidade: `NOT_SENSITIVE`.
 
 ### 3.7. Comunidade e Avaliações
-* **`public.professional_reviews`**: Notas (1-5) e comentários enviados por clientes autenticados. Classificação: `USER_GENERATED_CONTENT`.
-* **`public.professional_review_responses`**: Respostas dos profissionais às avaliações recebidas. Classificação: `USER_GENERATED_CONTENT`.
-* **`public.review_reports`**: Denúncias sobre comentários indevidos. Classificação: `OPERATIONAL_SECURITY`.
-* **`public.professional_review_moderation_events`**: Auditoria de moderação de reviews e respostas. Classificação: `AUDIT_RECORD`.
+* **`public.professional_reviews`**: Notas e comentários de clientes autenticados. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
+* **`public.professional_review_responses`**: Respostas dos profissionais às avaliações recebidas. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
+* **`public.review_reports`**: Denúncias sobre comentários indevidos. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
+* **`public.professional_review_moderation_events`**: Auditoria de moderação de reviews. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
 
 ### 3.8. Clientes e Membros VIP
-* **`public.client_memberships`**: Nível de assinatura do cliente (`FREE` ou `VIP`) e validade. Classificação: `PRIVATE_PERSONAL`.
+* **`public.client_memberships`**: Nível de assinatura do cliente (`FREE` ou `VIP`) e validade. Sensibilidade: `NOT_SENSITIVE`.
 
 ### 3.9. Telemetria e Métricas de Uso
-* **`public.analytics_events`**: Eventos de interação (impressões, cliques em contato, buscas). Não armazena IP. Usa `visitor_session_id` pseudônimo gerado no cliente. Classificação: `BEHAVIORAL_ANALYTICS`.
-* **`public.profile_daily_metrics`**: Agregações numéricas diárias por perfil (total de visualizações, cliques no WhatsApp/Telefone). Classificação: `ANONYMIZED_OR_AGGREGATED`.
-* **`public.platform_daily_metrics`**: Contadores agregados globais da plataforma. Classificação: `ANONYMIZED_OR_AGGREGATED`.
+* **`public.analytics_events`**: Eventos de interação com `visitor_session_id` pseudônimo. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.profile_daily_metrics` & `public.platform_daily_metrics`**: Agregações numéricas puramente anônimas. Sensibilidade: `NOT_SENSITIVE`.
 
 ### 3.10. Agenda e Disponibilidade Operacional
-* **`public.professional_availability_settings`**: Parâmetros de agendamento (fuso horário, antecedência mínima, duração dos intervalos). Classificação: `PRIVATE_PERSONAL`.
-* **`public.professional_weekly_availability`**: Janelas semanais recorrentes de atendimento. Classificação: `PUBLIC_PERSONAL`.
-* **`public.professional_availability_exceptions`**: Bloqueios de data ou horários customizados. Classificação: `PRIVATE_PERSONAL`.
+* **`public.professional_availability_settings` & `public.professional_weekly_availability`**: Horários de atendimento. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.professional_availability_exceptions`**: Bloqueios de data ou horários customizados. Sensibilidade: `NOT_SENSITIVE`.
 
 ### 3.11. AI Concierge (Estagiado / Desativado)
-* **`public.professional_concierge_settings`**: Configuração do assistente virtual por perfil. Classificação: `PRIVATE_PERSONAL`.
-* **`public.professional_concierge_faqs`**: Perguntas e respostas personalizadas cadastradas pelo anunciante. Classificação: `PUBLIC_PERSONAL`.
-* **`public.concierge_conversations`**: Sessões de conversa de visitantes com o assistente virtual. Classificação: `PRIVATE_PERSONAL`.
-* **`public.concierge_messages`**: Mensagens trocadas no chat do assistente. Traços de raciocínio de modelo são removidos antes da gravação. Classificação: `PRIVATE_PERSONAL`.
+* **`public.professional_concierge_settings`**: Configuração do assistente. Sensibilidade: `NOT_SENSITIVE`.
+* **`public.professional_concierge_faqs`**: FAQs cadastradas pela profissional. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
+* **`public.concierge_conversations` & `public.concierge_messages`**: Sessões e mensagens de chat. Sensibilidade: `POTENTIALLY_SENSITIVE_FREE_TEXT`.
 
 ### 3.12. Segurança e Controle de Taxa
-* **`public.distributed_rate_limits`**: Contadores de janela deslizante baseados em chaves HMAC-SHA256 para proteção contra ataques de força bruta. Classificação: `OPERATIONAL_SECURITY`.
+* **`public.distributed_rate_limits`**: Contadores de taxa baseados em chaves HMAC-SHA256. Sensibilidade: `NOT_SENSITIVE`.
 
 ### 3.13. Direitos dos Titulares (LGPD-01)
-* **`public.data_subject_requests`**: Livro-razão canônico de solicitações LGPD de titulares. Classificação: `AUDIT_RECORD`.
-* **`public.data_subject_request_events`**: Livro-razão imutável de eventos do ciclo de vida das solicitações. Classificação: `AUDIT_RECORD`.
+* **`public.data_subject_requests` & `public.data_subject_request_events`**: Livro-razão de solicitações e eventos de DSR. Sensibilidade: `NOT_SENSITIVE`.
 
 ### 3.14. Cookies e Armazenamento no Cliente
-* **Cookie `velvet_adult_access`**: Confirmação de maioridade 18+ (validade: 180 dias). Classificação: `OPERATIONAL_SECURITY`.
-* **Cookie `velvet_cookie_consent`**: Preferências de consentimento (`necessary: true`, `analytics: boolean`, versão `r6-v1`). Classificação: `OPERATIONAL_SECURITY`.
-* **LocalStorage `ad_mkt_vsid`**: Identificador pseudônimo da sessão de visita para telemetria. Classificação: `BEHAVIORAL_ANALYTICS`.
-* **LocalStorage `ad_mkt_imp_seen`**: Cache efêmero de IDs de perfis visualizados para deduplicação de impressões. Classificação: `OPERATIONAL_SECURITY`.
+* **Cookie `velvet_adult_access`**: Gate 18+. Sensibilidade: `NOT_SENSITIVE`.
+* **Cookie `velvet_cookie_consent`**: Consentimento de cookies. Sensibilidade: `NOT_SENSITIVE`.
+* **LocalStorage `ad_mkt_vsid`**: Sessão pseudônima de analytics. Sensibilidade: `NOT_SENSITIVE`.
+* **LocalStorage `ad_mkt_imp_seen`**: Deduplicação de impressões. Sensibilidade: `NOT_SENSITIVE`.
+
+---
+
+## 4. Política de Retenção Canônica
+
+Todos os 46+ itens deste inventário possuem seu status de retenção marcado rigorosamente como:
+**`RETENTION PERIOD = UNDEFINED (LEGAL REVIEW REQUIRED)`**
+Nenhum prazo de 5 anos ou qualquer outro período legal presumido pela engenharia permanece no inventário.

@@ -4,6 +4,9 @@ import {
   DSR_STATUSES,
   DSR_EVENT_TYPES,
   DATA_CLASSIFICATIONS,
+  SENSITIVITY_LEVELS,
+  PROCESSOR_STATUSES,
+  INTERNATIONAL_TRANSFER_STATUSES,
   type LgpdRight,
 } from '@/modules/privacy/types'
 import { CANONICAL_DATA_INVENTORY } from '@/modules/privacy/inventory'
@@ -14,6 +17,7 @@ import { RETENTION_POLICY_FRAMEWORK, isRetentionPolicyApproved } from '@/modules
 import { CONSENT_INVENTORY } from '@/modules/privacy/consent'
 import { AUTOMATED_DECISION_AUDIT } from '@/modules/privacy/automated-decisions'
 import { USER_EXPORT_DATASET_DEFINITIONS, DATA_EXPORT_EXCLUSION_RULES } from '@/modules/privacy/export-plan'
+import { ADMIN_NAV_GROUPS } from '@/components/admin/admin-navbar'
 import {
   createDataSubjectRequestAction,
   getMyDataSubjectRequestsAction,
@@ -115,13 +119,128 @@ describe('LGPD-01 — Data Inventory & Data Subject Rights Foundation', () => {
       expect(allText).not.toMatch(/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9/) // Standard JWT prefix
     })
 
-    it('proves that all retention policies are strictly DRAFT and none are approved', () => {
+    it('proves that all retention policies are strictly UNDEFINED/DRAFT with no hardcoded 5-year periods and none are approved', () => {
       for (const policy of RETENTION_POLICY_FRAMEWORK) {
-        expect(policy.retentionStatus).toBe('DRAFT')
+        expect(['UNDEFINED', 'DRAFT']).toContain(policy.retentionStatus)
+        expect(policy.retentionStatus).not.toBe('APPROVED')
+        expect(policy.durationDraftDays).toBeNull()
+        expect(policy.durationDescription).toContain('UNDEFINED')
+        expect(policy.durationDescription).toContain('LEGAL REVIEW REQUIRED')
+        expect(policy.durationDescription).not.toMatch(/5\s*years/i)
+        expect(policy.durationDescription).not.toMatch(/1825/)
         expect(policy.approvedAt).toBeNull()
         expect(policy.approvedBy).toBeNull()
         expect(isRetentionPolicyApproved(policy.categoryKey)).toBe(false)
       }
+    })
+
+    it('verifies sensitive-data taxonomy supports confirmed, potential, high-risk, and not-sensitive distinctions', () => {
+      expect(SENSITIVITY_LEVELS).toEqual([
+        'SENSITIVE_DATA_CONFIRMED',
+        'POTENTIALLY_SENSITIVE_FREE_TEXT',
+        'HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE',
+        'NOT_SENSITIVE',
+      ])
+
+      for (const item of CANONICAL_DATA_INVENTORY) {
+        expect(SENSITIVITY_LEVELS).toContain(item.sensitivity_level)
+      }
+
+      // Check confirmed sexual life data fields
+      const sexualLifeItems = CANONICAL_DATA_INVENTORY.filter(
+        (i) => i.storage_object.includes('professional_profile_offerings') || i.storage_object.includes('professional_offering_options')
+      )
+      expect(sexualLifeItems.length).toBeGreaterThan(0)
+      for (const item of sexualLifeItems) {
+        expect(item.sensitivity_level).toBe('SENSITIVE_DATA_CONFIRMED')
+      }
+
+      // Check free text items
+      const freeTextItems = CANONICAL_DATA_INVENTORY.filter((i) =>
+        ['bio', 'concierge_faqs', 'concierge_messages', 'reviews', 'reports'].some((term) =>
+          i.id.toLowerCase().includes(term) || i.storage_object.toLowerCase().includes(term)
+        )
+      )
+      expect(freeTextItems.length).toBeGreaterThan(0)
+      for (const item of freeTextItems) {
+        expect(item.sensitivity_level).toBe('POTENTIALLY_SENSITIVE_FREE_TEXT')
+      }
+
+      // Check adult media storage items
+      const mediaBuckets = CANONICAL_DATA_INVENTORY.filter((i) =>
+        i.storage_object.includes('profile-media') || i.storage_object.includes('profile-videos')
+      )
+      expect(mediaBuckets.length).toBeGreaterThan(0)
+      for (const item of mediaBuckets) {
+        expect(item.sensitivity_level).toBe('HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE')
+      }
+    })
+
+    it('verifies Didit flow separates local storage from processor-side biometric processing', () => {
+      const diditProcessor = CONFIRMED_EXTERNAL_PROCESSORS.find((p) => p.system.toLowerCase().includes('didit'))
+      expect(diditProcessor).toBeDefined()
+      expect(diditProcessor?.localVelvetStorage).toContain('Zero document images, zero selfies, zero raw biometric vectors')
+      expect(diditProcessor?.processorSideProcessing).toContain('Biometric facial template extraction')
+      expect(diditProcessor?.externalRetentionBehavior).toBe('LEGAL_CONTRACT_REVIEW_REQUIRED')
+
+      const localKycItem = CANONICAL_DATA_INVENTORY.find((i) => i.storage_object === 'public.identity_verifications')
+      expect(localKycItem).toBeDefined()
+      expect(localKycItem?.sensitivity_level).toBe('HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE')
+      expect(localKycItem?.notes).toContain('Does NOT store raw documents, selfies, biometrics or CPF numbers locally')
+    })
+
+    it('verifies processor activation statuses and international transfer claims', () => {
+      expect(PROCESSOR_STATUSES).toEqual([
+        'ACTIVE',
+        'CONFIGURED_BUT_DISABLED',
+        'PLANNED',
+        'MOCK_ONLY',
+        'UNKNOWN',
+      ])
+
+      expect(INTERNATIONAL_TRANSFER_STATUSES).toEqual([
+        'YES',
+        'NO',
+        'POSSIBLE',
+        'REVIEW_REQUIRED',
+      ])
+
+      const openAi = CONFIRMED_EXTERNAL_PROCESSORS.find((p) => p.system.toLowerCase().includes('openai'))
+      expect(openAi).toBeDefined()
+      expect(openAi?.status).toBe('CONFIGURED_BUT_DISABLED')
+      expect(openAi?.internationalTransfer).toBe('YES')
+
+      const mockBilling = CONFIRMED_EXTERNAL_PROCESSORS.find((p) => p.system.toLowerCase().includes('payment'))
+      expect(mockBilling).toBeDefined()
+      expect(mockBilling?.status).toBe('MOCK_ONLY')
+      expect(mockBilling?.internationalTransfer).toBe('NO')
+      expect(mockBilling?.deletionCapability).toBe('NOT_APPLICABLE')
+
+      const whatsapp = CONFIRMED_EXTERNAL_PROCESSORS.find((p) => p.system.toLowerCase().includes('whatsapp'))
+      expect(whatsapp).toBeDefined()
+      expect(whatsapp?.status).toBe('PLANNED')
+      expect(whatsapp?.internationalTransfer).toBe('NO')
+
+      const supabase = CONFIRMED_EXTERNAL_PROCESSORS.find((p) => p.system.toLowerCase().includes('supabase'))
+      expect(supabase?.status).toBe('ACTIVE')
+      expect(supabase?.internationalTransfer).toBe('POSSIBLE')
+
+      const vercel = CONFIRMED_EXTERNAL_PROCESSORS.find((p) => p.system.toLowerCase().includes('vercel'))
+      expect(vercel?.status).toBe('ACTIVE')
+      expect(vercel?.internationalTransfer).toBe('YES')
+    })
+
+    it('verifies /admin/privacy is configured under OPERAÇÃO in AdminNavbar and preserves 3 groups', () => {
+      expect(ADMIN_NAV_GROUPS).toHaveLength(3)
+      const opGroup = ADMIN_NAV_GROUPS.find((g) => g.id === 'operation')
+      expect(opGroup).toBeDefined()
+
+      const privacyItem = opGroup?.items.find((i) => i.href === '/admin/privacy')
+      expect(privacyItem).toBeDefined()
+      expect(privacyItem?.labelKey).toBe('admin.privacyLgpd')
+      expect(privacyItem?.isActive('/admin/privacy')).toBe(true)
+      expect(privacyItem?.isActive('/admin/privacy/details')).toBe(true)
+      expect(privacyItem?.isActive('/admin')).toBe(false)
     })
   })
 

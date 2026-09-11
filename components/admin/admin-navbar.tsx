@@ -181,6 +181,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.reports',
         isActive: (p) => p === '/admin/reports' || p.startsWith('/admin/reports/'),
       },
+      {
+        href: '/admin/privacy',
+        labelKey: 'admin.privacyLgpd',
+        isActive: (p) => p === '/admin/privacy' || p.startsWith('/admin/privacy/'),
+      },
     ],
   },
   {

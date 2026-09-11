@@ -116,6 +116,34 @@ export const SUBJECT_ROLES = [
 
 export type SubjectRole = typeof SUBJECT_ROLES[number]
 
+export const SENSITIVITY_LEVELS = [
+  'SENSITIVE_DATA_CONFIRMED',
+  'POTENTIALLY_SENSITIVE_FREE_TEXT',
+  'HIGH_RISK_BUT_NOT_CLASSIFIED_AS_SENSITIVE',
+  'NOT_SENSITIVE',
+] as const
+
+export type SensitivityLevel = typeof SENSITIVITY_LEVELS[number]
+
+export const PROCESSOR_STATUSES = [
+  'ACTIVE',
+  'CONFIGURED_BUT_DISABLED',
+  'PLANNED',
+  'MOCK_ONLY',
+  'UNKNOWN',
+] as const
+
+export type ProcessorStatus = typeof PROCESSOR_STATUSES[number]
+
+export const INTERNATIONAL_TRANSFER_STATUSES = [
+  'YES',
+  'NO',
+  'POSSIBLE',
+  'REVIEW_REQUIRED',
+] as const
+
+export type InternationalTransferStatus = typeof INTERNATIONAL_TRANSFER_STATUSES[number]
+
 // -----------------------------------------------------------------------------
 // 5. CANONICAL DATA INVENTORY ITEM
 // -----------------------------------------------------------------------------
@@ -127,6 +155,7 @@ export interface DataInventoryItem {
   subject_role: SubjectRole
   data_category: string
   classification: DataClassification
+  sensitivity_level: SensitivityLevel
   source: 'USER_INPUT' | 'OBSERVED_TELEMETRY' | 'EXTERNAL_PROVIDER' | 'SYSTEM_DERIVED' | 'ADMINISTRATIVE_ACTION'
   purpose: string
   legal_basis_status: LegalBasisStatus
