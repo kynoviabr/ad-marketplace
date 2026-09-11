@@ -164,10 +164,11 @@ export async function generateSubjectExportBundle(
   }
 
   files['account.json'] = {
-    email: accountRow?.email ?? subject.email,
-    phone: accountRow?.phone ?? subject.phone,
+    email: subject.email,
+    phone: subject.phone,
     role: accountRow?.role ?? subject.role,
     status: accountRow?.status ?? subject.status,
+
     legalAcceptances: {
       termsVersion: accountRow?.terms_version ?? null,
       termsAcceptedAt: accountRow?.terms_accepted_at ?? null,

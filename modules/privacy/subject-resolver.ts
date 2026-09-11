@@ -78,9 +78,10 @@ export async function resolveSubject(accountId: string): Promise<ResolvedSubject
   return {
     accountId: account.id,
     role: account.role as 'ADVERTISER' | 'CLIENT' | 'ADMIN',
-    email: account.email ?? null,
-    phone: account.phone ?? null,
+    email,
+    phone,
     status: account.status,
+
     profileId,
     stageName,
     clientMembershipType,
