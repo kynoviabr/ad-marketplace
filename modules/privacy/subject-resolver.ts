@@ -25,13 +25,28 @@ export async function resolveSubject(accountId: string): Promise<ResolvedSubject
 
   const { data: account, error: accountError } = await admin
     .from('account_users')
-    .select('id, role, status, email, phone')
+    .select('id, auth_user_id, role, status')
     .eq('id', accountId)
     .maybeSingle()
 
   if (accountError || !account) {
     return null
   }
+
+  let email: string | null = null
+  let phone: string | null = null
+  if (account.auth_user_id) {
+    try {
+      const { data: authUser } = await admin.auth.admin.getUserById(account.auth_user_id)
+      if (authUser?.user) {
+        email = authUser.user.email ?? null
+        phone = authUser.user.phone ?? null
+      }
+    } catch {
+      // Best effort auth resolution
+    }
+  }
+
 
   let profileId: string | null = null
   let stageName: string | null = null

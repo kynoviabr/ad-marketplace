@@ -148,9 +148,10 @@ export async function generateSubjectExportBundle(
   // 1. ACCOUNT DATA & LEGAL ACCEPTANCE (account.json)
   const { data: accountRow } = await admin
     .from('account_users')
-    .select('id, email, phone, role, status, terms_version, terms_accepted_at, privacy_version, privacy_accepted_at, created_at, updated_at')
+    .select('id, role, status, terms_version, terms_accepted_at, privacy_version, privacy_accepted_at, created_at, updated_at')
     .eq('id', subject.accountId)
     .single()
+
 
   let clientMembershipData = null
   if (subject.role === 'CLIENT') {
