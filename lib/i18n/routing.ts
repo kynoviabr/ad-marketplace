@@ -34,7 +34,7 @@ export function stripLocalePrefix(pathname: string): string {
 
 export function localizePathname(pathname: string, locale: Locale): string {
   const logicalPath = stripLocalePrefix(pathname)
-  if (locale === DEFAULT_LOCALE) return logicalPath
+  if (locale === DEFAULT_LOCALE || logicalPath.startsWith('/admin')) return logicalPath
   const englishPath = mapPublicRoute(logicalPath, ENGLISH_PUBLIC_ROUTES)
   return englishPath === '/' ? ENGLISH_PREFIX : `${ENGLISH_PREFIX}${englishPath}`
 }
@@ -47,6 +47,7 @@ export function isLocaleRoutingExcluded(pathname: string): boolean {
   return (
     pathname.startsWith('/api/') ||
     pathname === '/api' ||
+    pathname.startsWith('/admin') ||
     pathname.startsWith('/auth/callback') ||
     pathname === '/robots.txt' ||
     pathname === '/sitemap.xml'

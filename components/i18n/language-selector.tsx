@@ -169,7 +169,15 @@ export function LanguageSelector({
     event.preventDefault()
     setIsOpen(false)
     persistLocale(nextLocale)
-    window.location.assign(destinationFor(nextLocale))
+    const destination = destinationFor(nextLocale)
+    if (typeof window !== 'undefined') {
+      const current = window.location.pathname + (window.location.search || '')
+      if (destination === current) {
+        window.location.reload()
+        return
+      }
+    }
+    window.location.assign(destination)
   }
 
   useEffect(() => {

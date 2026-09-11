@@ -1,11 +1,14 @@
 import { requireAdmin } from '@/modules/moderation/guards'
 import { getAdminDataSubjectRequests } from '@/modules/privacy/dal'
 import { LGPD_RIGHTS } from '@/modules/privacy/types'
+import { getTranslations } from '@/lib/i18n/server'
+import { formatDate } from '@/lib/i18n/format'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminPrivacyPage() {
   await requireAdmin()
+  const { locale, t } = await getTranslations()
   const requests = await getAdminDataSubjectRequests({ limit: 50 })
 
   return (
@@ -13,22 +16,22 @@ export default async function AdminPrivacyPage() {
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
-            Privacidade &amp; Solicitações LGPD
+            {t('admin.privacyTitle')}
           </h1>
           <p className="mt-1 text-sm text-neutral-400">
-            Painel operacional para acompanhamento de direitos dos titulares (Lei 13.709/2018).
+            {t('admin.privacySubtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-300">
-            Total de Solicitações: {requests.length}
+            {t('admin.totalRequests')}: {requests.length}
           </span>
         </div>
       </div>
 
       {/* Summary Banner */}
       <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-        <h2 className="text-sm font-semibold text-neutral-200">Direitos Técnicos Suportados</h2>
+        <h2 className="text-sm font-semibold text-neutral-200">{t('admin.technicalRightsSupported')}</h2>
         <div className="mt-2 flex flex-wrap gap-1.5">
           {LGPD_RIGHTS.map((right) => (
             <span
@@ -44,11 +47,11 @@ export default async function AdminPrivacyPage() {
       {/* Requests Ledger Table */}
       <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
         <div className="px-4 py-3 border-b border-neutral-800 font-medium text-sm text-neutral-300">
-          Registro Canônico de Solicitações (DSR Ledger)
+          {t('admin.dsrLedgerTitle')}
         </div>
         {requests.length === 0 ? (
           <div className="p-8 text-center text-sm text-neutral-500">
-            Nenhuma solicitação de privacidade registrada até o momento.
+            {t('admin.noRequests')}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -56,11 +59,11 @@ export default async function AdminPrivacyPage() {
               <thead className="border-b border-neutral-800 bg-neutral-900/50 text-neutral-400 uppercase">
                 <tr>
                   <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">Tipo de Direito</th>
+                  <th className="px-4 py-3">{t('admin.rightType')}</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Titular (Hash/ID)</th>
-                  <th className="px-4 py-3">Criado em</th>
-                  <th className="px-4 py-3">Resolução</th>
+                  <th className="px-4 py-3">{t('admin.subjectId')}</th>
+                  <th className="px-4 py-3">{t('admin.createdAt')}</th>
+                  <th className="px-4 py-3">{t('admin.resolution')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/60">
@@ -91,7 +94,7 @@ export default async function AdminPrivacyPage() {
                       {req.requester_account_user_id.slice(0, 8)}…
                     </td>
                     <td className="px-4 py-3 text-neutral-400">
-                      {new Date(req.created_at).toLocaleString('pt-BR')}
+                      {formatDate(req.created_at, locale, { dateStyle: 'short', timeStyle: 'short' })}
                     </td>
                     <td className="px-4 py-3 text-neutral-400">
                       {req.resolution_code || '—'}

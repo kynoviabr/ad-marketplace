@@ -33,7 +33,8 @@ export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
   const requestedPathname = url.pathname
   const pathLocale = localeFromPathname(requestedPathname)
-  const locale = pathLocale ?? (requestedPathname === '/'
+  const isAdminRoute = requestedPathname.startsWith('/admin')
+  const locale = pathLocale ?? (requestedPathname === '/' || isAdminRoute
     ? resolveLocale(request.cookies.get(LOCALE_COOKIE)?.value)
     : DEFAULT_LOCALE)
   const pathname = stripLocalePrefix(requestedPathname)
@@ -59,6 +60,14 @@ export async function proxy(request: NextRequest) {
     }
     url.pathname = pathname
     const res = NextResponse.redirect(url)
+    if (pathLocale === 'en') {
+      res.cookies.set(LOCALE_COOKIE, 'en', {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 365,
+        sameSite: 'lax',
+        secure: request.nextUrl.protocol === 'https:',
+      })
+    }
     res.headers.set(CANONICAL_REQUEST_ID_HEADER, requestId)
     return res
   }
