@@ -296,7 +296,7 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [user, setUser] = useState<AdminNavbarUser | null>(() => initialUser || getClientAdminUser())
+  const [user, setUser] = useState<AdminNavbarUser | null>(initialUser)
   const navContainerRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const userTriggerRef = useRef<HTMLButtonElement>(null)
@@ -312,6 +312,11 @@ export function AdminNavbar({ initialUser = null }: AdminNavbarProps = {}) {
   useEffect(() => {
     if (initialUser) return
     let cancelled = false
+
+    const fastClientUser = getClientAdminUser()
+    if (fastClientUser) {
+      setUser(fastClientUser)
+    }
 
     getAdminUserAction()
       .then((res) => {
