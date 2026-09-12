@@ -59,6 +59,7 @@ describe('LGPD-02A: Subject Lifecycle Planner & Dry-Run Engine', () => {
                 {
                   id: 'verif-1',
                   status: 'VERIFIED',
+                  provider_session_id: 'didit-session-123',
                   didit_session_id: 'didit-session-123',
                 },
               ],
@@ -217,19 +218,49 @@ describe('LGPD-02A: Subject Lifecycle Planner & Dry-Run Engine', () => {
     expect(receivedReviewsItem?.action).toBe('REVIEW_REQUIRED')
   })
 
-  it('8. schedules EXTERNAL_ERASURE for third-party processors (Didit and OpenAI)', async () => {
+  it('8. schedules EXTERNAL_ERASURE for Didit when provider session reference exists, but NOT for unexposed OpenAI', async () => {
     const plan = await generateSubjectLifecyclePlan(mockSubjectId)
 
     const diditItem = plan.items.find((item) => item.externalProcessor === 'Didit')
     expect(diditItem).toBeDefined()
     expect(diditItem?.action).toBe('EXTERNAL_ERASURE')
 
+    // Invariant: configured-but-disabled provider != external erasure automatically
+    const openaiItem = plan.items.find((item) => item.externalProcessor === 'OpenAI')
+    expect(openaiItem).toBeUndefined()
+    expect(plan.summary.EXTERNAL_ERASURE).toBe(1)
+  })
+
+  it('9. schedules OpenAI EXTERNAL_ERASURE ONLY when confirmed provider exposure evidence exists', async () => {
+    // Override concierge_messages mock to simulate real OpenAI transmission evidence
+    const originalFrom = mockAdminClient.from
+    mockAdminClient.from = vi.fn((table: string) => {
+      const qb = originalFrom(table)
+      if (table === 'concierge_messages') {
+        qb.select = vi.fn().mockReturnValue({
+          in: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: 'msg-exposed-1',
+                metadata: { provider: 'OPENAI', model: 'gpt-4o-mini', openai_response_id: 'chatcmpl-test-123' },
+              },
+            ],
+            count: 1,
+            error: null,
+          }),
+        })
+      }
+      return qb
+    })
+
+    const plan = await generateSubjectLifecyclePlan(mockSubjectId)
     const openaiItem = plan.items.find((item) => item.externalProcessor === 'OpenAI')
     expect(openaiItem).toBeDefined()
     expect(openaiItem?.action).toBe('EXTERNAL_ERASURE')
+    expect(openaiItem?.recordCount).toBe(1)
   })
 
-  it('9. GUARANTEES ZERO MUTATIONS: no database delete/update, no storage remove, no auth delete', async () => {
+  it('10. GUARANTEES ZERO MUTATIONS: no database delete/update, no storage remove, no auth delete', async () => {
     await generateSubjectLifecyclePlan(mockSubjectId)
 
     expect(deleteSpy).not.toHaveBeenCalled()
@@ -239,12 +270,39 @@ describe('LGPD-02A: Subject Lifecycle Planner & Dry-Run Engine', () => {
     expect(deleteAuthSpy).not.toHaveBeenCalled()
   })
 
-  it('10. demonstrates determinism and idempotency on consecutive runs', async () => {
+  it('11. demonstrates determinism and idempotency on consecutive runs', async () => {
     const plan1 = await generateSubjectLifecyclePlan(mockSubjectId)
     const plan2 = await generateSubjectLifecyclePlan(mockSubjectId)
 
     expect(plan1.summary).toEqual(plan2.summary)
     expect(plan1.items.length).toBe(plan2.items.length)
     expect(plan1.items.map((i) => i.action)).toEqual(plan2.items.map((i) => i.action))
+  })
+
+  it('12. enforces strict count consistency and arithmetic invariants (sum(itemCount) === totalItems && sum(recordCount) === totalRecords)', async () => {
+    const plan = await generateSubjectLifecyclePlan(mockSubjectId)
+    const actions = ['DELETE', 'ANONYMIZE', 'DETACH', 'RETAIN', 'EXTERNAL_ERASURE', 'REVIEW_REQUIRED'] as const
+
+    const sumItems = actions.reduce((acc, act) => acc + plan.summary.byAction[act].itemCount, 0)
+    const sumRecords = actions.reduce((acc, act) => acc + plan.summary.byAction[act].recordCount, 0)
+
+    expect(sumItems).toBe(plan.summary.totalItems)
+    expect(sumRecords).toBe(plan.summary.totalRecords)
+    expect(plan.summary.RETAIN).toBe(0)
+    expect(plan.summary.byAction.RETAIN.itemCount).toBe(0)
+    expect(plan.summary.byAction.RETAIN.recordCount).toBe(0)
+  })
+
+  it('13. validates that unresolved statutory references use LEGAL_REVIEW_REQUIRED and zero "must retain"', async () => {
+    const plan = await generateSubjectLifecyclePlan(mockSubjectId)
+
+    for (const item of plan.items) {
+      if (item.action === 'REVIEW_REQUIRED' && item.retentionStatus === 'DRAFT') {
+        expect(item.rationale).toContain('LEGAL_REVIEW_REQUIRED')
+        const lower = item.rationale.toLowerCase()
+        expect(lower).not.toContain('must retain')
+        expect(lower).not.toContain('required retention')
+      }
+    }
   })
 })

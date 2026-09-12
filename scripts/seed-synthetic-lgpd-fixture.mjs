@@ -724,24 +724,57 @@ export async function seedSyntheticLgpdSubject() {
 
   let dsrId = exDsr?.id
   if (!dsrId) {
+    const CANONICAL_DSR_TYPES = [
+      'ACCESS',
+      'CORRECTION',
+      'ANONYMIZATION',
+      'BLOCKING',
+      'DELETION',
+      'PORTABILITY',
+      'CONSENT_REVOCATION',
+      'SHARING_INFORMATION',
+      'AUTOMATED_DECISION_REVIEW',
+    ]
+    const CANONICAL_DSR_STATUSES = [
+      'RECEIVED',
+      'IDENTITY_VERIFICATION_REQUIRED',
+      'IN_REVIEW',
+      'PROCESSING',
+      'COMPLETED',
+      'REJECTED',
+      'CANCELLED',
+    ]
+
+    const syntheticRequestType = 'PORTABILITY'
+    const syntheticStatus = 'RECEIVED'
+
+    if (!CANONICAL_DSR_TYPES.includes(syntheticRequestType)) {
+      throw new Error(`Invalid synthetic request_type: ${syntheticRequestType}`)
+    }
+    if (!CANONICAL_DSR_STATUSES.includes(syntheticStatus)) {
+      throw new Error(`Invalid synthetic status: ${syntheticStatus}`)
+    }
+
     dsrId = crypto.randomUUID()
-    await supabase.from('data_subject_requests').insert({
+    const { error: dsrErr } = await supabase.from('data_subject_requests').insert({
       id: dsrId,
       requester_account_user_id: accountId,
-      request_type: 'EXPORT',
-      status: 'PENDING',
-      details: { reason: 'LGPD-02A.1 synthetic test request' },
+      request_type: syntheticRequestType,
+      status: syntheticStatus,
+      details: { reason: 'LGPD-02A.2 canonical synthetic portability test fixture' },
     })
+    if (dsrErr) throw new Error(`Failed to insert synthetic DSR: ${dsrErr.message}`)
     console.log(`Created data_subject_requests record: ${dsrId}`)
 
-    await supabase.from('data_subject_request_events').insert({
+    const { error: eventErr } = await supabase.from('data_subject_request_events').insert({
       id: crypto.randomUUID(),
       request_id: dsrId,
-      event_type: 'CREATED',
+      event_type: 'REQUEST_CREATED',
       actor_account_user_id: accountId,
       actor_role: 'SUBJECT',
       metadata: { synthetic: true },
     })
+    if (eventErr) throw new Error(`Failed to insert synthetic DSR event: ${eventErr.message}`)
     console.log('Created data_subject_request_events record')
   }
 

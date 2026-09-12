@@ -117,7 +117,7 @@ export async function generateSubjectLifecyclePlan(
       identifiers: verifIds,
       action: 'REVIEW_REQUIRED',
       rationale:
-        'Compliance defense: Proof of age verification (18+) is legally critical (ECA Art. 240-241). Retention policy is DRAFT; defaults to REVIEW_REQUIRED until approved by legal counsel.',
+        'Compliance defense: Proof of age verification (18+) under ECA Art. 240-241. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
       legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
       retentionStatus: 'DRAFT',
       auditSafeguarded: true,
@@ -141,27 +141,30 @@ export async function generateSubjectLifecyclePlan(
         recordCount: verifEventCount,
         identifiers: sessionIds,
         action: 'REVIEW_REQUIRED',
-        rationale: 'KYC processor webhook event audit trail. Immutable compliance defense record.',
+        rationale:
+          'KYC processor webhook event audit trail. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
         legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
         retentionStatus: 'DRAFT',
         auditSafeguarded: true,
       })
     }
 
-    // External Didit Erasure Dispatch
-    items.push({
-      id: `plan-external-didit-${subject.accountId}`,
-      system: 'EXTERNAL_PROCESSOR',
-      target: 'Didit (KYC Biometrics & Identity Verification)',
-      recordCount: verifications.length,
-      identifiers: sessionIds,
-      action: 'EXTERNAL_ERASURE',
-      rationale:
-        'External KYC processor session deletion dispatch. External erasure required under LGPD Art. 18, VI. Observation only in LGPD-02A.',
-      legalBasisStatus: 'SOURCE_CONFIRMED',
-      retentionStatus: 'UNDEFINED',
-      externalProcessor: 'Didit',
-    })
+    // External Didit Erasure Dispatch (requires real provider session reference)
+    if (sessionIds.length > 0) {
+      items.push({
+        id: `plan-external-didit-${subject.accountId}`,
+        system: 'EXTERNAL_PROCESSOR',
+        target: 'Didit (KYC Biometrics & Identity Verification)',
+        recordCount: sessionIds.length,
+        identifiers: sessionIds,
+        action: 'EXTERNAL_ERASURE',
+        rationale:
+          'External KYC processor session deletion dispatch. Real provider_session_id reference confirmed. Observation only in LGPD-02A.',
+        legalBasisStatus: 'SOURCE_CONFIRMED',
+        retentionStatus: 'UNDEFINED',
+        externalProcessor: 'Didit',
+      })
+    }
   }
 
   // 4. PROFESSIONAL PROFILE & ATTRIBUTES (if subject is an advertiser)
@@ -331,7 +334,8 @@ export async function generateSubjectLifecyclePlan(
           recordCount: mediaModCount,
           identifiers: mediaIds,
           action: 'REVIEW_REQUIRED',
-          rationale: 'Audit safeguard: Media moderation decisions under Marco Civil da Internet (Art. 19).',
+          rationale:
+            'Audit safeguard: Media moderation decisions under Marco Civil da Internet (Art. 19). LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
           legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
           retentionStatus: 'DRAFT',
           auditSafeguarded: true,
@@ -392,7 +396,8 @@ export async function generateSubjectLifecyclePlan(
           recordCount: videoModCount,
           identifiers: videoIds,
           action: 'REVIEW_REQUIRED',
-          rationale: 'Audit safeguard: Video moderation decisions and triage audit history.',
+          rationale:
+            'Audit safeguard: Video moderation decisions and triage audit history under Marco Civil da Internet (Art. 19). LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
           legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
           retentionStatus: 'DRAFT',
           auditSafeguarded: true,
@@ -414,7 +419,8 @@ export async function generateSubjectLifecyclePlan(
         recordCount: profileModCount,
         identifiers: [profileId],
         action: 'REVIEW_REQUIRED',
-        rationale: 'Audit safeguard: Profile moderation reviews and administrative actions.',
+        rationale:
+          'Audit safeguard: Profile moderation reviews and administrative actions under Marco Civil da Internet (Art. 19). LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
         legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
         retentionStatus: 'DRAFT',
         auditSafeguarded: true,
@@ -434,7 +440,8 @@ export async function generateSubjectLifecyclePlan(
         recordCount: statusEventCount,
         identifiers: [profileId],
         action: 'REVIEW_REQUIRED',
-        rationale: 'Audit safeguard: Immutable profile lifecycle status transition history.',
+        rationale:
+          'Audit safeguard: Immutable profile lifecycle status transition history. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
         legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
         retentionStatus: 'DRAFT',
         auditSafeguarded: true,
@@ -455,7 +462,8 @@ export async function generateSubjectLifecyclePlan(
         recordCount: boostCount,
         identifiers: [profileId],
         action: 'REVIEW_REQUIRED',
-        rationale: 'Commercial boost promotion history. Financial retention policy is DRAFT; defaults to REVIEW_REQUIRED.',
+        rationale:
+          'Commercial boost promotion history. LEGAL_REVIEW_REQUIRED: Financial and commercial retention policy is DRAFT; evaluation required by legal counsel.',
         legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
         retentionStatus: 'DRAFT',
       })
@@ -494,9 +502,9 @@ export async function generateSubjectLifecyclePlan(
 
     if (conciergeConvs && conciergeConvs.length > 0) {
       const convIds = conciergeConvs.map((c) => c.id)
-      const { count: messageCount } = await admin
+      const { data: messages, count: messageCount } = await admin
         .from('concierge_messages')
-        .select('*', { count: 'exact', head: true })
+        .select('id, metadata', { count: 'exact' })
         .in('conversation_id', convIds)
 
       items.push({
@@ -506,23 +514,43 @@ export async function generateSubjectLifecyclePlan(
         recordCount: conciergeConvs.length + (messageCount ?? 0),
         identifiers: convIds,
         action: 'DELETE',
-        rationale: 'AI Concierge inquiry chat histories.',
+        rationale: 'AI Concierge inquiry chat histories stored locally in PostgreSQL.',
         legalBasisStatus: 'SOURCE_CONFIRMED',
         retentionStatus: 'UNDEFINED',
       })
 
-      items.push({
-        id: `plan-external-openai-${profileId}`,
-        system: 'EXTERNAL_PROCESSOR',
-        target: 'OpenAI (AI Concierge Inference)',
-        recordCount: convIds.length,
-        identifiers: convIds,
-        action: 'EXTERNAL_ERASURE',
-        rationale: 'External AI processor context purge request. Observation only in LGPD-02A.',
-        legalBasisStatus: 'SOURCE_CONFIRMED',
-        retentionStatus: 'UNDEFINED',
-        externalProcessor: 'OpenAI',
+      // Evidence-based external erasure check for OpenAI:
+      // OpenAI status is CONFIGURED_BUT_DISABLED in DEV.
+      // A local concierge record does NOT prove that OpenAI processed the data.
+      // Generate EXTERNAL_ERASURE for OpenAI ONLY when source-confirmed evidence exists
+      // that the subject's data was actually transmitted/processed by OpenAI.
+      const exposedMessages = (messages ?? []).filter((m) => {
+        const meta = m.metadata as Record<string, unknown> | null
+        if (!meta) return false
+        return (
+          meta.provider === 'OPENAI' ||
+          meta.external_processor === 'OPENAI' ||
+          Boolean(meta.openai_response_id) ||
+          Boolean(meta.openai_id) ||
+          (typeof meta.model === 'string' && meta.model.toLowerCase().includes('gpt'))
+        )
       })
+
+      if (exposedMessages.length > 0) {
+        items.push({
+          id: `plan-external-openai-${profileId}`,
+          system: 'EXTERNAL_PROCESSOR',
+          target: 'OpenAI (AI Concierge Inference)',
+          recordCount: exposedMessages.length,
+          identifiers: exposedMessages.map((m) => m.id),
+          action: 'EXTERNAL_ERASURE',
+          rationale:
+            'External AI processor context purge request based on source-confirmed provider exposure evidence. Observation only in LGPD-02A.',
+          legalBasisStatus: 'SOURCE_CONFIRMED',
+          retentionStatus: 'UNDEFINED',
+          externalProcessor: 'OpenAI',
+        })
+      }
     }
 
     // Profile Daily Metrics
@@ -561,7 +589,7 @@ export async function generateSubjectLifecyclePlan(
       identifiers: subscriptions.map((s) => s.id),
       action: 'REVIEW_REQUIRED',
       rationale:
-        'Financial & tax compliance: CTN Art. 174 & Civil Code Art. 206 statutory limitation periods. Retention policy is DRAFT; defaults to REVIEW_REQUIRED.',
+        'Financial & tax compliance: CTN Art. 174 & Civil Code Art. 206 statutory limitation periods. LEGAL_REVIEW_REQUIRED: Financial retention policy is DRAFT; statutory evaluation required by legal counsel.',
       legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
       retentionStatus: 'DRAFT',
     })
@@ -587,7 +615,8 @@ export async function generateSubjectLifecyclePlan(
       recordCount: totalOverrides,
       identifiers: [subject.accountId],
       action: 'REVIEW_REQUIRED',
-      rationale: 'Commercial overrides and custom entitlement records.',
+      rationale:
+        'Commercial overrides and custom entitlement records. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; evaluation required by legal counsel.',
       legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
       retentionStatus: 'DRAFT',
     })
@@ -607,7 +636,8 @@ export async function generateSubjectLifecyclePlan(
       recordCount: billingAuditCount,
       identifiers: [subject.accountId],
       action: 'REVIEW_REQUIRED',
-      rationale: 'Audit safeguard: Administrative billing override history. Immutable ledger.',
+      rationale:
+        'Audit safeguard: Administrative billing override history. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
       legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
       retentionStatus: 'DRAFT',
       auditSafeguarded: true,
@@ -631,7 +661,7 @@ export async function generateSubjectLifecyclePlan(
       identifiers: [subject.accountId],
       action: 'REVIEW_REQUIRED',
       rationale:
-        'Third-party abuse complaints safeguard: contains mixed third-party content and legal defense evidence.',
+        'Third-party abuse complaints safeguard: contains mixed third-party content and legal defense evidence. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; evaluation required by legal counsel.',
       legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
       retentionStatus: 'DRAFT',
       auditSafeguarded: true,
@@ -676,7 +706,7 @@ export async function generateSubjectLifecyclePlan(
         identifiers: [subject.profileId],
         action: 'REVIEW_REQUIRED',
         rationale:
-          'Mixed data protection: Reviews written by third-party clients about this professional. Administrative review required to determine retention vs redaction.',
+          'Mixed data protection: Reviews written by third-party clients about this professional. LEGAL_REVIEW_REQUIRED: Administrative review required to determine retention vs redaction under DRAFT policy.',
         legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
         retentionStatus: 'DRAFT',
       })
@@ -699,7 +729,7 @@ export async function generateSubjectLifecyclePlan(
       identifiers: dsrIds,
       action: 'REVIEW_REQUIRED',
       rationale:
-        'Proof of compliance defense under LGPD Art. 18/19. Demonstrates timely processing of subject rights. Retention policy is DRAFT; defaults to REVIEW_REQUIRED.',
+        'Proof of compliance defense under LGPD Art. 18/19. Demonstrates timely processing of subject rights. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
       legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
       retentionStatus: 'DRAFT',
       auditSafeguarded: true,
@@ -718,7 +748,8 @@ export async function generateSubjectLifecyclePlan(
         recordCount: dsrEventsCount,
         identifiers: dsrIds,
         action: 'REVIEW_REQUIRED',
-        rationale: 'Immutable DSR audit log. Compliance defense record.',
+        rationale:
+          'Immutable DSR audit log. Compliance defense record. LEGAL_REVIEW_REQUIRED: Retention policy is DRAFT; statutory evaluation required by legal counsel.',
         legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
         retentionStatus: 'DRAFT',
         auditSafeguarded: true,
@@ -742,20 +773,32 @@ export async function generateSubjectLifecyclePlan(
     dependencies: ['public.account_users', 'public.professional_profiles', 'public.client_memberships'],
   })
 
-  // Calculate summary counts across all 6 action types
-  const summary: LifecycleActionSummary = {
-    DELETE: 0,
-    ANONYMIZE: 0,
-    DETACH: 0,
-    RETAIN: 0,
-    EXTERNAL_ERASURE: 0,
-    REVIEW_REQUIRED: 0,
-    totalItems: items.length,
-    totalRecords: items.reduce((acc, item) => acc + item.recordCount, 0),
+  // Calculate structured counts per action
+  const byAction: Record<LifecycleAction, { itemCount: number; recordCount: number }> = {
+    DELETE: { itemCount: 0, recordCount: 0 },
+    ANONYMIZE: { itemCount: 0, recordCount: 0 },
+    DETACH: { itemCount: 0, recordCount: 0 },
+    RETAIN: { itemCount: 0, recordCount: 0 },
+    EXTERNAL_ERASURE: { itemCount: 0, recordCount: 0 },
+    REVIEW_REQUIRED: { itemCount: 0, recordCount: 0 },
   }
 
   for (const item of items) {
-    summary[item.action] += 1
+    byAction[item.action].itemCount += 1
+    byAction[item.action].recordCount += item.recordCount
+  }
+
+  // Summary counts across all action types with strict arithmetic invariants
+  const summary: LifecycleActionSummary = {
+    DELETE: byAction.DELETE.itemCount,
+    ANONYMIZE: byAction.ANONYMIZE.itemCount,
+    DETACH: byAction.DETACH.itemCount,
+    RETAIN: byAction.RETAIN.itemCount,
+    EXTERNAL_ERASURE: byAction.EXTERNAL_ERASURE.itemCount,
+    REVIEW_REQUIRED: byAction.REVIEW_REQUIRED.itemCount,
+    byAction,
+    totalItems: items.length,
+    totalRecords: items.reduce((acc, item) => acc + item.recordCount, 0),
   }
 
   return {

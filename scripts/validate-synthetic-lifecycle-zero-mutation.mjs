@@ -281,11 +281,44 @@ async function run() {
   console.log(`- Discovered Videos: ${plan.storageDiscovered.videoCount}`)
   console.log('- Action Summary Breakdown:', JSON.stringify(plan.summary, null, 2))
 
-  // Assert all 6 action types exist in the plan
+  // Assert all non-zero action types exist in the plan
   if (plan.summary.DELETE === 0) throw new Error('Assertion failed: summary.DELETE is 0')
   if (plan.summary.ANONYMIZE === 0) throw new Error('Assertion failed: summary.ANONYMIZE is 0')
   if (plan.summary.REVIEW_REQUIRED === 0) throw new Error('Assertion failed: summary.REVIEW_REQUIRED is 0')
   if (plan.summary.EXTERNAL_ERASURE === 0) throw new Error('Assertion failed: summary.EXTERNAL_ERASURE is 0')
+
+  // SECTION 1: Count Consistency & Strict Arithmetic Invariants
+  const actions = ['DELETE', 'ANONYMIZE', 'DETACH', 'RETAIN', 'EXTERNAL_ERASURE', 'REVIEW_REQUIRED']
+  const sumItems = actions.reduce((acc, act) => acc + plan.summary.byAction[act].itemCount, 0)
+  const sumRecords = actions.reduce((acc, act) => acc + plan.summary.byAction[act].recordCount, 0)
+
+  if (sumItems !== plan.summary.totalItems) {
+    throw new Error(`Arithmetic invariant failed: sum(itemCount) ${sumItems} !== totalItems ${plan.summary.totalItems}`)
+  }
+  if (sumRecords !== plan.summary.totalRecords) {
+    throw new Error(`Arithmetic invariant failed: sum(recordCount) ${sumRecords} !== totalRecords ${plan.summary.totalRecords}`)
+  }
+  console.log(`✓ Arithmetic Invariants Verified: sum(itemCount) === ${plan.summary.totalItems}, sum(recordCount) === ${plan.summary.totalRecords}`)
+
+  // SECTION 4: Unapproved Retention Invariant (RETAIN === 0)
+  if (plan.summary.RETAIN !== 0 || plan.summary.byAction.RETAIN.itemCount !== 0 || plan.summary.byAction.RETAIN.recordCount !== 0) {
+    throw new Error('Assertion failed: RETAIN must be 0 while policy is DRAFT')
+  }
+  console.log('✓ Unapproved Policy Invariant Verified: RETAIN = 0 (itemCount: 0, recordCount: 0)')
+
+  // Check Legal Reference Language on All Review Required Items
+  for (const item of plan.items) {
+    if (item.action === 'REVIEW_REQUIRED' && item.retentionStatus === 'DRAFT') {
+      if (!item.rationale.includes('LEGAL_REVIEW_REQUIRED')) {
+        throw new Error(`Plan item ${item.id} with DRAFT retention missing LEGAL_REVIEW_REQUIRED in rationale`)
+      }
+      const lower = item.rationale.toLowerCase()
+      if (lower.includes('must retain') || lower.includes('required retention')) {
+        throw new Error(`Plan item ${item.id} contains authoritative retention language: ${item.rationale}`)
+      }
+    }
+  }
+  console.log('✓ Legal Reference Language Verified: All DRAFT items declare LEGAL_REVIEW_REQUIRED, zero "must retain"')
 
   // Check Auth-last invariant
   const authUserPlanItem = plan.items.find((i) => i.target === 'auth.users')
@@ -305,16 +338,46 @@ async function run() {
   }
   console.log('✓ Mixed Data Handling Verified: Authored Review = ANONYMIZE, Received Review = REVIEW_REQUIRED')
 
-  // Check External Processors
+  // SECTION 2: External Processors (Evidence-Based Erasure)
+  // Didit has a confirmed session ID reference in identity_verifications
   const diditItem = plan.items.find((i) => i.externalProcessor === 'Didit')
+  // OpenAI is CONFIGURED_BUT_DISABLED and has no exposure evidence
   const openaiItem = plan.items.find((i) => i.externalProcessor === 'OpenAI')
+
   if (!diditItem || diditItem.action !== 'EXTERNAL_ERASURE') {
-    throw new Error(`Assertion failed: Didit action is not EXTERNAL_ERASURE`)
+    throw new Error('Assertion failed: Didit action is not EXTERNAL_ERASURE (session reference confirmed)')
   }
-  if (!openaiItem || openaiItem.action !== 'EXTERNAL_ERASURE') {
-    throw new Error(`Assertion failed: OpenAI action is not EXTERNAL_ERASURE`)
+  if (openaiItem) {
+    throw new Error('Assertion failed: OpenAI scheduled EXTERNAL_ERASURE without real processor exposure evidence')
   }
-  console.log('✓ External Processors Planned: Didit = EXTERNAL_ERASURE, OpenAI = EXTERNAL_ERASURE')
+  console.log('✓ External Processors Verified: Didit = EXTERNAL_ERASURE (session reference confirmed), OpenAI = 0 (no processor exposure)')
+
+  // SECTION 3: Canonical DSR Ticket & Status Verification
+  const { data: dsrRow, error: dsrError } = await supabase
+    .from('data_subject_requests')
+    .select('request_type, status')
+    .eq('requester_account_user_id', subjectAccountId)
+    .single()
+
+  if (dsrError || !dsrRow) {
+    throw new Error(`Failed to load synthetic DSR record: ${dsrError?.message}`)
+  }
+
+  const CANONICAL_DSR_TYPES = [
+    'ACCESS', 'CORRECTION', 'ANONYMIZATION', 'BLOCKING', 'DELETION',
+    'PORTABILITY', 'CONSENT_REVOCATION', 'SHARING_INFORMATION', 'AUTOMATED_DECISION_REVIEW'
+  ]
+  const CANONICAL_DSR_STATUSES = [
+    'RECEIVED', 'IDENTITY_VERIFICATION_REQUIRED', 'IN_REVIEW', 'PROCESSING', 'COMPLETED', 'REJECTED', 'CANCELLED'
+  ]
+
+  if (!CANONICAL_DSR_TYPES.includes(dsrRow.request_type)) {
+    throw new Error(`DSR request_type ${dsrRow.request_type} is not a canonical enum!`)
+  }
+  if (!CANONICAL_DSR_STATUSES.includes(dsrRow.status)) {
+    throw new Error(`DSR status ${dsrRow.status} is not a canonical enum!`)
+  }
+  console.log(`✓ Canonical DSR Record Verified: request_type = ${dsrRow.request_type}, status = ${dsrRow.status}`)
 
   // ---------------------------------------------------------------------------
   // STEP 3: EXECUTE SAFE DATA EXPORT ENGINE & ZIP PACKER

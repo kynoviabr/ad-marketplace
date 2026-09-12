@@ -46,6 +46,11 @@ export interface LifecyclePlanItem {
   dependencies?: string[]
 }
 
+export interface LifecycleActionCount {
+  itemCount: number
+  recordCount: number
+}
+
 export interface LifecycleActionSummary {
   DELETE: number
   ANONYMIZE: number
@@ -53,6 +58,7 @@ export interface LifecycleActionSummary {
   RETAIN: number
   EXTERNAL_ERASURE: number
   REVIEW_REQUIRED: number
+  byAction: Record<LifecycleAction, LifecycleActionCount>
   totalItems: number
   totalRecords: number
 }

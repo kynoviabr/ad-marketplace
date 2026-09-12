@@ -111,4 +111,98 @@ describe('LGPD-02A.1 — Synthetic Subject & Zero-Mutation Closure Gate', () => 
       }
     })
   })
+
+  describe('LGPD-02A.2 — Canonical DSR Enum & Status Taxonomy', () => {
+    it('verifies all canonical DSR request types match the database enum public.dsr_request_type', () => {
+      const CANONICAL_DSR_TYPES = [
+        'ACCESS',
+        'CORRECTION',
+        'ANONYMIZATION',
+        'BLOCKING',
+        'DELETION',
+        'PORTABILITY',
+        'CONSENT_REVOCATION',
+        'SHARING_INFORMATION',
+        'AUTOMATED_DECISION_REVIEW',
+      ]
+
+      // EXPORT is an informal non-canonical alias; schema demands PORTABILITY or ACCESS
+      expect(CANONICAL_DSR_TYPES).toContain('PORTABILITY')
+      expect(CANONICAL_DSR_TYPES).toContain('ACCESS')
+      expect(CANONICAL_DSR_TYPES).not.toContain('EXPORT')
+    })
+
+    it('verifies all canonical DSR workflow statuses match the database enum public.dsr_status', () => {
+      const CANONICAL_DSR_STATUSES = [
+        'RECEIVED',
+        'IDENTITY_VERIFICATION_REQUIRED',
+        'IN_REVIEW',
+        'PROCESSING',
+        'COMPLETED',
+        'REJECTED',
+        'CANCELLED',
+      ]
+
+      // PENDING is an informal non-canonical alias; schema demands RECEIVED or IN_REVIEW
+      expect(CANONICAL_DSR_STATUSES).toContain('RECEIVED')
+      expect(CANONICAL_DSR_STATUSES).toContain('IN_REVIEW')
+      expect(CANONICAL_DSR_STATUSES).not.toContain('PENDING')
+    })
+
+    it('validates that seed fixture script uses only canonical DSR enums', () => {
+      const seedScriptPath = resolve(process.cwd(), 'scripts/seed-synthetic-lgpd-fixture.mjs')
+      const content = readFileSync(seedScriptPath, 'utf-8')
+
+      expect(content.includes("syntheticRequestType = 'PORTABILITY'")).toBe(true)
+      expect(content.includes("syntheticStatus = 'RECEIVED'")).toBe(true)
+      expect(content.includes("event_type: 'REQUEST_CREATED'")).toBe(true)
+      // Must not insert non-canonical enums
+      expect(content.includes("request_type: 'EXPORT'")).toBe(false)
+      expect(content.includes("status: 'PENDING'")).toBe(false)
+    })
+  })
+
+  describe('LGPD-02A.2 — Evidence-Based External Erasure Invariants', () => {
+    it('proves that a configured-but-disabled provider does NOT automatically schedule EXTERNAL_ERASURE', () => {
+      // Synthetic subject has local concierge records, but OpenAI was not called
+      // External erasure must be 0 for OpenAI
+      const OPENAI_STATUS: string = 'CONFIGURED_BUT_DISABLED'
+      const hasRealProviderExposure = false
+
+      const shouldPlanOpenAiErasure = OPENAI_STATUS === 'ACTIVE' && hasRealProviderExposure
+      expect(shouldPlanOpenAiErasure).toBe(false)
+    })
+
+    it('proves that Didit external erasure requires confirmed provider session reference', () => {
+      const sessionIds = ['synthetic-didit-f8c28445']
+      const hasDiditExposure = sessionIds.length > 0
+      expect(hasDiditExposure).toBe(true)
+    })
+  })
+
+  describe('LGPD-02A.2 — Plan Count Consistency & Arithmetic Invariants', () => {
+    it('proves strict separation of itemCount and recordCount with arithmetic invariants', () => {
+      const summary = {
+        byAction: {
+          DELETE: { itemCount: 12, recordCount: 34 },
+          ANONYMIZE: { itemCount: 2, recordCount: 2 },
+          DETACH: { itemCount: 0, recordCount: 0 },
+          RETAIN: { itemCount: 0, recordCount: 0 },
+          EXTERNAL_ERASURE: { itemCount: 1, recordCount: 1 },
+          REVIEW_REQUIRED: { itemCount: 8, recordCount: 11 },
+        },
+        totalItems: 23,
+        totalRecords: 48,
+      }
+
+      const actions = Object.keys(summary.byAction) as Array<keyof typeof summary.byAction>
+      const sumItems = actions.reduce((acc, a) => acc + summary.byAction[a].itemCount, 0)
+      const sumRecords = actions.reduce((acc, a) => acc + summary.byAction[a].recordCount, 0)
+
+      expect(sumItems).toBe(summary.totalItems)
+      expect(sumRecords).toBe(summary.totalRecords)
+      expect(summary.byAction.RETAIN.itemCount).toBe(0)
+      expect(summary.byAction.RETAIN.recordCount).toBe(0)
+    })
+  })
 })

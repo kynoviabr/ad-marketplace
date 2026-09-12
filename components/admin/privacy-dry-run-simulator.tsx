@@ -313,9 +313,15 @@ export function PrivacyDryRunSimulator({
 
           {/* Action Summary Cards */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-              {t.planSummary}
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                {t.planSummary}
+              </h3>
+              <span className="text-[11px] font-mono text-neutral-400">
+                Total: <strong className="text-neutral-200">{plan.summary.totalItems}</strong> items (
+                <strong className="text-neutral-200">{plan.summary.totalRecords}</strong> {t.records.toLowerCase()})
+              </span>
+            </div>
             <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {(
                 [
@@ -327,7 +333,12 @@ export function PrivacyDryRunSimulator({
                   'REVIEW_REQUIRED',
                 ] as const
               ).map((act) => {
-                const count = plan.summary[act]
+                const actionData = plan.summary.byAction?.[act] ?? {
+                  itemCount: plan.summary[act],
+                  recordCount: plan.items
+                    .filter((i) => i.action === act)
+                    .reduce((acc, i) => acc + i.recordCount, 0),
+                }
                 const isSelected = selectedActionFilter === act
                 return (
                   <button
@@ -344,7 +355,16 @@ export function PrivacyDryRunSimulator({
                     <div className="text-[10px] font-semibold uppercase tracking-wider opacity-80">
                       {getActionLabel(act)}
                     </div>
-                    <div className="mt-1 text-xl font-extrabold">{count}</div>
+                    <div className="mt-1 flex items-baseline gap-1">
+                      <span className="text-xl font-extrabold">{actionData.itemCount}</span>
+                      <span className="text-[10px] opacity-75 font-sans">items</span>
+                    </div>
+                    <div className="text-[11px] font-mono opacity-80">
+                      {actionData.recordCount}{' '}
+                      <span className="text-[9px] font-sans opacity-75">
+                        {t.records.toLowerCase()}
+                      </span>
+                    </div>
                     {act === 'RETAIN' && (
                       <div className="mt-1 text-[9px] text-purple-300/70 leading-tight">
                         0 (Unapproved)
