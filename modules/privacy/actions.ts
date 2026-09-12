@@ -211,3 +211,133 @@ export async function getAdminSubjectExportZipAction(
   }
 }
 
+/**
+ * Administrative action for fetching operational privacy summary & reports.
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminPrivacyOperationsSummaryAction(options?: {
+  includeSynthetic?: boolean
+}): Promise<DsrActionResult<import('./operations-dal').PrivacyOperationsSummary>> {
+  try {
+    await requireAdmin()
+    const { getPrivacyOperationsSummary } = await import('./operations-dal')
+    const summary = await getPrivacyOperationsSummary(options)
+    return { success: true, data: summary }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Acesso restrito a administradores.'
+    return { success: false, error: message, code: 'FORBIDDEN' }
+  }
+}
+
+/**
+ * Administrative action for querying privacy requests with filtering.
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminPrivacyRequestsAction(options?: {
+  includeSynthetic?: boolean
+  period?: '7d' | '30d' | '90d' | 'all'
+  status?: string
+  requestType?: string
+  role?: string
+  limit?: number
+  offset?: number
+}): Promise<DsrActionResult<{ items: import('./operations-dal').PrivacyRequestItem[]; total: number }>> {
+  try {
+    await requireAdmin()
+    const { getPrivacyRequests } = await import('./operations-dal')
+    const res = await getPrivacyRequests(options)
+    return { success: true, data: res }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Acesso restrito a administradores.'
+    return { success: false, error: message, code: 'FORBIDDEN' }
+  }
+}
+
+/**
+ * Administrative action for fetching details of an individual request.
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminPrivacyRequestDetailAction(
+  requestId: string
+): Promise<DsrActionResult<import('./operations-dal').PrivacyRequestDetail>> {
+  try {
+    await requireAdmin()
+    if (!requestId || typeof requestId !== 'string') {
+      return { success: false, error: 'ID da solicitação inválido.', code: 'INVALID_ID' }
+    }
+    const { getPrivacyRequestDetail } = await import('./operations-dal')
+    const detail = await getPrivacyRequestDetail(requestId)
+    if (!detail) {
+      return { success: false, error: 'Solicitação não encontrada.', code: 'NOT_FOUND' }
+    }
+    return { success: true, data: detail }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Acesso restrito a administradores.'
+    return { success: false, error: message, code: 'FORBIDDEN' }
+  }
+}
+
+/**
+ * Administrative action for querying lifecycle executions.
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminPrivacyExecutionsAction(options?: {
+  includeSynthetic?: boolean
+  limit?: number
+  offset?: number
+}): Promise<DsrActionResult<{ items: import('./operations-dal').PrivacyExecutionItem[]; total: number }>> {
+  try {
+    await requireAdmin()
+    const { getPrivacyExecutions } = await import('./operations-dal')
+    const res = await getPrivacyExecutions(options)
+    return { success: true, data: res }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Acesso restrito a administradores.'
+    return { success: false, error: message, code: 'FORBIDDEN' }
+  }
+}
+
+/**
+ * Administrative action for fetching details of an individual execution.
+ * Strictly gated by requireAdmin().
+ */
+export async function getAdminPrivacyExecutionDetailAction(
+  executionId: string
+): Promise<DsrActionResult<import('./operations-dal').PrivacyExecutionDetail>> {
+  try {
+    await requireAdmin()
+    if (!executionId || typeof executionId !== 'string') {
+      return { success: false, error: 'ID da execução inválido.', code: 'INVALID_ID' }
+    }
+    const { getPrivacyExecutionDetail } = await import('./operations-dal')
+    const detail = await getPrivacyExecutionDetail(executionId)
+    if (!detail) {
+      return { success: false, error: 'Execução não encontrada.', code: 'NOT_FOUND' }
+    }
+    return { success: true, data: detail }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Acesso restrito a administradores.'
+    return { success: false, error: message, code: 'FORBIDDEN' }
+  }
+}
+
+/**
+ * Administrative action for exporting aggregated non-PII CSV report.
+ * Strictly gated by requireAdmin().
+ */
+export async function exportAdminPrivacyReportCsvAction(options?: {
+  includeSynthetic?: boolean
+  period?: '7d' | '30d' | '90d' | 'all'
+}): Promise<DsrActionResult<{ csv: string; filename: string }>> {
+  try {
+    await requireAdmin()
+    const { exportPrivacyAggregatedCsv } = await import('./operations-dal')
+    const csv = await exportPrivacyAggregatedCsv(options)
+    const filename = `privacy-report-aggregated-${options?.period || '30d'}-${Date.now()}.csv`
+    return { success: true, data: { csv, filename } }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Acesso restrito a administradores.'
+    return { success: false, error: message, code: 'FORBIDDEN' }
+  }
+}
+

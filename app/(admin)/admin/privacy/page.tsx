@@ -1,149 +1,54 @@
+import { Suspense } from 'react'
 import { requireAdmin } from '@/modules/moderation/guards'
-import { getAdminDataSubjectRequests } from '@/modules/privacy/dal'
-import { LGPD_RIGHTS } from '@/modules/privacy/types'
-import { getTranslations } from '@/lib/i18n/server'
-import { formatDate } from '@/lib/i18n/format'
-import { PrivacyDryRunSimulator } from '@/components/admin/privacy-dry-run-simulator'
+import {
+  getPrivacyOperationsSummary,
+  getPrivacyRequests,
+  getPrivacyExecutions,
+  getPrivacyReports,
+  getPrivacyProcessors,
+  getPrivacyRetentionPolicies,
+  getPrivacyRisksAndPendingDecisions,
+  getPrivacyAuditEvents,
+} from '@/modules/privacy/operations-dal'
+import { PrivacyOperationsConsole } from '@/components/admin/privacy-operations-console'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminPrivacyPage() {
   await requireAdmin()
-  const { locale, t } = await getTranslations()
-  const requests = await getAdminDataSubjectRequests({ limit: 50 })
+
+  // Load canonical initial data server-side (default: exclude synthetic dev tests)
+  const [
+    summary,
+    requests,
+    executions,
+    reports,
+    risks,
+    auditEvents,
+  ] = await Promise.all([
+    getPrivacyOperationsSummary({ includeSynthetic: false }),
+    getPrivacyRequests({ includeSynthetic: false, limit: 50 }),
+    getPrivacyExecutions({ includeSynthetic: false, limit: 50 }),
+    getPrivacyReports({ includeSynthetic: false, period: '30d' }),
+    getPrivacyRisksAndPendingDecisions({ includeSynthetic: false }),
+    getPrivacyAuditEvents({ includeSynthetic: false, limit: 50 }),
+  ])
+
+  const processors = getPrivacyProcessors()
+  const retentionPolicies = getPrivacyRetentionPolicies()
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-neutral-100">
-            {t('admin.privacyTitle')}
-          </h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            {t('admin.privacySubtitle')}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center rounded-md bg-neutral-800 px-2.5 py-1 text-xs font-medium text-neutral-300">
-            {t('admin.totalRequests')}: {requests.length}
-          </span>
-        </div>
-      </div>
-
-      {/* Summary Banner */}
-      <div className="mb-6 rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
-        <h2 className="text-sm font-semibold text-neutral-200">{t('admin.technicalRightsSupported')}</h2>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {LGPD_RIGHTS.map((right) => (
-            <span
-              key={right}
-              className="rounded bg-neutral-800/80 px-2 py-0.5 text-xs text-neutral-300 font-mono"
-            >
-              {right}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Requests Ledger Table */}
-      <div className="overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
-        <div className="px-4 py-3 border-b border-neutral-800 font-medium text-sm text-neutral-300">
-          {t('admin.dsrLedgerTitle')}
-        </div>
-        {requests.length === 0 ? (
-          <div className="p-8 text-center text-sm text-neutral-500">
-            {t('admin.noRequests')}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-neutral-300">
-              <thead className="border-b border-neutral-800 bg-neutral-900/50 text-neutral-400 uppercase">
-                <tr>
-                  <th className="px-4 py-3">ID</th>
-                  <th className="px-4 py-3">{t('admin.rightType')}</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">{t('admin.subjectId')}</th>
-                  <th className="px-4 py-3">{t('admin.createdAt')}</th>
-                  <th className="px-4 py-3">{t('admin.resolution')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-800/60">
-                {requests.map((req) => (
-                  <tr key={req.id} className="hover:bg-neutral-900/30">
-                    <td className="px-4 py-3 font-mono text-neutral-400">
-                      {req.id.slice(0, 8)}…
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-neutral-200">
-                      {req.request_type}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          req.status === 'COMPLETED'
-                            ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                            : req.status === 'RECEIVED'
-                            ? 'bg-amber-950 text-amber-300 border border-amber-800'
-                            : req.status === 'IN_REVIEW' || req.status === 'PROCESSING'
-                            ? 'bg-blue-950 text-blue-300 border border-blue-800'
-                            : 'bg-neutral-800 text-neutral-400'
-                        }`}
-                      >
-                        {req.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-neutral-400">
-                      {req.requester_account_user_id.slice(0, 8)}…
-                    </td>
-                    <td className="px-4 py-3 text-neutral-400">
-                      {formatDate(req.created_at, locale, { dateStyle: 'short', timeStyle: 'short' })}
-                    </td>
-                    <td className="px-4 py-3 text-neutral-400">
-                      {req.resolution_code || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* LGPD-02A Lifecycle & Dry-Run Simulator */}
-      <PrivacyDryRunSimulator
-        initialSubjects={requests.slice(0, 10).map((r) => ({
-          requestId: r.id,
-          subjectId: r.requester_account_user_id,
-          requestType: r.request_type,
-        }))}
-        translations={{
-          simulatorTitle: t('admin.simulatorTitle'),
-          simulatorSubtitle: t('admin.simulatorSubtitle'),
-          dryRunWarning: t('admin.dryRunWarning'),
-          simulateButton: t('admin.simulateButton'),
-          simulating: t('admin.simulating'),
-          enterSubjectId: t('admin.enterSubjectId'),
-          selectFromDsr: t('admin.selectFromDsr'),
-          planSummary: t('admin.planSummary'),
-          plannedItems: t('admin.plannedItems'),
-          targetStore: t('admin.targetStore'),
-          actionPlanned: t('admin.actionPlanned'),
-          records: t('admin.records'),
-          rationale: t('admin.rationale'),
-          exportData: t('admin.exportData'),
-          exporting: t('admin.exporting'),
-          exportZip: t('admin.exportZip'),
-          exportJson: t('admin.exportJson'),
-          noPlanGenerated: t('admin.noPlanGenerated'),
-          actionDelete: t('admin.actionDelete'),
-          actionAnonymize: t('admin.actionAnonymize'),
-          actionDetach: t('admin.actionDetach'),
-          actionRetain: t('admin.actionRetain'),
-          actionExternalErasure: t('admin.actionExternalErasure'),
-          actionReviewRequired: t('admin.actionReviewRequired'),
-          unapprovedRetentionNote: t('admin.unapprovedRetentionNote'),
-        }}
+    <Suspense fallback={<div className="p-8 text-center text-sm text-neutral-500">Carregando painel de privacidade…</div>}>
+      <PrivacyOperationsConsole
+        initialSummary={summary}
+        initialRequests={requests}
+        initialExecutions={executions}
+        initialReports={reports}
+        initialProcessors={processors}
+        initialRetentionPolicies={retentionPolicies}
+        initialRisks={risks}
+        initialAuditEvents={auditEvents}
       />
-    </div>
+    </Suspense>
   )
 }
-
