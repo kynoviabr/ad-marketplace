@@ -52,7 +52,7 @@ export async function seedSyntheticLgpdSubject() {
 
   // 1. Check or Create Auth User
   let authUserId = null
-  const { data: userList } = await supabase.auth.admin.listUsers()
+  const { data: userList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
   const existingUser = userList?.users?.find((u) => u.email === SYNTHETIC_EMAIL)
 
   if (existingUser) {
