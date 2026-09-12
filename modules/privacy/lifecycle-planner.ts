@@ -100,11 +100,15 @@ export async function generateSubjectLifecyclePlan(
   // 3. KYC & VERIFICATION RECORDS (public.identity_verifications & external Didit)
   const { data: verifications } = await admin
     .from('identity_verifications')
-    .select('id, status, didit_session_id')
+    .select('id, status, provider_session_id')
     .eq('account_user_id', subject.accountId)
 
   if (verifications && verifications.length > 0) {
     const verifIds = verifications.map((v) => v.id)
+    const sessionIds = verifications
+      .map((v) => v.provider_session_id)
+      .filter(Boolean) as string[]
+
     items.push({
       id: `plan-kyc-${subject.accountId}`,
       system: 'SUPABASE_POSTGRES',
@@ -120,18 +124,22 @@ export async function generateSubjectLifecyclePlan(
     })
 
     // Verification webhook events
-    const { count: verifEventCount } = await admin
-      .from('verification_webhook_events')
-      .select('*', { count: 'exact', head: true })
-      .in('verification_id', verifIds)
+    let verifEventCount = 0
+    if (sessionIds.length > 0) {
+      const { count } = await admin
+        .from('verification_webhook_events')
+        .select('*', { count: 'exact', head: true })
+        .in('provider_session_id', sessionIds)
+      verifEventCount = count ?? 0
+    }
 
-    if (verifEventCount && verifEventCount > 0) {
+    if (verifEventCount > 0) {
       items.push({
         id: `plan-kyc-events-${subject.accountId}`,
         system: 'SUPABASE_POSTGRES',
         target: 'public.verification_webhook_events',
         recordCount: verifEventCount,
-        identifiers: verifIds,
+        identifiers: sessionIds,
         action: 'REVIEW_REQUIRED',
         rationale: 'KYC processor webhook event audit trail. Immutable compliance defense record.',
         legalBasisStatus: 'LEGAL_APPROVAL_REQUIRED',
@@ -146,7 +154,7 @@ export async function generateSubjectLifecyclePlan(
       system: 'EXTERNAL_PROCESSOR',
       target: 'Didit (KYC Biometrics & Identity Verification)',
       recordCount: verifications.length,
-      identifiers: verifications.map((v) => v.didit_session_id).filter(Boolean) as string[],
+      identifiers: sessionIds,
       action: 'EXTERNAL_ERASURE',
       rationale:
         'External KYC processor session deletion dispatch. External erasure required under LGPD Art. 18, VI. Observation only in LGPD-02A.',
@@ -541,8 +549,8 @@ export async function generateSubjectLifecyclePlan(
   // 6. COMMERCIAL, BILLING & SUBSCRIPTIONS (statutory tax retention under review)
   const { data: subscriptions } = await admin
     .from('subscriptions')
-    .select('id, plan_code, status')
-    .eq('account_id', subject.accountId)
+    .select('id, status')
+    .eq('account_user_id', subject.accountId)
 
   if (subscriptions && subscriptions.length > 0) {
     items.push({
@@ -563,12 +571,12 @@ export async function generateSubjectLifecyclePlan(
   const { count: billingOverridesCount } = await admin
     .from('billing_overrides')
     .select('*', { count: 'exact', head: true })
-    .eq('account_id', subject.accountId)
+    .eq('account_user_id', subject.accountId)
 
   const { count: entOverridesCount } = await admin
     .from('entitlement_overrides')
     .select('*', { count: 'exact', head: true })
-    .eq('account_id', subject.accountId)
+    .eq('account_user_id', subject.accountId)
 
   const totalOverrides = (billingOverridesCount ?? 0) + (entOverridesCount ?? 0)
   if (totalOverrides > 0) {
@@ -589,7 +597,7 @@ export async function generateSubjectLifecyclePlan(
   const { count: billingAuditCount } = await admin
     .from('billing_admin_audit_logs')
     .select('*', { count: 'exact', head: true })
-    .eq('target_account_id', subject.accountId)
+    .eq('target_account_user_id', subject.accountId)
 
   if (billingAuditCount && billingAuditCount > 0) {
     items.push({
@@ -607,25 +615,19 @@ export async function generateSubjectLifecyclePlan(
   }
 
   // 7. CONTENT REPORTS (abuse / moderation safeguard)
-  const { count: reportsAsTargetCount } = subject.profileId
+  const { count: reportsCount } = subject.profileId
     ? await admin
         .from('content_reports')
         .select('*', { count: 'exact', head: true })
-        .eq('target_profile_id', subject.profileId)
+        .eq('profile_id', subject.profileId)
     : { count: 0 }
 
-  const { count: reportsAsReporterCount } = await admin
-    .from('content_reports')
-    .select('*', { count: 'exact', head: true })
-    .eq('reporter_account_id', subject.accountId)
-
-  const totalReports = (reportsAsTargetCount ?? 0) + (reportsAsReporterCount ?? 0)
-  if (totalReports > 0) {
+  if (reportsCount && reportsCount > 0) {
     items.push({
       id: `plan-content-reports-${subject.accountId}`,
       system: 'SUPABASE_POSTGRES',
       target: 'public.content_reports',
-      recordCount: totalReports,
+      recordCount: reportsCount,
       identifiers: [subject.accountId],
       action: 'REVIEW_REQUIRED',
       rationale:
@@ -663,7 +665,7 @@ export async function generateSubjectLifecyclePlan(
     const { count: receivedReviewsCount } = await admin
       .from('professional_reviews')
       .select('*', { count: 'exact', head: true })
-      .eq('profile_id', subject.profileId)
+      .eq('professional_profile_id', subject.profileId)
 
     if (receivedReviewsCount && receivedReviewsCount > 0) {
       items.push({

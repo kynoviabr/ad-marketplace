@@ -213,8 +213,8 @@ export async function generateSubjectExportBundle(
     const { data: offerings } = await admin
       .from('professional_profile_offerings')
       .select(`
-        custom_price,
-        option:professional_offering_options (code, category, name, default_price)
+        option_code, status,
+        option:professional_offering_options (code, group_code)
       `)
       .eq('profile_id', profileId)
 
@@ -244,9 +244,9 @@ export async function generateSubjectExportBundle(
           city: (l.location as { city?: { name?: string } })?.city?.name,
         })) ?? [],
         offerings: offerings?.map((o) => ({
-          service: (o.option as { name?: string })?.name,
-          category: (o.option as { category?: string })?.category,
-          price: o.custom_price ?? (o.option as { default_price?: number })?.default_price,
+          code: o.option_code,
+          group: (o.option as { group_code?: string })?.group_code ?? null,
+          status: o.status,
         })) ?? [],
         createdAt: profileRow.created_at,
         publishedAt: profileRow.published_at,
@@ -297,12 +297,12 @@ export async function generateSubjectExportBundle(
 
     const { data: weekly } = await admin
       .from('professional_weekly_availability')
-      .select('day_of_week, start_time, end_time, is_active')
+      .select('day_of_week, start_time, end_time')
       .eq('profile_id', profileId)
 
     const { data: exceptions } = await admin
       .from('professional_availability_exceptions')
-      .select('exception_date, is_unavailable, start_time, end_time')
+      .select('exception_date, exception_type, start_time, end_time')
       .eq('profile_id', profileId)
 
     if (availSettings || weekly?.length || exceptions?.length) {
@@ -318,8 +318,8 @@ export async function generateSubjectExportBundle(
   // 5. COMMERCIAL & SUBSCRIPTION HISTORY (commercial.json)
   const { data: subscriptions } = await admin
     .from('subscriptions')
-    .select('plan_code, status, current_period_start, current_period_end, created_at')
-    .eq('account_id', subject.accountId)
+    .select('status, current_period_start, current_period_end, created_at, plan:subscription_plans(code)')
+    .eq('account_user_id', subject.accountId)
 
   const { data: boosts } = subject.profileId
     ? await admin
@@ -331,7 +331,7 @@ export async function generateSubjectExportBundle(
   if (subscriptions?.length || boosts?.length) {
     files['commercial.json'] = {
       subscriptions: subscriptions?.map((s) => ({
-        planCode: s.plan_code,
+        planCode: (s.plan as { code?: string })?.code ?? null,
         status: s.status,
         periodStart: s.current_period_start,
         periodEnd: s.current_period_end,
