@@ -402,3 +402,67 @@ export async function getAccountDataSummary(
   }
 }
 
+export interface AdminTransitionDsrParams {
+  requestId: string
+  expectedCurrentStatus: DsrStatus
+  targetStatus: DsrStatus
+  adminAccountId: string
+  reasonCode?: string
+  operatorNotes?: string
+  resolutionMessage?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface AdminTransitionDsrResult {
+  success: boolean
+  requestId?: string
+  previousStatus?: DsrStatus
+  newStatus?: DsrStatus
+  eventType?: DsrEventType
+  eventId?: string
+  error?: string
+  code?: string
+}
+
+/**
+ * Executes an atomic server-side state transition for a Data Subject Request
+ * via the canonical PostgreSQL RPC admin_transition_data_subject_request.
+ */
+export async function adminTransitionDataSubjectRequest(
+  params: AdminTransitionDsrParams
+): Promise<AdminTransitionDsrResult> {
+  const admin = createAdminClient()
+  const { data, error } = await admin.rpc('admin_transition_data_subject_request', {
+    p_request_id: params.requestId,
+    p_expected_current_status: params.expectedCurrentStatus,
+    p_target_status: params.targetStatus,
+    p_admin_account_id: params.adminAccountId,
+    p_reason_code: params.reasonCode || null,
+    p_operator_notes: params.operatorNotes || null,
+    p_resolution_message: params.resolutionMessage || null,
+    p_metadata: params.metadata || {},
+  })
+
+  if (error || !data) {
+    const rawMsg = error?.message || 'Falha ao executar transição de estado.'
+    let code = 'TRANSITION_FAILED'
+    if (rawMsg.includes('STALE_STATUS')) code = 'STALE_STATUS'
+    else if (rawMsg.includes('TERMINAL_STATUS')) code = 'TERMINAL_STATUS'
+    else if (rawMsg.includes('INVALID_TRANSITION')) code = 'INVALID_TRANSITION'
+    else if (rawMsg.includes('FORBIDDEN')) code = 'FORBIDDEN'
+    else if (rawMsg.includes('MISSING_REASON_CODE')) code = 'MISSING_REASON_CODE'
+
+    return { success: false, error: rawMsg, code }
+  }
+
+  return {
+    success: true,
+    requestId: data.requestId,
+    previousStatus: data.previousStatus as DsrStatus,
+    newStatus: data.newStatus as DsrStatus,
+    eventType: data.eventType as DsrEventType,
+    eventId: data.eventId,
+  }
+}
+
+

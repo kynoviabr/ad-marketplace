@@ -126,11 +126,14 @@ export const privacyPtBR = {
   'privacy.timelineActor.SYSTEM': 'Sistema Velvet',
   'privacy.event.REQUEST_CREATED': 'Solicitação protocolada com sucesso.',
   'privacy.event.IDENTITY_VERIFIED': 'Identidade do titular confirmada.',
+  'privacy.event.IDENTITY_VERIFICATION_REQUESTED': 'Confirmação adicional de identidade solicitada pela administração.',
   'privacy.event.REVIEW_STARTED': 'Iniciada a análise da solicitação pelo encarregado de privacidade.',
   'privacy.event.PROCESSING_STARTED': 'Procedimentos de atendimento iniciados.',
   'privacy.event.REQUEST_COMPLETED': 'Solicitação finalizada com sucesso.',
   'privacy.event.REQUEST_REJECTED': 'Solicitação concluída com indeferimento fundamentado.',
   'privacy.event.REQUEST_CANCELLED': 'Solicitação cancelada.',
+  'privacy.identityVerificationBanner': 'Precisamos confirmar sua identidade',
+  'privacy.identityVerificationBody': 'Para sua segurança e conformidade com a LGPD, a equipe de privacidade solicitou a confirmação de sua identidade antes de prosseguir com a solicitação.',
 
   // Preferences Section
   'privacy.preferencesTitle': 'Preferências de privacidade e rastreamento',
@@ -280,11 +283,14 @@ export const privacyEn: Record<PrivacyMessageKey, string> = {
   'privacy.timelineActor.SYSTEM': 'Velvet System',
   'privacy.event.REQUEST_CREATED': 'Request successfully filed.',
   'privacy.event.IDENTITY_VERIFIED': 'Data subject identity confirmed.',
+  'privacy.event.IDENTITY_VERIFICATION_REQUESTED': 'Additional identity verification requested by administration.',
   'privacy.event.REVIEW_STARTED': 'Privacy officer review commenced.',
   'privacy.event.PROCESSING_STARTED': 'Fulfillment procedures initiated.',
   'privacy.event.REQUEST_COMPLETED': 'Request successfully completed.',
   'privacy.event.REQUEST_REJECTED': 'Request concluded with formal grounds for denial.',
   'privacy.event.REQUEST_CANCELLED': 'Request cancelled.',
+  'privacy.identityVerificationBanner': 'We need to confirm your identity',
+  'privacy.identityVerificationBody': 'For your security and LGPD compliance, the privacy team requested identity confirmation before proceeding with your request.',
 
   // Preferences Section
   'privacy.preferencesTitle': 'Privacy & tracking preferences',

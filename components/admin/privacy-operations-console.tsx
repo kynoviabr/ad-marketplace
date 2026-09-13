@@ -22,7 +22,9 @@ import {
   getAdminPrivacyExecutionsAction,
   getAdminPrivacyExecutionDetailAction,
   exportAdminPrivacyReportCsvAction,
+  adminTransitionDsrAction,
 } from '@/modules/privacy/actions'
+import { DSR_REJECTION_REASONS, type DsrRejectionReason } from '@/modules/privacy/workflow'
 import { PrivacyDryRunSimulator } from '@/components/admin/privacy-dry-run-simulator'
 
 export type ConsoleTab =
@@ -75,6 +77,17 @@ export function PrivacyOperationsConsole({
   const [selectedRole, setSelectedRole] = useState<string>('ALL')
   const [activeRequestDetail, setActiveRequestDetail] = useState<PrivacyRequestDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+
+  // State for DSR Workflow Transitions
+  const [transitioningStatus, setTransitioningStatus] = useState<string | null>(null)
+  const [transitionError, setTransitionError] = useState<string | null>(null)
+  const [transitionSuccess, setTransitionSuccess] = useState<string | null>(null)
+  const [confirmModalTarget, setConfirmModalTarget] = useState<
+    'IDENTITY_VERIFICATION_REQUIRED' | 'IN_REVIEW' | 'PROCESSING' | 'COMPLETED' | 'REJECTED' | null
+  >(null)
+  const [rejectionReasonCode, setRejectionReasonCode] = useState<DsrRejectionReason>('LEGAL_OBLIGATION_PRESERVATION')
+  const [operatorNotes, setOperatorNotes] = useState<string>('')
+  const [resolutionMessage, setResolutionMessage] = useState<string>('')
 
   // State for Executions Tab
   const [executionsList, setExecutionsList] = useState(initialExecutions.items)
@@ -155,6 +168,11 @@ export function PrivacyOperationsConsole({
   // View Request Detail
   const handleOpenRequestDetail = async (requestId: string) => {
     setLoadingDetail(true)
+    setTransitionError(null)
+    setTransitionSuccess(null)
+    setConfirmModalTarget(null)
+    setOperatorNotes('')
+    setResolutionMessage('')
     try {
       const res = await getAdminPrivacyRequestDetailAction(requestId)
       if (res.success && res.data) {
@@ -162,6 +180,61 @@ export function PrivacyOperationsConsole({
       }
     } finally {
       setLoadingDetail(false)
+    }
+  }
+
+  // Execute DSR Workflow Transition
+  const handleExecuteTransition = async (
+    targetStatus: 'IDENTITY_VERIFICATION_REQUIRED' | 'IN_REVIEW' | 'PROCESSING' | 'COMPLETED' | 'REJECTED'
+  ) => {
+    if (!activeRequestDetail) return
+    setTransitioningStatus(targetStatus)
+    setTransitionError(null)
+    setTransitionSuccess(null)
+
+    try {
+      const res = await adminTransitionDsrAction({
+        requestId: activeRequestDetail.id,
+        expectedCurrentStatus: activeRequestDetail.status as any,
+        targetStatus,
+        reasonCode: targetStatus === 'REJECTED' ? rejectionReasonCode : undefined,
+        operatorNotes: operatorNotes.trim() || undefined,
+        resolutionMessage: resolutionMessage.trim() || undefined,
+      })
+
+      if (!res.success) {
+        setTransitionError(res.error || 'Falha na transição de status.')
+        setTransitioningStatus(null)
+        return
+      }
+
+      setConfirmModalTarget(null)
+      setOperatorNotes('')
+      setResolutionMessage('')
+      setTransitionSuccess(`Status atualizado com sucesso para ${targetStatus}.`)
+
+      // Reload detail
+      const detailRes = await getAdminPrivacyRequestDetailAction(activeRequestDetail.id)
+      if (detailRes.success && detailRes.data) {
+        setActiveRequestDetail(detailRes.data)
+      }
+
+      // Reload requests list
+      const reqRes = await getAdminPrivacyRequestsAction({
+        includeSynthetic,
+        period: selectedPeriod,
+        status: selectedStatus,
+        requestType: selectedType,
+        role: selectedRole,
+      })
+      if (reqRes.success && reqRes.data) {
+        setRequestsList(reqRes.data.items)
+        setRequestsTotal(reqRes.data.total)
+      }
+    } catch (err) {
+      setTransitionError(err instanceof Error ? err.message : 'Erro ao executar transição.')
+    } finally {
+      setTransitioningStatus(null)
     }
   }
 
@@ -611,6 +684,255 @@ export function PrivacyOperationsConsole({
                       <span className="rounded border border-amber-800 bg-amber-950/80 px-2 py-1 text-amber-300">
                         {t('admin.syntheticDevBadge')}
                       </span>
+                    )}
+                  </div>
+
+                  {/* Feedback Messages */}
+                  {transitionError && (
+                    <div className="rounded-lg border border-rose-800 bg-rose-950/40 p-3 text-rose-300">
+                      <p className="font-semibold">Erro na Operação:</p>
+                      <p className="text-[11px] mt-0.5">{transitionError}</p>
+                    </div>
+                  )}
+
+                  {transitionSuccess && (
+                    <div className="rounded-lg border border-emerald-800 bg-emerald-950/40 p-3 text-emerald-300">
+                      <p className="font-semibold">Sucesso:</p>
+                      <p className="text-[11px] mt-0.5">{transitionSuccess}</p>
+                    </div>
+                  )}
+
+                  {/* Case Management & Workflow Actions */}
+                  <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
+                      <h4 className="font-semibold text-neutral-200">Gestão do Caso & Workflow</h4>
+                      <span className="text-[11px] text-neutral-400">
+                        Estado atual: <strong className="text-neutral-200">{activeRequestDetail.status}</strong>
+                      </span>
+                    </div>
+
+                    {['COMPLETED', 'REJECTED', 'CANCELLED'].includes(activeRequestDetail.status) ? (
+                      <div className="mt-3 rounded border border-neutral-800 bg-neutral-950/60 p-3 text-neutral-400">
+                        <p className="text-xs font-medium text-neutral-300">
+                          {t('admin.terminalStatusBanner')}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Transições a partir de RECEIVED */}
+                          {activeRequestDetail.status === 'RECEIVED' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmModalTarget('IDENTITY_VERIFICATION_REQUIRED')
+                                  setTransitionError(null)
+                                }}
+                                className="rounded bg-amber-900/40 border border-amber-700/60 px-3 py-1.5 text-amber-200 hover:bg-amber-900/60 transition-colors"
+                              >
+                                {t('admin.actionRequestIdentity')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmModalTarget('IN_REVIEW')
+                                  setTransitionError(null)
+                                }}
+                                className="rounded bg-blue-900/40 border border-blue-700/60 px-3 py-1.5 text-blue-200 hover:bg-blue-900/60 transition-colors"
+                              >
+                                {t('admin.actionStartReview')}
+                              </button>
+                            </>
+                          )}
+
+                          {/* Transições a partir de IDENTITY_VERIFICATION_REQUIRED */}
+                          {activeRequestDetail.status === 'IDENTITY_VERIFICATION_REQUIRED' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setConfirmModalTarget('IN_REVIEW')
+                                setTransitionError(null)
+                              }}
+                              className="rounded bg-blue-900/40 border border-blue-700/60 px-3 py-1.5 text-blue-200 hover:bg-blue-900/60 transition-colors"
+                            >
+                              {t('admin.actionStartReview')}
+                            </button>
+                          )}
+
+                          {/* Transições a partir de IN_REVIEW */}
+                          {activeRequestDetail.status === 'IN_REVIEW' && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmModalTarget('IDENTITY_VERIFICATION_REQUIRED')
+                                  setTransitionError(null)
+                                }}
+                                className="rounded bg-amber-900/40 border border-amber-700/60 px-3 py-1.5 text-amber-200 hover:bg-amber-900/60 transition-colors"
+                              >
+                                {t('admin.actionRequestIdentity')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfirmModalTarget('PROCESSING')
+                                  setTransitionError(null)
+                                }}
+                                className="rounded bg-blue-900/40 border border-blue-700/60 px-3 py-1.5 text-blue-200 hover:bg-blue-900/60 transition-colors"
+                              >
+                                {t('admin.actionStartProcessing')}
+                              </button>
+                            </>
+                          )}
+
+                          {/* Transições a partir de PROCESSING */}
+                          {activeRequestDetail.status === 'PROCESSING' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setConfirmModalTarget('COMPLETED')
+                                setTransitionError(null)
+                              }}
+                              className="rounded bg-emerald-900/40 border border-emerald-700/60 px-3 py-1.5 text-emerald-200 hover:bg-emerald-900/60 transition-colors"
+                            >
+                              {t('admin.actionComplete')}
+                            </button>
+                          )}
+
+                          {/* Não Atender (Rejeitar) disponível em qualquer estado não-terminal */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setConfirmModalTarget('REJECTED')
+                              setTransitionError(null)
+                            }}
+                            className="rounded bg-rose-950/40 border border-rose-800/60 px-3 py-1.5 text-rose-300 hover:bg-rose-900/60 transition-colors"
+                          >
+                            {t('admin.actionReject')}
+                          </button>
+                        </div>
+
+                        {/* Confirmation & Parameters Box */}
+                        {confirmModalTarget && (
+                          <div className="rounded-lg border border-neutral-700 bg-neutral-950 p-4 space-y-3 mt-3">
+                            <div className="border-b border-neutral-800 pb-2">
+                              <h5 className="font-bold text-neutral-100">
+                                {confirmModalTarget === 'COMPLETED'
+                                  ? t('admin.actionConfirmCompleteTitle')
+                                  : confirmModalTarget === 'REJECTED'
+                                  ? t('admin.actionConfirmRejectTitle')
+                                  : t('admin.actionConfirmTitle')}
+                              </h5>
+                              <p className="text-[11px] text-neutral-400 mt-0.5">
+                                {confirmModalTarget === 'COMPLETED'
+                                  ? t('admin.actionConfirmCompleteDesc')
+                                  : confirmModalTarget === 'REJECTED'
+                                  ? t('admin.actionConfirmRejectDesc')
+                                  : t('admin.actionConfirmDesc').replace('{status}', confirmModalTarget)}
+                              </p>
+                            </div>
+
+                            {/* Destructive Blocker Warning for Real Users */}
+                            {confirmModalTarget === 'COMPLETED' &&
+                              ['DELETION', 'ANONYMIZATION', 'BLOCKING'].includes(activeRequestDetail.requestType) &&
+                              !activeRequestDetail.isSynthetic && (
+                                <div className="rounded border border-rose-800 bg-rose-950/60 p-2.5 text-rose-300">
+                                  <p className="font-bold">⚠️ Governança Restrita</p>
+                                  <p className="text-[11px] mt-0.5">
+                                    {t('admin.blockerRealUserLifecycle')}. Solicitações reais de eliminação/anonimização não podem ser concluídas diretamente neste ambiente.
+                                  </p>
+                                </div>
+                              )}
+
+                            {/* Rejection Reason Code Selector */}
+                            {confirmModalTarget === 'REJECTED' && (
+                              <div>
+                                <label className="block text-neutral-300 font-medium mb-1">
+                                  {t('admin.selectReasonCode')} *
+                                </label>
+                                <select
+                                  value={rejectionReasonCode}
+                                  onChange={(e) => setRejectionReasonCode(e.target.value as DsrRejectionReason)}
+                                  className="w-full rounded border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-neutral-200 text-xs"
+                                >
+                                  <option value="LEGAL_OBLIGATION_PRESERVATION">
+                                    {t('admin.rejectionReasonLegalObligation')} (LEGAL_OBLIGATION_PRESERVATION)
+                                  </option>
+                                  <option value="IDENTITY_NOT_VERIFIED">
+                                    {t('admin.rejectionReasonIdentityNotVerified')} (IDENTITY_NOT_VERIFIED)
+                                  </option>
+                                  <option value="REQUEST_NOT_APPLICABLE">
+                                    {t('admin.rejectionReasonNotApplicable')} (REQUEST_NOT_APPLICABLE)
+                                  </option>
+                                  <option value="INSUFFICIENT_INFORMATION">
+                                    {t('admin.rejectionReasonInsufficientInfo')} (INSUFFICIENT_INFORMATION)
+                                  </option>
+                                  <option value="DUPLICATE_REQUEST">
+                                    {t('admin.rejectionReasonDuplicate')} (DUPLICATE_REQUEST)
+                                  </option>
+                                  <option value="OTHER_JUSTIFIED">
+                                    {t('admin.rejectionReasonOther')} (OTHER_JUSTIFIED)
+                                  </option>
+                                </select>
+                              </div>
+                            )}
+
+                            {/* Resolution Message for Data Subject */}
+                            <div>
+                              <label className="block text-neutral-300 font-medium mb-1">
+                                {t('admin.resolutionMessageLabel')}
+                              </label>
+                              <textarea
+                                value={resolutionMessage}
+                                onChange={(e) => setResolutionMessage(e.target.value)}
+                                placeholder={t('admin.resolutionMessagePlaceholder')}
+                                rows={2}
+                                className="w-full rounded border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-neutral-200 placeholder:text-neutral-600 text-xs"
+                              />
+                            </div>
+
+                            {/* Operator Internal Notes */}
+                            <div>
+                              <label className="block text-neutral-300 font-medium mb-1">
+                                {t('admin.operatorNotesLabel')}
+                                {confirmModalTarget === 'REJECTED' && rejectionReasonCode === 'OTHER_JUSTIFIED' && ' * (obrigatório)'}
+                              </label>
+                              <textarea
+                                value={operatorNotes}
+                                onChange={(e) => setOperatorNotes(e.target.value)}
+                                placeholder={t('admin.operatorNotesPlaceholder')}
+                                rows={2}
+                                className="w-full rounded border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-neutral-200 placeholder:text-neutral-600 text-xs"
+                              />
+                            </div>
+
+                            {/* Modal Action Buttons */}
+                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-800">
+                              <button
+                                type="button"
+                                onClick={() => setConfirmModalTarget(null)}
+                                className="rounded bg-neutral-800 px-3 py-1.5 text-xs text-neutral-300 hover:bg-neutral-700"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                type="button"
+                                disabled={
+                                  !!transitioningStatus ||
+                                  (confirmModalTarget === 'COMPLETED' &&
+                                    ['DELETION', 'ANONYMIZATION', 'BLOCKING'].includes(activeRequestDetail.requestType) &&
+                                    !activeRequestDetail.isSynthetic)
+                                }
+                                onClick={() => handleExecuteTransition(confirmModalTarget)}
+                                className="rounded bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {transitioningStatus ? t('admin.actionTransitioning') : 'Confirmar Transição'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
 

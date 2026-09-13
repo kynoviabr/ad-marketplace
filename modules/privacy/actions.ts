@@ -464,3 +464,148 @@ export async function exportAdminPrivacyReportCsvAction(options?: {
   }
 }
 
+export interface AdminTransitionDsrInput {
+  requestId: string
+  expectedCurrentStatus: import('./types').DsrStatus
+  targetStatus: import('./types').DsrStatus
+  reasonCode?: string
+  operatorNotes?: string
+  resolutionMessage?: string
+}
+
+/**
+ * Administrative action for performing an atomic state transition on a DSR case.
+ * Strictly gated by requireAdmin().
+ * Enforces canonical workflow transition matrix, completion gates, and immutable audit event recording.
+ */
+export async function adminTransitionDsrAction(
+  input: AdminTransitionDsrInput
+): Promise<DsrActionResult<import('./dal').AdminTransitionDsrResult>> {
+  let adminAccount: any
+  try {
+    adminAccount = await requireAdmin()
+  } catch {
+    return { success: false, error: 'Acesso restrito a administradores.', code: 'FORBIDDEN' }
+  }
+
+  if (!adminAccount || !adminAccount.id) {
+    return { success: false, error: 'Acesso restrito a administradores.', code: 'FORBIDDEN' }
+  }
+
+  try {
+    const { requestId, expectedCurrentStatus, targetStatus, reasonCode, operatorNotes, resolutionMessage } = input
+
+    if (!requestId || !expectedCurrentStatus || !targetStatus) {
+      return { success: false, error: 'Parâmetros de transição incompletos.', code: 'INVALID_PARAMETERS' }
+    }
+
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const admin = createAdminClient()
+
+    // 1. Fetch current request to evaluate gates
+    const { data: request, error: reqError } = await admin
+      .from('data_subject_requests')
+      .select('id, request_type, status, requester_account_user_id, details')
+      .eq('id', requestId)
+      .maybeSingle()
+
+    if (reqError || !request) {
+      return { success: false, error: 'Solicitação não encontrada.', code: 'NOT_FOUND' }
+    }
+
+    // 2. Resolve synthetic status
+    let isSynthetic = false
+    if (request.details?.synthetic === true || request.details?.synthetic === 'true') {
+      isSynthetic = true
+    } else if (typeof request.details?.reason === 'string' && /synthetic|fixture|LGPD-02/i.test(request.details.reason)) {
+      isSynthetic = true
+    } else if (request.requester_account_user_id) {
+      const { data: acc } = await admin
+        .from('account_users')
+        .select('id, auth_user_id')
+        .eq('id', request.requester_account_user_id)
+        .maybeSingle()
+      if (acc?.auth_user_id && admin.auth?.admin?.getUserById) {
+        try {
+          const { data: authUser } = await admin.auth.admin.getUserById(acc.auth_user_id)
+          if (
+            authUser?.user?.user_metadata?.synthetic === true ||
+            authUser?.user?.user_metadata?.fixture?.startsWith('LGPD') ||
+            authUser?.user?.email?.endsWith('@ad-marketplace-synthetic.invalid') ||
+            authUser?.user?.email?.startsWith('synthetic-lgpd-')
+          ) {
+            isSynthetic = true
+          }
+        } catch {
+          // Best effort
+        }
+      }
+    }
+
+    // 3. Check for completed lifecycle execution if destructive completion
+    let hasCompletedLifecycleExecution = false
+    if (targetStatus === 'COMPLETED' && ['DELETION', 'ANONYMIZATION', 'BLOCKING'].includes(request.request_type)) {
+      const { data: exec } = await admin
+        .from('privacy_lifecycle_executions')
+        .select('id, status, mode')
+        .eq('status', 'COMPLETED')
+        .eq('mode', 'SYNTHETIC_DESTRUCTIVE')
+        .or(`data_subject_request_id.eq.${requestId},subject_account_user_id.eq.${request.requester_account_user_id}`)
+        .maybeSingle()
+      if (exec) {
+        hasCompletedLifecycleExecution = true
+      }
+    }
+
+    // 4. Validate transition via workflow engine
+    const { canTransitionDsrStatus } = await import('./workflow')
+    const gateResult = canTransitionDsrStatus(
+      request.status,
+      targetStatus,
+      request.request_type,
+      {
+        isSynthetic,
+        hasCompletedLifecycleExecution,
+        hasExportFulfilled: !!request.details?.exportFulfilled,
+        operatorNotes,
+        resolutionMessage,
+      },
+      { reasonCode, operatorNotes }
+    )
+
+    if (!gateResult.allowed) {
+      return {
+        success: false,
+        error: gateResult.reason || 'Transição bloqueada por regra de governança.',
+        code: gateResult.blockerCode || 'TRANSITION_BLOCKED',
+      }
+    }
+
+    // 5. Execute atomic RPC
+    const { adminTransitionDataSubjectRequest } = await import('./dal')
+    const result = await adminTransitionDataSubjectRequest({
+      requestId,
+      expectedCurrentStatus,
+      targetStatus,
+      adminAccountId: adminAccount.id,
+      reasonCode,
+      operatorNotes,
+      resolutionMessage,
+    })
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Falha ao executar transição de estado.',
+        code: result.code || 'TRANSITION_FAILED',
+      }
+    }
+
+    return { success: true, data: result }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro interno ao processar transição de status.'
+    return { success: false, error: message, code: 'INTERNAL_ERROR' }
+  }
+}
+
+

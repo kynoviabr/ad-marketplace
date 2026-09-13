@@ -64,6 +64,7 @@ describe('LGPD-01 — Data Inventory & Data Subject Rights Foundation', () => {
       expect(DSR_EVENT_TYPES).toEqual([
         'REQUEST_CREATED',
         'IDENTITY_VERIFIED',
+        'IDENTITY_VERIFICATION_REQUESTED',
         'REVIEW_STARTED',
         'PROCESSING_STARTED',
         'REQUEST_COMPLETED',
