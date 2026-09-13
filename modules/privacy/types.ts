@@ -204,3 +204,49 @@ export interface DataSubjectRequestSafeDTO {
   cancelledAt: string | null
   resolutionCode: string | null
 }
+
+/** Client-safe event timeline DTO without internal operator notes or identifiers */
+export interface DataSubjectRequestEventSafeDTO {
+  id: string
+  requestId: string
+  eventType: DsrEventType
+  actorRole: DsrActorRole
+  createdAt: string
+}
+
+/** Safe, aggregated overview of personal data categories stored for the authenticated subject */
+export interface DataSubjectSummaryDTO {
+  accountId: string
+  role: SubjectRole
+  email: string | null
+  phone: string | null
+  status: string
+  createdAt: string | null
+  legalAcceptance: {
+    termsVersion: string | null
+    termsAcceptedAt: string | null
+    privacyVersion: string | null
+    privacyAcceptedAt: string | null
+  }
+  // Advertiser-specific summary (null for client)
+  advertiserSummary?: {
+    stageName: string | null
+    slug: string | null
+    publishedAt: string | null
+    locationsCount: number
+    offeringsCount: number
+    photosCount: number
+    videosCount: number
+    activeBoostsCount: number
+    subscriptionPlan: string | null
+  } | null
+  // Client-specific summary (null for advertiser)
+  clientSummary?: {
+    membershipType: string | null
+    validUntil: string | null
+    authoredReviewsCount: number
+  } | null
+  totalRequestsCount: number
+  activeRequestsCount: number
+}
+

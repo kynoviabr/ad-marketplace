@@ -7,8 +7,20 @@ import {
   getAccountDataSubjectRequests,
   getAdminDataSubjectRequests,
   getDsrEvents,
+  getAccountDsrEventsSafe,
+  cancelAccountDataSubjectRequest,
+  getAccountDataSummary,
 } from './dal'
-import { LGPD_RIGHTS, type LgpdRight, type DataSubjectRequestSafeDTO, type DataSubjectRequest, type DataSubjectRequestEvent } from './types'
+import {
+  LGPD_RIGHTS,
+  type LgpdRight,
+  type DataSubjectRequestSafeDTO,
+  type DataSubjectRequestEventSafeDTO,
+  type DataSubjectSummaryDTO,
+  type DataSubjectRequest,
+  type DataSubjectRequestEvent,
+} from './types'
+
 
 export interface CreateDsrActionInput {
   requestType: string
@@ -96,6 +108,117 @@ export async function getMyDataSubjectRequestsAction(): Promise<DsrActionResult<
     return { success: false, error: message, code: 'INTERNAL_ERROR' }
   }
 }
+
+/**
+ * Retrieves the personal data summary for the authenticated user.
+ * Strictly session-bound via requireAccount().
+ */
+export async function getMyDataSummaryAction(): Promise<DsrActionResult<DataSubjectSummaryDTO>> {
+  try {
+    const account = await requireAccount()
+    if (!account || !account.id) {
+      return { success: false, error: 'Acesso não autorizado.', code: 'UNAUTHORIZED' }
+    }
+
+    const summary = await getAccountDataSummary(account.id)
+    if (!summary) {
+      return { success: false, error: 'Não foi possível carregar os dados do titular.', code: 'NOT_FOUND' }
+    }
+
+    return { success: true, data: summary }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao recuperar resumo de dados.'
+    return { success: false, error: message, code: 'INTERNAL_ERROR' }
+  }
+}
+
+/**
+ * Server action for an authenticated data subject to download their personal data as a sanitized ZIP archive.
+ *
+ * Security Invariants:
+ * 1. Target ID is resolved exclusively server-side via requireAccount().
+ * 2. Pure sanitized data bundle (all passwords, tokens, internal notes stripped).
+ * 3. Returns base64 ZIP buffer and safe filename.
+ */
+export async function getMyDataExportZipAction(): Promise<DsrActionResult<{ base64Zip: string; filename: string }>> {
+  try {
+    const account = await requireAccount()
+    if (!account || !account.id) {
+      return { success: false, error: 'Acesso não autorizado.', code: 'UNAUTHORIZED' }
+    }
+
+    const { exportSubjectDataZip } = await import('./export-engine')
+    const zipBuffer = await exportSubjectDataZip(account.id)
+    const base64Zip = zipBuffer.toString('base64')
+    const filename = `velvet-meus-dados-${account.id.slice(0, 8)}-${Date.now()}.zip`
+
+    return {
+      success: true,
+      data: { base64Zip, filename },
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao gerar arquivo de exportação.'
+    return { success: false, error: message, code: 'EXPORT_FAILED' }
+  }
+}
+
+/**
+ * Server action for a data subject to retrieve the safe event timeline of their own request.
+ * Strictly session-bound; rejects access if the request belongs to another account.
+ */
+export async function getMyDsrEventsTimelineAction(
+  requestId: string
+): Promise<DsrActionResult<DataSubjectRequestEventSafeDTO[]>> {
+  try {
+    const account = await requireAccount()
+    if (!account || !account.id) {
+      return { success: false, error: 'Acesso não autorizado.', code: 'UNAUTHORIZED' }
+    }
+
+    if (!requestId || typeof requestId !== 'string') {
+      return { success: false, error: 'ID da solicitação inválido.', code: 'INVALID_ID' }
+    }
+
+    const events = await getAccountDsrEventsSafe(account.id, requestId)
+    if (events === null) {
+      return { success: false, error: 'Solicitação não encontrada ou acesso negado.', code: 'NOT_FOUND' }
+    }
+
+    return { success: true, data: events }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao carregar linha do tempo da solicitação.'
+    return { success: false, error: message, code: 'INTERNAL_ERROR' }
+  }
+}
+
+/**
+ * Server action for a data subject to cancel their own request in RECEIVED, IDENTITY_VERIFICATION_REQUIRED, or IN_REVIEW status.
+ */
+export async function cancelMyDataSubjectRequestAction(
+  requestId: string
+): Promise<DsrActionResult<{ cancelled: boolean }>> {
+  try {
+    const account = await requireAccount()
+    if (!account || !account.id) {
+      return { success: false, error: 'Acesso não autorizado.', code: 'UNAUTHORIZED' }
+    }
+
+    if (!requestId || typeof requestId !== 'string') {
+      return { success: false, error: 'ID da solicitação inválido.', code: 'INVALID_ID' }
+    }
+
+    const res = await cancelAccountDataSubjectRequest(account.id, requestId)
+    if (!res.success) {
+      return { success: false, error: res.error, code: res.code }
+    }
+
+    return { success: true, data: { cancelled: true } }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Erro ao cancelar solicitação.'
+    return { success: false, error: message, code: 'INTERNAL_ERROR' }
+  }
+}
+
 
 /**
  * Administrative action for listing all Data Subject Requests.

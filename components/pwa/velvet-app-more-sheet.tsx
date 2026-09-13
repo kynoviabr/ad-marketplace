@@ -66,7 +66,9 @@ export function VelvetAppMoreSheet({ isOpen, onClose, role }: VelvetAppMoreSheet
     { href: '/dashboard/reviews', label: t('app.more.reviews') },
     { href: '/dashboard/billing', label: t('app.more.billing') },
     { href: '/dashboard/boosts', label: t('app.more.boosts') },
+    { href: '/dashboard/privacidade', label: t('privacy.navTitle') },
   ]
+
 
   const supportItems = [
     { href: isEn ? '/en/ajuda' : '/ajuda', label: t('app.more.help') },
@@ -133,7 +135,20 @@ export function VelvetAppMoreSheet({ isOpen, onClose, role }: VelvetAppMoreSheet
                   </svg>
                 </Link>
               ))}
+              {role === 'CLIENT' && (
+                <Link
+                  href="/privacidade-dados"
+                  className="velvet-app-sheet-row"
+                  onClick={onClose}
+                >
+                  <span className="velvet-app-sheet-row-label">{t('privacy.navTitle')}</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </Link>
+              )}
               <div className="velvet-app-sheet-row velvet-app-sheet-lang-row">
+
                 <span className="velvet-app-sheet-row-label">{t('app.more.language')}</span>
                 <div className="velvet-app-sheet-lang-pills" role="group" aria-label={t('app.more.language')}>
                   <button

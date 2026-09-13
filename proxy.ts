@@ -25,9 +25,11 @@ import { CANONICAL_REQUEST_ID_HEADER, resolveCanonicalRequestId } from '@/module
 
 /** Routes that require authentication */
 const PROTECTED_ROUTES = ['/dashboard', '/suspended', '/onboarding']
+const USER_PROTECTED_ROUTES = ['/cliente', '/privacidade-dados']
 
 /** Routes only accessible to unauthenticated users */
 const AUTH_ONLY_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password']
+
 
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone()
@@ -130,7 +132,11 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const isAuthenticated = !!user
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route))
+  const isProtectedRoute =
+    PROTECTED_ROUTES.some((route) => pathname.startsWith(route)) ||
+    USER_PROTECTED_ROUTES.some((route) => pathname.startsWith(route))
+
+
   const isAuthOnlyRoute = AUTH_ONLY_ROUTES.some((route) => pathname.startsWith(route))
 
   // Redirect unauthenticated users away from protected routes

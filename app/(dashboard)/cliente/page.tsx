@@ -202,7 +202,33 @@ export default async function ClientAreaPage() {
               </button>
             </div>
           </section>
+
+          {/* Card 3: Privacy & Data (LGPD Self-Service) */}
+          <section className="velvet-client-card" aria-labelledby="privacy-section-title">
+            <div className="velvet-client-card-head">
+              <div className="velvet-client-card-title-group">
+                <p className="velvet-client-overline">LGPD</p>
+                <h2 id="privacy-section-title">{t('privacy.navTitle')}</h2>
+              </div>
+            </div>
+
+            <p className="velvet-client-card-desc">{t('privacy.pageSubtitle')}</p>
+
+            <div className="velvet-client-card-divider" />
+
+            <div className="velvet-client-card-footer">
+              <Link
+                href="/privacidade-dados"
+                className="velvet-client-primary-action"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <span>{t('privacy.tabOverview')}</span>
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          </section>
         </div>
+
       </div>
     </div>
   )
