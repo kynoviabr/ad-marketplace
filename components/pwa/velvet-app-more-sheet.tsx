@@ -66,8 +66,9 @@ export function VelvetAppMoreSheet({ isOpen, onClose, role }: VelvetAppMoreSheet
     { href: '/dashboard/reviews', label: t('app.more.reviews') },
     { href: '/dashboard/billing', label: t('app.more.billing') },
     { href: '/dashboard/boosts', label: t('app.more.boosts') },
-    { href: '/dashboard/privacidade', label: t('privacy.navTitle') },
+    { href: '/privacidade-dados', label: t('privacy.navTitle') },
   ]
+
 
 
   const supportItems = [

@@ -175,19 +175,86 @@ function isWithinPeriod(dateStr: string, period: '7d' | '30d' | '90d' | 'all'): 
   return new Date(dateStr).getTime() >= cutoff
 }
 
+async function buildAccountUserMap(
+  admin: ReturnType<typeof createAdminClient>,
+  accountUserIds: string[]
+): Promise<Map<string, any>> {
+  const map = new Map<string, any>()
+  if (!accountUserIds.length) return map
+
+  const { data: accounts } = await admin
+    .from('account_users')
+    .select('id, role, auth_user_id')
+    .in('id', accountUserIds)
+
+  if (!accounts?.length) return map
+
+  const profileMap = new Map<string, any>()
+  try {
+    const { data: profiles } = await admin
+      .from('professional_profiles')
+      .select('account_user_id, stage_name, slug')
+      .in('account_user_id', accountUserIds)
+
+    for (const p of profiles || []) {
+      if (p.account_user_id) profileMap.set(p.account_user_id, p)
+    }
+  } catch {
+    // Best effort profile resolution
+  }
+
+  const authEmailMap = new Map<string, { email: string | null; synthetic: boolean }>()
+  try {
+    const { data: userList } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+    for (const u of userList?.users || []) {
+      authEmailMap.set(u.id, {
+        email: u.email ?? null,
+        synthetic:
+          u.user_metadata?.synthetic === true ||
+          u.user_metadata?.fixture?.startsWith('LGPD') ||
+          (u.email ? u.email.endsWith('@ad-marketplace-synthetic.invalid') || u.email.startsWith('synthetic-lgpd-') : false),
+      })
+    }
+  } catch {
+    // Best effort auth resolution
+  }
+
+  for (const acc of accounts) {
+    const prof = profileMap.get(acc.id)
+    const authMeta = acc.auth_user_id ? authEmailMap.get(acc.auth_user_id) : null
+    const isSynthetic =
+      authMeta?.synthetic === true ||
+      (authMeta?.email ? authMeta.email.endsWith('@ad-marketplace-synthetic.invalid') || authMeta.email.startsWith('synthetic-lgpd-') : false) ||
+      (prof?.stage_name ? prof.stage_name.startsWith('[SYNTHETIC-LGPD]') : false) ||
+      (prof?.slug ? prof.slug.startsWith('synthetic-lgpd-') : false)
+
+    map.set(acc.id, {
+      ...acc,
+      stageName: prof?.stage_name,
+      slug: prof?.slug,
+      email: authMeta?.email,
+      isSynthetic,
+    })
+  }
+
+  return map
+}
+
 function isSyntheticDsrRow(req: any, accountUserMap?: Map<string, any>): boolean {
   if (req.details?.synthetic === true || req.details?.synthetic === 'true') return true
-  if (typeof req.details?.reason === 'string' && /synthetic|fixture|LGPD-02A/i.test(req.details.reason)) return true
+  if (typeof req.details?.reason === 'string' && /synthetic|fixture|LGPD-02/i.test(req.details.reason)) return true
   if (req.requester_account_user_id) {
     const acc = accountUserMap?.get(req.requester_account_user_id)
-    if (acc?.role === 'ADVERTISER' && acc?.email?.endsWith('@ad-marketplace-synthetic.invalid')) return true
     if (acc?.isSynthetic) return true
+    if (acc?.email?.endsWith('@ad-marketplace-synthetic.invalid') || acc?.email?.startsWith('synthetic-lgpd-')) return true
+    if (acc?.stageName?.startsWith('[SYNTHETIC-LGPD]') || acc?.slug?.startsWith('synthetic-lgpd-')) return true
   }
   if (!req.requester_account_user_id && typeof req.details?.reason === 'string' && /synthetic/i.test(req.details.reason)) {
     return true
   }
   return false
 }
+
 
 function isSyntheticExecutionRow(exec: any): boolean {
   if (exec.mode === 'SYNTHETIC_DESTRUCTIVE') return true
@@ -216,17 +283,7 @@ export async function getPrivacyOperationsSummary(options?: {
   const userIds = Array.from(
     new Set((rawRequests || []).map((r) => r.requester_account_user_id).filter(Boolean))
   )
-  const accountMap = new Map<string, any>()
-  if (userIds.length > 0) {
-    const { data: accounts } = await admin
-      .from('account_users')
-      .select('id, role, auth_user_id')
-      .in('id', userIds)
-
-    for (const acc of accounts || []) {
-      accountMap.set(acc.id, acc)
-    }
-  }
+  const accountMap = await buildAccountUserMap(admin, userIds)
 
   // 3. Fetch Executions
   const { data: rawExecutions } = await admin
@@ -399,17 +456,7 @@ export async function getPrivacyRequests(options?: {
 
   // Resolve account users for role
   const userIds = Array.from(new Set(rawRows.map((r) => r.requester_account_user_id).filter(Boolean)))
-  const accountMap = new Map<string, any>()
-  if (userIds.length > 0) {
-    const { data: accounts } = await admin
-      .from('account_users')
-      .select('id, role, auth_user_id')
-      .in('id', userIds)
-
-    for (const acc of accounts || []) {
-      accountMap.set(acc.id, acc)
-    }
-  }
+  const accountMap = await buildAccountUserMap(admin, userIds)
 
   // Also query executions to link lifecycleStatus
   const { data: executions } = await admin
@@ -481,14 +528,12 @@ export async function getPrivacyRequestDetail(requestId: string): Promise<Privac
 
   if (error || !req) return null
 
-  // Fetch account role
+  // Fetch account role and synthetic status
   let role: 'ADVERTISER' | 'CLIENT' | 'UNKNOWN' = 'UNKNOWN'
+  let accountMap: Map<string, any> | undefined
   if (req.requester_account_user_id) {
-    const { data: acc } = await admin
-      .from('account_users')
-      .select('role')
-      .eq('id', req.requester_account_user_id)
-      .maybeSingle()
+    accountMap = await buildAccountUserMap(admin, [req.requester_account_user_id])
+    const acc = accountMap.get(req.requester_account_user_id)
     if (acc?.role === 'ADVERTISER') role = 'ADVERTISER'
     else if (acc?.role === 'CLIENT') role = 'CLIENT'
   }
@@ -507,7 +552,7 @@ export async function getPrivacyRequestDetail(requestId: string): Promise<Privac
     .eq('data_subject_request_id', requestId)
     .maybeSingle()
 
-  const isSynthetic = isSyntheticDsrRow(req)
+  const isSynthetic = isSyntheticDsrRow(req, accountMap)
   const { bucket, days } = calculateAgeBucket(req.created_at)
 
   // Safe details extraction (NO private passwords, tokens, full bios)
@@ -742,9 +787,14 @@ export async function getPrivacyReports(options?: {
     '> 30 days': 0,
   }
 
+  const userIds = Array.from(
+    new Set((rawRequests || []).map((r) => r.requester_account_user_id).filter(Boolean))
+  )
+  const accountMap = await buildAccountUserMap(admin, userIds)
+
   let totalRequests = 0
   for (const r of rawRequests || []) {
-    const isSynthetic = isSyntheticDsrRow(r)
+    const isSynthetic = isSyntheticDsrRow(r, accountMap)
     if (!includeSynthetic && isSynthetic) continue
     if (!isWithinPeriod(r.created_at, period)) continue
 

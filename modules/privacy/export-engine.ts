@@ -190,7 +190,7 @@ export async function generateSubjectExportBundle(
       .from('professional_profiles')
       .select(`
         stage_name, slug, headline, bio, public_age,
-        height_cm, weight_kg, measurements, eye_color, hair_color,
+        height_cm, weight_kg, bust_cm, waist_cm, hips_cm, eye_color, hair_color,
         languages,
         direct_phone, whatsapp_phone, telegram_username,
         show_phone, show_whatsapp, show_telegram,
@@ -228,10 +228,13 @@ export async function generateSubjectExportBundle(
         physicalAttributes: {
           heightCm: profileRow.height_cm,
           weightKg: profileRow.weight_kg,
-          measurements: profileRow.measurements,
+          bustCm: profileRow.bust_cm,
+          waistCm: profileRow.waist_cm,
+          hipsCm: profileRow.hips_cm,
           eyeColor: profileRow.eye_color,
           hairColor: profileRow.hair_color,
         },
+
         languages: profileRow.languages,
         contactChannels: {
           whatsapp: profileRow.show_whatsapp ? profileRow.whatsapp_phone : null,
