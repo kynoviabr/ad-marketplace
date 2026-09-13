@@ -217,6 +217,7 @@ async function main() {
     })
   )
   await send('Network.setCookie', { name: 'velvet_cookie_consent', value: consentCookieVal, domain: 'velvetgirls.club', path: '/' })
+  await send('Network.setCookie', { name: 'velvet_locale', value: 'pt', domain: 'velvetgirls.club', path: '/' })
 
   async function evalExpression(expr) {
     const res = await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true })
@@ -277,11 +278,7 @@ async function main() {
   // Click synthetic toggle checkbox
   await evalExpression(`
     (() => {
-      const toggle = Array.from(document.querySelectorAll('input[type="checkbox"]')).find(el => 
-        el.nextSibling?.textContent?.includes('sintético') || 
-        el.parentElement?.textContent?.includes('sintético') ||
-        el.labels?.[0]?.textContent?.includes('sintético')
-      );
+      const toggle = document.querySelector('input[type="checkbox"]');
       if (toggle && !toggle.checked) {
         toggle.click();
       }
