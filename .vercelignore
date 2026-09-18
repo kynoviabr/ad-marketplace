@@ -1,0 +1,14 @@
+.git
+.github
+tests
+docs
+scripts
+scratch
+.artifacts
+.tokensave
+venv-img
+supabase
+FASE02_IMPLEMENTATION_PLAN.md
+*.test.ts
+*.test.tsx
+*.md
