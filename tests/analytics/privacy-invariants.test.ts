@@ -3,6 +3,38 @@ import { isDoNotTrackEnabled, getVisitorSessionId } from '@/components/analytics
 import type { AdvertiserMetricsSummaryDTO, AdminPlatformMetricsDTO, AnalyticsEvent } from '@/modules/analytics/types'
 
 describe('FASE 09 — Privacy & LGPD Invariants', () => {
+  const originalNavigator = globalThis.navigator
+
+  function setMockDoNotTrack(value: string | undefined) {
+    const navObj = {
+      ...(typeof globalThis.navigator !== 'undefined' ? globalThis.navigator : {}),
+      doNotTrack: value,
+    }
+
+    try {
+      Object.defineProperty(globalThis, 'navigator', {
+        value: navObj,
+        writable: true,
+        configurable: true,
+      })
+    } catch {
+      try {
+        Object.defineProperty(globalThis.navigator, 'doNotTrack', {
+          value,
+          writable: true,
+          configurable: true,
+        })
+      } catch {
+        ;(globalThis.navigator as any).doNotTrack = value
+      }
+    }
+
+    if (typeof (globalThis as any).window !== 'undefined') {
+      ;(globalThis as any).window.doNotTrack = value
+      ;(globalThis as any).window.navigator = globalThis.navigator
+    }
+  }
+
   beforeEach(() => {
     const storage = new Map<string, string>()
     const mockSessionStorage = {
@@ -28,37 +60,36 @@ describe('FASE 09 — Privacy & LGPD Invariants', () => {
       configurable: true,
     })
 
-    Object.defineProperty(globalThis.navigator, 'doNotTrack', {
-      value: '0',
-      writable: true,
-      configurable: true,
-    })
+    setMockDoNotTrack('0')
   })
 
   afterEach(() => {
-    Object.defineProperty(globalThis.navigator, 'doNotTrack', {
-      value: undefined,
-      writable: true,
-      configurable: true,
-    })
+    setMockDoNotTrack(undefined)
+    try {
+      if (typeof originalNavigator !== 'undefined') {
+        Object.defineProperty(globalThis, 'navigator', {
+          value: originalNavigator,
+          writable: true,
+          configurable: true,
+        })
+      } else {
+        delete (globalThis as any).navigator
+      }
+    } catch {
+      // best-effort cleanup
+    }
+    delete (globalThis as any).window
+    delete (globalThis as any).document
   })
 
   it('respects Do Not Track (DNT) when enabled (HD-4)', () => {
-    Object.defineProperty(globalThis.navigator, 'doNotTrack', {
-      value: '1',
-      writable: true,
-      configurable: true,
-    })
+    setMockDoNotTrack('1')
     expect(isDoNotTrackEnabled()).toBe(true)
     expect(getVisitorSessionId()).toBeNull()
   })
 
   it('generates a valid UUID session when DNT is disabled', () => {
-    Object.defineProperty(globalThis.navigator, 'doNotTrack', {
-      value: '0',
-      writable: true,
-      configurable: true,
-    })
+    setMockDoNotTrack('0')
     expect(isDoNotTrackEnabled()).toBe(false)
     const sid = getVisitorSessionId()
     expect(sid).toBeTruthy()
