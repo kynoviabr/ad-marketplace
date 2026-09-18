@@ -1,11 +1,12 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { requireAdmin } from '@/modules/moderation/guards'
-import { getAdminProfileQueue, getAdminProfessionalSummary } from '@/modules/admin/dal'
+import { getAdminProfileQueue, getAdminProfileDetailedReview } from '@/modules/admin/dal'
 import { getOperationalStatusLabel } from '@/modules/admin/operational-status'
 import type { AdminProfileQueueFilter, OperationalClassification } from '@/modules/admin/types'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatDate } from '@/lib/i18n/format'
-import { AdminProfileModerationControls } from '@/components/admin/admin-profile-moderation-controls'
+import { AdminProfileReviewPanel } from '@/components/admin/admin-profile-review-panel'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
@@ -69,7 +70,9 @@ export default async function AdminProfilesReviewPage({ searchParams }: PageProp
 
   const currentSearch = resolvedParams.q?.trim() || ''
   const currentPage = Math.max(1, Number(resolvedParams.page) || 1)
-  const detailProfileId = resolvedParams.detail?.trim() || null
+  
+  // Detail profile ID: explicit or fallback to first profile if available
+  const explicitDetailProfileId = resolvedParams.detail?.trim() || null
 
   const queueResult = await getAdminProfileQueue({
     filter: currentFilter,
@@ -78,8 +81,10 @@ export default async function AdminProfilesReviewPage({ searchParams }: PageProp
     pageSize: 10,
   })
 
-  // Safe detail inspection if requested
-  const safeDetail = detailProfileId ? await getAdminProfessionalSummary(detailProfileId) : null
+  const selectedProfileId = explicitDetailProfileId || queueResult.items[0]?.profileId || null
+
+  // Fetch rich detailed review for the selected profile
+  const detailedReview = selectedProfileId ? await getAdminProfileDetailedReview(selectedProfileId) : null
 
   const filterTabs: Array<{ key: AdminProfileQueueFilter; label: string }> = [
     { key: 'ALL', label: t('admin.allOperational') },
@@ -89,8 +94,15 @@ export default async function AdminProfilesReviewPage({ searchParams }: PageProp
     { key: 'BLOCKED_OR_INELIGIBLE', label: t('admin.blockedOrIneligible') },
   ]
 
+  const returnUrl = `/admin/profiles/review${buildQueryString({
+    filter: currentFilter !== 'ALL' ? currentFilter : undefined,
+    q: currentSearch || undefined,
+    page: currentPage > 1 ? currentPage : undefined,
+    detail: selectedProfileId || undefined,
+  })}`
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', minHeight: 'calc(100vh - 120px)' }}>
       {/* Header */}
       <header>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.75rem', marginBottom: '.25rem' }}>
@@ -110,400 +122,370 @@ export default async function AdminProfilesReviewPage({ searchParams }: PageProp
       </header>
 
       {/* Search and Filters Bar */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Search Input */}
-        <form
-          method="GET"
-          action="/admin/profiles/review"
-          style={{ display: 'flex', gap: '.5rem', maxWidth: '600px' }}
-        >
-          {currentFilter !== 'ALL' && <input type="hidden" name="filter" value={currentFilter} />}
-          <input
-            type="text"
-            name="q"
-            defaultValue={currentSearch}
-            placeholder={t('admin.searchByName')}
-            style={{
-              flex: 1,
-              backgroundColor: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: '.375rem',
-              color: '#fff',
-              padding: '.5rem .75rem',
-              fontSize: '.875rem',
-            }}
-          />
-          <button
-            type="submit"
-            style={{
-              backgroundColor: '#f59e0b',
-              color: '#111827',
-              fontWeight: 600,
-              padding: '.5rem 1rem',
-              borderRadius: '.375rem',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '.875rem',
-            }}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '.75rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
+          <form
+            method="GET"
+            action="/admin/profiles/review"
+            style={{ display: 'flex', gap: '.5rem', flex: '1 1 300px', maxWidth: '500px' }}
           >
-            {isPt ? 'Buscar' : 'Search'}
-          </button>
-          {currentSearch && (
-            <Link
-              href={`/admin/profiles/review${buildQueryString({ filter: currentFilter !== 'ALL' ? currentFilter : undefined })}`}
+            {currentFilter !== 'ALL' && <input type="hidden" name="filter" value={currentFilter} />}
+            <input
+              type="text"
+              name="q"
+              defaultValue={currentSearch}
+              placeholder={t('admin.searchByName')}
               style={{
-                backgroundColor: '#374151',
-                color: '#d1d5db',
-                padding: '.5rem .75rem',
+                flex: 1,
+                backgroundColor: '#1f2937',
+                border: '1px solid #374151',
                 borderRadius: '.375rem',
-                textDecoration: 'none',
+                color: '#fff',
+                padding: '.5rem .75rem',
                 fontSize: '.875rem',
-                display: 'flex',
-                alignItems: 'center',
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                backgroundColor: '#f59e0b',
+                color: '#111827',
+                fontWeight: 600,
+                padding: '.5rem 1rem',
+                borderRadius: '.375rem',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '.875rem',
               }}
             >
-              {isPt ? 'Limpar' : 'Clear'}
-            </Link>
-          )}
-        </form>
-
-        {/* Filter Tabs */}
-        <nav
-          aria-label={isPt ? 'Filtros da fila' : 'Queue filters'}
-          style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem' }}
-        >
-          {filterTabs.map((tab) => {
-            const isActive = currentFilter === tab.key
-            return (
+              {isPt ? 'Buscar' : 'Search'}
+            </button>
+            {currentSearch && (
               <Link
-                key={tab.key}
-                href={`/admin/profiles/review${buildQueryString({
-                  filter: tab.key !== 'ALL' ? tab.key : undefined,
-                  q: currentSearch || undefined,
-                })}`}
+                href={`/admin/profiles/review${buildQueryString({ filter: currentFilter !== 'ALL' ? currentFilter : undefined })}`}
                 style={{
-                  color: isActive ? '#111827' : '#d1d5db',
-                  backgroundColor: isActive ? '#f59e0b' : '#1f2937',
-                  border: '1px solid #4b5563',
-                  borderRadius: '.375rem',
+                  backgroundColor: '#374151',
+                  color: '#d1d5db',
                   padding: '.5rem .75rem',
+                  borderRadius: '.375rem',
                   textDecoration: 'none',
-                  fontSize: '.8rem',
-                  fontWeight: isActive ? 600 : 400,
+                  fontSize: '.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
                 }}
               >
-                {tab.label}
+                {isPt ? 'Limpar' : 'Clear'}
               </Link>
-            )
-          })}
-        </nav>
+            )}
+          </form>
+
+          {/* Filter Tabs */}
+          <nav
+            aria-label={isPt ? 'Filtros da fila' : 'Queue filters'}
+            style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem' }}
+          >
+            {filterTabs.map((tab) => {
+              const isActive = currentFilter === tab.key
+              return (
+                <Link
+                  key={tab.key}
+                  href={`/admin/profiles/review${buildQueryString({
+                    filter: tab.key !== 'ALL' ? tab.key : undefined,
+                    q: currentSearch || undefined,
+                  })}`}
+                  style={{
+                    color: isActive ? '#111827' : '#d1d5db',
+                    backgroundColor: isActive ? '#f59e0b' : '#1f2937',
+                    border: '1px solid #4b5563',
+                    borderRadius: '.375rem',
+                    padding: '.4rem .65rem',
+                    textDecoration: 'none',
+                    fontSize: '.8rem',
+                    fontWeight: isActive ? 600 : 400,
+                  }}
+                >
+                  {tab.label}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
       </div>
 
-      {/* Safe Detail Inspection Drawer / Modal */}
-      {safeDetail && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="safe-detail-title"
+      {/* Main Split Layout: Left Column = Queue, Right Column = Review Panel */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(320px, 380px) 1fr',
+          gap: '1.25rem',
+          alignItems: 'start',
+        }}
+        className="admin-queue-split-container"
+      >
+        {/* Left Column: Profiles List */}
+        <section
           style={{
             backgroundColor: '#111827',
-            border: '2px solid #f59e0b',
+            border: '1px solid #374151',
             borderRadius: '.5rem',
-            padding: '1.5rem',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
+          aria-label={isPt ? 'Lista de perfis na fila' : 'Profiles in queue list'}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <div>
-              <p style={{ color: '#f59e0b', fontSize: '.75rem', textTransform: 'uppercase', letterSpacing: '.08em', margin: 0 }}>
-                {t('admin.safeProfileDetail')}
-              </p>
-              <h2 id="safe-detail-title" style={{ color: '#fff', fontSize: '1.5rem', margin: '.25rem 0 0' }}>
-                {safeDetail.stageName}
-              </h2>
-            </div>
-            <Link
-              href={`/admin/profiles/review${buildQueryString({
-                filter: currentFilter !== 'ALL' ? currentFilter : undefined,
-                q: currentSearch || undefined,
-                page: currentPage > 1 ? currentPage : undefined,
-              })}`}
-              style={{
-                backgroundColor: '#374151',
-                color: '#fff',
-                padding: '.375rem .75rem',
-                borderRadius: '.375rem',
-                textDecoration: 'none',
-                fontSize: '.8rem',
-              }}
-            >
-              ✕ {t('admin.close')}
-            </Link>
-          </div>
-
           <div
             style={{
-              backgroundColor: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: '.375rem',
               padding: '.75rem 1rem',
-              marginBottom: '1rem',
-              color: '#9ca3af',
-              fontSize: '.8rem',
+              backgroundColor: '#1f2937',
+              borderBottom: '1px solid #374151',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
             }}
           >
-            🛡️ {t('admin.safeProfileDisclaimer')}
+            <span style={{ color: '#fff', fontSize: '.875rem', fontWeight: 600 }}>
+              {isPt ? 'Fila Operacional' : 'Operational Queue'} ({queueResult.total})
+            </span>
+            <span style={{ color: '#9ca3af', fontSize: '.75rem' }}>
+              {isPt
+                ? `Página ${queueResult.page}/${queueResult.totalPages || 1}`
+                : `Page ${queueResult.page}/${queueResult.totalPages || 1}`}
+            </span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', fontSize: '.875rem' }}>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>ID do Perfil</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0', fontFamily: 'monospace', fontSize: '.8rem' }}>{safeDetail.profileId}</p>
-            </div>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Status do Perfil</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0', fontWeight: 600 }}>{safeDetail.profileStatus}</p>
-            </div>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Status de Verificação</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0', fontWeight: 600 }}>{safeDetail.verificationStatus}</p>
-            </div>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Status da Conta</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0', fontWeight: 600 }}>{safeDetail.accountStatus}</p>
-            </div>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Estado de Publicação</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0', fontWeight: 600 }}>{safeDetail.publicationState}</p>
-            </div>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Localização Principal</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0' }}>{safeDetail.primaryLocation || 'Não informada'}</p>
-            </div>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Criado em</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0' }}>{formatDate(safeDetail.createdAt, locale)}</p>
-            </div>
-            <div style={{ backgroundColor: '#1f2937', padding: '.75rem', borderRadius: '.375rem' }}>
-              <span style={{ color: '#9ca3af', fontSize: '.75rem', textTransform: 'uppercase' }}>Última Atualização</span>
-              <p style={{ color: '#fff', margin: '.25rem 0 0' }}>{formatDate(safeDetail.updatedAt, locale)}</p>
-            </div>
-          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '720px', overflowY: 'auto' }}>
+            {queueResult.items.length === 0 ? (
+              <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#9ca3af', fontSize: '.875rem' }}>
+                {isPt ? 'Nenhum perfil encontrado.' : 'No profiles found.'}
+              </div>
+            ) : (
+              queueResult.items.map((item) => {
+                const badgeStyle = getBadgeStyle(item.operationalClassification)
+                const isSelected = selectedProfileId === item.profileId
 
-          <div style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid #374151' }}>
-            <AdminProfileModerationControls
-              profileId={safeDetail.profileId}
-              stageName={safeDetail.stageName}
-              profileStatus={safeDetail.profileStatus}
-              contentModerationStatus={safeDetail.contentModerationStatus}
-              publicationState={safeDetail.publicationState}
-              onSuccessUrl={`/admin/profiles/review${buildQueryString({
-                filter: currentFilter !== 'ALL' ? currentFilter : undefined,
-                q: currentSearch || undefined,
-                page: currentPage > 1 ? currentPage : undefined,
-              })}`}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Queue Results Table */}
-      <section style={{ border: '1px solid #374151', borderRadius: '.5rem', overflow: 'hidden' }}>
-        <div style={{ padding: '.75rem 1rem', backgroundColor: '#1f2937', borderBottom: '1px solid #374151', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ color: '#fff', fontSize: '.875rem', fontWeight: 600 }}>
-            {isPt ? 'Perfis na Fila' : 'Profiles in Queue'} ({queueResult.total})
-          </span>
-          <span style={{ color: '#9ca3af', fontSize: '.8rem' }}>
-            {isPt
-              ? `Página ${queueResult.page} de ${queueResult.totalPages}`
-              : `Page ${queueResult.page} of ${queueResult.totalPages}`}
-          </span>
-        </div>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.85rem' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#111827', color: '#9ca3af', textAlign: 'left', borderBottom: '1px solid #374151' }}>
-                <th style={{ padding: '.75rem 1rem' }}>{isPt ? 'Nome Artístico' : 'Stage Name'}</th>
-                <th style={{ padding: '.75rem 1rem' }}>{isPt ? 'Classificação Operacional' : 'Operational Status'}</th>
-                <th style={{ padding: '.75rem 1rem' }}>{isPt ? 'Status' : 'Status'}</th>
-                <th style={{ padding: '.75rem 1rem' }}>{isPt ? 'Verificação' : 'Verification'}</th>
-                <th style={{ padding: '.75rem 1rem' }}>{isPt ? 'Publicação' : 'Publication'}</th>
-                <th style={{ padding: '.75rem 1rem' }}>{isPt ? 'Localização' : 'Location'}</th>
-                <th style={{ padding: '.75rem 1rem' }}>{isPt ? 'Atualização' : 'Updated'}</th>
-                <th style={{ padding: '.75rem 1rem', textAlign: 'right' }}>{isPt ? 'Ações' : 'Actions'}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {queueResult.items.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ padding: '3rem 1rem', textAlign: 'center', color: '#9ca3af' }}>
-                    {isPt ? 'Nenhum perfil encontrado para os filtros selecionados.' : 'No profiles match the selected filters.'}
-                  </td>
-                </tr>
-              ) : (
-                queueResult.items.map((item) => {
-                  const badgeStyle = getBadgeStyle(item.operationalClassification)
-                  const isSelected = detailProfileId === item.profileId
-                  return (
-                    <tr
-                      key={item.profileId}
+                return (
+                  <Link
+                    key={item.profileId}
+                    href={`/admin/profiles/review${buildQueryString({
+                      filter: currentFilter !== 'ALL' ? currentFilter : undefined,
+                      q: currentSearch || undefined,
+                      page: currentPage > 1 ? currentPage : undefined,
+                      detail: item.profileId,
+                    })}`}
+                    style={{
+                      display: 'flex',
+                      gap: '.75rem',
+                      padding: '.85rem 1rem',
+                      borderBottom: '1px solid #1f2937',
+                      backgroundColor: isSelected ? '#1e293b' : 'transparent',
+                      borderLeft: isSelected ? '4px solid #f59e0b' : '4px solid transparent',
+                      textDecoration: 'none',
+                      transition: 'background-color 0.15s',
+                    }}
+                  >
+                    {/* Thumbnail / Avatar */}
+                    <div
                       style={{
-                        borderBottom: '1px solid #374151',
-                        backgroundColor: isSelected ? '#1e293b' : '#1f2937',
-                        color: '#d1d5db',
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '6px',
+                        backgroundColor: '#374151',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        position: 'relative',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
                     >
-                      <td style={{ padding: '.75rem 1rem', color: '#fff', fontWeight: 600 }}>
-                        {item.stageName}
-                      </td>
-                      <td style={{ padding: '.75rem 1rem' }}>
+                      {item.avatarUrl ? (
+                        <Image
+                          src={item.avatarUrl}
+                          alt={item.stageName}
+                          fill
+                          sizes="48px"
+                          style={{ objectFit: 'cover' }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '1.25rem', color: '#9ca3af' }}>👤</span>
+                      )}
+                    </div>
+
+                    {/* Meta info */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '.5rem' }}>
+                        <span style={{ color: '#fff', fontWeight: 600, fontSize: '.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.stageName}
+                        </span>
+                        <span style={{ color: '#9ca3af', fontSize: '.7rem', flexShrink: 0 }}>
+                          {formatDate(item.updatedAt, locale)}
+                        </span>
+                      </div>
+
+                      {item.slug && (
+                        <span style={{ color: '#9ca3af', fontSize: '.75rem', fontFamily: 'monospace' }}>
+                          /{item.slug}
+                        </span>
+                      )}
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.35rem', marginTop: '.2rem', alignItems: 'center' }}>
                         <span
                           style={{
                             display: 'inline-block',
-                            padding: '.2rem .5rem',
-                            borderRadius: '4px',
-                            fontSize: '.75rem',
+                            padding: '.15rem .4rem',
+                            borderRadius: '3px',
+                            fontSize: '.7rem',
                             fontWeight: 600,
                             ...badgeStyle,
                           }}
                         >
                           {getOperationalStatusLabel(item.operationalClassification, locale)}
                         </span>
-                      </td>
-                      <td style={{ padding: '.75rem 1rem', fontSize: '.8rem' }}>
-                        {item.profileStatus}
-                      </td>
-                      <td style={{ padding: '.75rem 1rem', fontSize: '.8rem' }}>
-                        {item.verificationStatus}
-                      </td>
-                      <td style={{ padding: '.75rem 1rem', fontSize: '.8rem' }}>
+
                         <span
                           style={{
-                            color:
-                              item.publicationState === 'PUBLIC'
-                                ? '#34d399'
-                                : item.publicationState === 'SUSPENDED'
-                                ? '#f87171'
-                                : '#fbbf24',
-                            fontWeight: 600,
+                            fontSize: '.7rem',
+                            padding: '.15rem .4rem',
+                            borderRadius: '3px',
+                            backgroundColor: item.verificationStatus === 'VERIFIED' ? '#064e3b' : '#374151',
+                            color: item.verificationStatus === 'VERIFIED' ? '#a7f3d0' : '#d1d5db',
+                            fontWeight: 500,
                           }}
                         >
-                          {item.publicationState}
+                          {item.verificationStatus}
                         </span>
-                      </td>
-                      <td style={{ padding: '.75rem 1rem', fontSize: '.8rem', color: '#9ca3af' }}>
-                        {item.primaryLocation || '—'}
-                      </td>
-                      <td style={{ padding: '.75rem 1rem', fontSize: '.8rem', color: '#9ca3af' }}>
-                        {formatDate(item.updatedAt, locale)}
-                      </td>
-                      <td style={{ padding: '.75rem 1rem', textAlign: 'right' }}>
-                        <Link
-                          href={`/admin/profiles/review${buildQueryString({
-                            filter: currentFilter !== 'ALL' ? currentFilter : undefined,
-                            q: currentSearch || undefined,
-                            page: currentPage > 1 ? currentPage : undefined,
-                            detail: item.profileId,
-                          })}`}
-                          style={{
-                            display: 'inline-block',
-                            color: '#f59e0b',
-                            textDecoration: 'none',
-                            fontSize: '.8rem',
-                            fontWeight: 600,
-                            padding: '.25rem .5rem',
-                            borderRadius: '4px',
-                            backgroundColor: '#374151',
-                          }}
-                        >
-                          {t('admin.viewOperationalProfile')}
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
 
-        {/* Server-Side Pagination Controls */}
-        {queueResult.totalPages > 1 && (
-          <div
-            style={{
-              padding: '.75rem 1rem',
-              backgroundColor: '#111827',
-              borderTop: '1px solid #374151',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <div>
+                        {((item.pendingPhotosCount ?? 0) > 0 || (item.pendingVideosCount ?? 0) > 0) && (
+                          <span
+                            style={{
+                              fontSize: '.7rem',
+                              padding: '.15rem .4rem',
+                              borderRadius: '3px',
+                              backgroundColor: '#78350f',
+                              color: '#fde68a',
+                              fontWeight: 600,
+                            }}
+                          >
+                            📷 {(item.pendingPhotosCount ?? 0) + (item.pendingVideosCount ?? 0)} {isPt ? 'pendente(s)' : 'pending'}
+                          </span>
+                        )}
+                      </div>
+
+                      {item.primaryLocation && (
+                        <span style={{ color: '#9ca3af', fontSize: '.75rem', marginTop: '.1rem' }}>
+                          📍 {item.primaryLocation}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                )
+              })
+            )}
+          </div>
+
+          {/* Pagination */}
+          {queueResult.totalPages > 1 && (
+            <div
+              style={{
+                padding: '.65rem .75rem',
+                backgroundColor: '#1f2937',
+                borderTop: '1px solid #374151',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               {currentPage > 1 ? (
                 <Link
                   href={`/admin/profiles/review${buildQueryString({
                     filter: currentFilter !== 'ALL' ? currentFilter : undefined,
                     q: currentSearch || undefined,
                     page: currentPage - 1,
-                    detail: detailProfileId || undefined,
                   })}`}
                   style={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
+                    backgroundColor: '#374151',
                     color: '#fff',
-                    padding: '.35rem .75rem',
-                    borderRadius: '.375rem',
+                    padding: '.25rem .5rem',
+                    borderRadius: '.25rem',
                     textDecoration: 'none',
-                    fontSize: '.8rem',
+                    fontSize: '.75rem',
                   }}
                 >
-                  ← {isPt ? 'Anterior' : 'Previous'}
+                  ← {isPt ? 'Anterior' : 'Prev'}
                 </Link>
               ) : (
-                <span style={{ color: '#4b5563', padding: '.35rem .75rem', fontSize: '.8rem' }}>
-                  ← {isPt ? 'Anterior' : 'Previous'}
-                </span>
+                <span style={{ color: '#4b5563', fontSize: '.75rem', padding: '.25rem .5rem' }}>← {isPt ? 'Anterior' : 'Prev'}</span>
               )}
-            </div>
 
-            <span style={{ color: '#9ca3af', fontSize: '.8rem' }}>
-              {isPt
-                ? `Página ${queueResult.page} de ${queueResult.totalPages}`
-                : `Page ${queueResult.page} of ${queueResult.totalPages}`}
-            </span>
+              <span style={{ color: '#9ca3af', fontSize: '.75rem' }}>
+                {currentPage} / {queueResult.totalPages}
+              </span>
 
-            <div>
               {currentPage < queueResult.totalPages ? (
                 <Link
                   href={`/admin/profiles/review${buildQueryString({
                     filter: currentFilter !== 'ALL' ? currentFilter : undefined,
                     q: currentSearch || undefined,
                     page: currentPage + 1,
-                    detail: detailProfileId || undefined,
                   })}`}
                   style={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
+                    backgroundColor: '#374151',
                     color: '#fff',
-                    padding: '.35rem .75rem',
-                    borderRadius: '.375rem',
+                    padding: '.25rem .5rem',
+                    borderRadius: '.25rem',
                     textDecoration: 'none',
-                    fontSize: '.8rem',
+                    fontSize: '.75rem',
                   }}
                 >
-                  {isPt ? 'Próxima' : 'Next'} →
+                  {isPt ? 'Próx' : 'Next'} →
                 </Link>
               ) : (
-                <span style={{ color: '#4b5563', padding: '.35rem .75rem', fontSize: '.8rem' }}>
-                  {isPt ? 'Próxima' : 'Next'} →
-                </span>
+                <span style={{ color: '#4b5563', fontSize: '.75rem', padding: '.25rem .5rem' }}>{isPt ? 'Próx' : 'Next'} →</span>
               )}
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
+
+        {/* Right Column: Review Panel */}
+        <section style={{ minWidth: 0 }} aria-label={isPt ? 'Painel de revisão detalhada' : 'Detailed review panel'}>
+          {detailedReview ? (
+            <AdminProfileReviewPanel
+              detail={detailedReview}
+              onSuccessUrl={returnUrl}
+            />
+          ) : (
+            <div
+              style={{
+                backgroundColor: '#111827',
+                border: '1px solid #374151',
+                borderRadius: '.5rem',
+                padding: '3rem 2rem',
+                textAlign: 'center',
+                color: '#9ca3af',
+              }}
+            >
+              <p style={{ fontSize: '1.5rem', marginBottom: '.5rem' }}>📋</p>
+              <h3 style={{ color: '#fff', fontSize: '1.1rem', margin: '0 0 .5rem' }}>
+                {isPt ? 'Nenhum perfil selecionado' : 'No profile selected'}
+              </h3>
+              <p style={{ fontSize: '.875rem', margin: 0 }}>
+                {isPt
+                  ? 'Selecione um perfil na fila à esquerda para abrir a ferramenta de revisão.'
+                  : 'Select a profile from the left queue to open the operational review tool.'}
+              </p>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <style>{`
+        @media (max-width: 1024px) {
+          .admin-queue-split-container {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }

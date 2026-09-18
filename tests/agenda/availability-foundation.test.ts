@@ -865,7 +865,10 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
     })
 
     it('public slot DTO does NOT expose private raw table rows, exception IDs, buffers, or account IDs', async () => {
-      const profileId = '11111111-1111-4111-a111-111111111111'
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-09-07T12:00:00-03:00'))
+      try {
+        const profileId = '11111111-1111-4111-a111-111111111111'
 
       mockFrom.mockImplementation((table: string) => {
         if (table === 'v_publication_eligible_profiles') {
@@ -1012,6 +1015,9 @@ describe('PX3 — Professional Availability & Agenda Foundation', () => {
         // Strict JSON serialization assertion: stringified output contains ZERO UUIDs
         const serialized = JSON.stringify(slot)
         expect(serialized).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)
+      }
+      } finally {
+        vi.useRealTimers()
       }
     })
 

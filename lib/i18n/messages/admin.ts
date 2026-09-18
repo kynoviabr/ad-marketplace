@@ -148,6 +148,72 @@ export const adminPtBR = {
   'admin.reasonViolence': 'Violência ou coerção',
   'admin.reasonOther': 'Outra violação de diretrizes',
 
+  // Fila Operacional de Perfis — Tabs & Detalhes
+  'admin.profileTabOverview': 'Perfil',
+  'admin.profileTabMedia': 'Mídia',
+  'admin.profileTabDidit': 'Didit / Verificação',
+  'admin.profileTabServices': 'Serviços & Regiões',
+  'admin.profileTabHistory': 'Histórico',
+
+  // Checklist de Prontidão Operacional
+  'admin.reviewChecklistTitle': 'Checklist de Publicação',
+  'admin.reviewChecklistSubtitle': 'Validação em tempo real dos critérios canônicos de publicação.',
+  'admin.checklistIdentityTitle': 'Identidade & Maioridade (Didit)',
+  'admin.checklistProfileTitle': 'Conteúdo do Perfil',
+  'admin.checklistMediaTitle': 'Mídia & Foto Principal',
+  'admin.checklistLocationTitle': 'Região de Atendimento',
+  'admin.checklistPublicationTitle': 'Direito de Publicação / Plano',
+
+  // Didit / Verificação Operacional Segura
+  'admin.diditVerifiedTitle': 'Verificação de Identidade (Didit)',
+  'admin.diditIdentityLabel': 'Validação de Identidade',
+  'admin.diditAgeLabel': 'Validação de Maioridade (18+)',
+  'admin.diditCpfLabel': 'Documento / CPF Validado',
+  'admin.diditCountryLabel': 'País do Documento',
+  'admin.diditDateLabel': 'Data da Verificação',
+  'admin.diditSessionLabel': 'Sessão do Provedor',
+  'admin.diditDisclaimerNotice': 'Proteção de Privacidade: documentos brutos, biometria e selfies não são exibidos ao operador.',
+  'admin.diditConsistentNotice': 'Didit aprovado — aguardando moderação e decisão operacional do conteúdo.',
+
+  // Mídias
+  'admin.mediaTotalPhotos': 'Fotos Cadastradas',
+  'admin.mediaTotalVideos': 'Vídeos Cadastrados',
+  'admin.mediaPrimaryPhoto': 'Foto Principal (Capa)',
+  'admin.mediaOtherPhotos': 'Fotos da Galeria',
+  'admin.mediaNoPhotos': 'Nenhuma foto cadastrada para este perfil.',
+  'admin.mediaNoVideos': 'Nenhum vídeo cadastrado.',
+  'admin.mediaViewFullscreen': 'Ampliar mídia',
+  'admin.mediaStatusLabel': 'Status da mídia',
+
+  // Perfil & Dados Públicos
+  'admin.profileHeadline': 'Apresentação (Headline)',
+  'admin.profileBio': 'Biografia',
+  'admin.profilePhysical': 'Características Físicas',
+  'admin.profileHeight': 'Altura',
+  'admin.profileWeight': 'Peso',
+  'admin.profileMeasurements': 'Medidas (Busto / Cintura / Quadril)',
+  'admin.profileHair': 'Cabelo',
+  'admin.profileEyes': 'Olhos',
+  'admin.profileBody': 'Tipo Físico',
+  'admin.profileTattoos': 'Tatuagens',
+  'admin.profilePiercings': 'Piercings',
+  'admin.profileLanguages': 'Idiomas',
+  'admin.profileContacts': 'Canais de Contato Declarados',
+  'admin.profileContactPublic': 'Público no perfil',
+  'admin.profileContactPrivate': 'Oculto do perfil público',
+  'admin.profileServices': 'Ofertas e Serviços Estruturados',
+  'admin.profileLocations': 'Cidades e Bairros de Atendimento',
+  'admin.profileEmptySelect': 'Selecione um perfil na fila à esquerda para iniciar a revisão operacional.',
+
+  // Decisão Operacional
+  'admin.decisionApproveBtn': '✓ Aprovar Perfil',
+  'admin.decisionRejectBtn': '✕ Rejeitar Perfil',
+  'admin.decisionNotesLabel': 'Observações do Operador (opcional)',
+  'admin.decisionNotesPlaceholder': 'Insira observações ou orientações para a decisão operacional...',
+  'admin.decisionHistoryTitle': 'Histórico Operacional do Perfil',
+  'admin.decisionNoHistory': 'Nenhum evento registrado para este perfil até o momento.',
+  'admin.backToQueue': '← Voltar para a fila',
+
   // LGPD-02B.1 Console Tabs
   'admin.privacyTabOverview': 'Visão geral',
   'admin.privacyTabRequests': 'Solicitações',
@@ -497,6 +563,72 @@ export const adminEn = {
   'admin.reasonMismatch': 'Non-human or mismatch',
   'admin.reasonViolence': 'Violence or coercion',
   'admin.reasonOther': 'Other policy violation',
+
+  // Profile Operational Queue — Tabs & Details
+  'admin.profileTabOverview': 'Profile',
+  'admin.profileTabMedia': 'Media',
+  'admin.profileTabDidit': 'Didit / Verification',
+  'admin.profileTabServices': 'Services & Areas',
+  'admin.profileTabHistory': 'History',
+
+  // Operational Readiness Checklist
+  'admin.reviewChecklistTitle': 'Publication Checklist',
+  'admin.reviewChecklistSubtitle': 'Real-time validation of canonical publication criteria.',
+  'admin.checklistIdentityTitle': 'Identity & Age (Didit)',
+  'admin.checklistProfileTitle': 'Profile Content',
+  'admin.checklistMediaTitle': 'Media & Primary Photo',
+  'admin.checklistLocationTitle': 'Service Location',
+  'admin.checklistPublicationTitle': 'Publication Entitlement / Plan',
+
+  // Didit / Safe Operational Verification
+  'admin.diditVerifiedTitle': 'Identity Verification (Didit)',
+  'admin.diditIdentityLabel': 'Identity Validation',
+  'admin.diditAgeLabel': 'Age Validation (18+)',
+  'admin.diditCpfLabel': 'Document / Tax ID Validated',
+  'admin.diditCountryLabel': 'Document Country',
+  'admin.diditDateLabel': 'Verification Date',
+  'admin.diditSessionLabel': 'Provider Session',
+  'admin.diditDisclaimerNotice': 'Privacy Safeguard: raw documents, biometrics, and selfies are never shown to the operator.',
+  'admin.diditConsistentNotice': 'Didit approved — awaiting editorial moderation and operational decision.',
+
+  // Media
+  'admin.mediaTotalPhotos': 'Registered Photos',
+  'admin.mediaTotalVideos': 'Registered Videos',
+  'admin.mediaPrimaryPhoto': 'Primary Photo (Cover)',
+  'admin.mediaOtherPhotos': 'Gallery Photos',
+  'admin.mediaNoPhotos': 'No photos registered for this profile.',
+  'admin.mediaNoVideos': 'No videos registered.',
+  'admin.mediaViewFullscreen': 'Enlarge media',
+  'admin.mediaStatusLabel': 'Media status',
+
+  // Profile & Public Data
+  'admin.profileHeadline': 'Headline',
+  'admin.profileBio': 'Biography',
+  'admin.profilePhysical': 'Physical Attributes',
+  'admin.profileHeight': 'Height',
+  'admin.profileWeight': 'Weight',
+  'admin.profileMeasurements': 'Measurements (Bust / Waist / Hips)',
+  'admin.profileHair': 'Hair',
+  'admin.profileEyes': 'Eyes',
+  'admin.profileBody': 'Body Type',
+  'admin.profileTattoos': 'Tattoos',
+  'admin.profilePiercings': 'Piercings',
+  'admin.profileLanguages': 'Languages',
+  'admin.profileContacts': 'Declared Contact Channels',
+  'admin.profileContactPublic': 'Public on profile',
+  'admin.profileContactPrivate': 'Hidden from public profile',
+  'admin.profileServices': 'Structured Offerings and Services',
+  'admin.profileLocations': 'Service Cities and Neighborhoods',
+  'admin.profileEmptySelect': 'Select a profile from the left queue to begin operational review.',
+
+  // Operational Decision
+  'admin.decisionApproveBtn': '✓ Approve Profile',
+  'admin.decisionRejectBtn': '✕ Reject Profile',
+  'admin.decisionNotesLabel': 'Operator Notes (optional)',
+  'admin.decisionNotesPlaceholder': 'Enter notes or guidance for the operational decision...',
+  'admin.decisionHistoryTitle': 'Profile Operational History',
+  'admin.decisionNoHistory': 'No events recorded for this profile yet.',
+  'admin.backToQueue': '← Back to queue',
 
   // LGPD-02B.1 Console Tabs
   'admin.privacyTabOverview': 'Overview',

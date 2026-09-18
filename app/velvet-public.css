@@ -3342,7 +3342,9 @@
   gap: 14px;
 }
 
-.velvet-guide-btn-primary {
+.velvet-guide-cta-actions a.velvet-guide-btn-primary,
+.velvet-guide-btn-primary,
+a.velvet-guide-btn-primary {
   min-height: 50px;
   padding: 0 30px;
   display: inline-flex;
@@ -3357,11 +3359,22 @@
   transition: opacity 0.2s ease;
 }
 
-.velvet-guide-btn-primary:hover {
+.velvet-guide-cta-actions a.velvet-guide-btn-primary:hover,
+.velvet-guide-btn-primary:hover,
+a.velvet-guide-btn-primary:hover {
   opacity: 0.92;
 }
 
-.velvet-guide-btn-secondary {
+.velvet-guide-cta-actions a.velvet-guide-btn-primary:focus-visible,
+.velvet-guide-btn-primary:focus-visible,
+a.velvet-guide-btn-primary:focus-visible {
+  outline: 2px solid var(--public-surface);
+  outline-offset: 3px;
+}
+
+.velvet-guide-cta-actions a.velvet-guide-btn-secondary,
+.velvet-guide-btn-secondary,
+a.velvet-guide-btn-secondary {
   min-height: 50px;
   padding: 0 24px;
   display: inline-flex;
@@ -3377,8 +3390,17 @@
   transition: all 0.2s ease;
 }
 
-.velvet-guide-btn-secondary:hover {
+.velvet-guide-cta-actions a.velvet-guide-btn-secondary:hover,
+.velvet-guide-btn-secondary:hover,
+a.velvet-guide-btn-secondary:hover {
   border-color: var(--public-surface);
+}
+
+.velvet-guide-cta-actions a.velvet-guide-btn-secondary:focus-visible,
+.velvet-guide-btn-secondary:focus-visible,
+a.velvet-guide-btn-secondary:focus-visible {
+  outline: 2px solid var(--public-surface);
+  outline-offset: 3px;
 }
 
 .velvet-guide-cta-mark {
@@ -3407,6 +3429,8 @@
     width: 100%;
     flex-direction: column;
   }
+  .velvet-guide-cta-actions a.velvet-guide-btn-primary,
+  .velvet-guide-cta-actions a.velvet-guide-btn-secondary,
   .velvet-guide-btn-primary,
   .velvet-guide-btn-secondary {
     width: 100%;

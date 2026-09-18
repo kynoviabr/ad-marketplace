@@ -64,6 +64,132 @@ export type AdminProfileQueueFilter =
 /** Queue item extending the safe professional summary with operational classification */
 export interface AdminProfileQueueItem extends AdminProfessionalSummary {
   operationalClassification: OperationalClassification
+  slug?: string
+  avatarUrl?: string | null
+  pendingPhotosCount?: number
+  pendingVideosCount?: number
+}
+
+export interface AdminProfileDetailedReview {
+  profileId: string
+  stageName: string
+  slug: string
+  headline: string | null
+  bio: string | null
+  publicAge: number | null
+  heightCm: number | null
+  weightKg: number | null
+  bustCm: number | null
+  waistCm: number | null
+  hipsCm: number | null
+  eyeColor: string | null
+  hairColor: string | null
+  hairLength: string | null
+  bodyType: string | null
+  hasTattoos: boolean
+  hasPiercings: boolean
+  languages: string[]
+  whatsappPhone: string | null
+  directPhone: string | null
+  telegramUsername: string | null
+  showAge: boolean
+  showHeight: boolean
+  showWeight: boolean
+  showMeasurements: boolean
+  showWhatsapp: boolean
+  showPhone: boolean
+  showTelegram: boolean
+  profileStatus: ProfileStatus
+  contentModerationStatus: ContentModerationStatus
+  accountStatus: UserStatus
+  publicationState: 'PUBLIC' | 'INELIGIBLE' | 'SUSPENDED' | 'BLOCKED'
+  operationalClassification: OperationalClassification
+  createdAt: string
+  updatedAt: string
+  completedAt: string | null
+  publishedAt: string | null
+
+  // Mídias seguras (Short-lived signed URLs)
+  photos: Array<{
+    id: string
+    storagePath: string
+    previewUrl: string | null
+    isPrimary: boolean
+    status: MediaStatus
+    position: number
+    mimeType: string
+    fileSizeBytes: number
+    width: number | null
+    height: number | null
+    createdAt: string
+  }>
+  videos: Array<{
+    id: string
+    storagePath: string
+    posterStoragePath: string
+    previewUrl: string | null
+    posterUrl: string | null
+    status: MediaStatus
+    durationSeconds: number | null
+    fileSizeBytes: number
+    mimeType: string
+    createdAt: string
+  }>
+
+  // Didit / Verificação Operacional (Data Minimization: NUNCA expõe documentos brutos, biometria ou selfies)
+  didit: {
+    status: VerificationStatus
+    identityVerified: boolean
+    ageVerified: boolean
+    cpfVerified: boolean | null
+    verifiedCountry: string | null
+    verifiedAt: string | null
+    provider: string
+  }
+
+  // Ofertas & Serviços
+  offerings: Array<{
+    optionCode: string
+    group: string
+    status: string
+  }>
+
+  // Regiões de Atendimento
+  locations: Array<{
+    id: string
+    name: string
+    cityName: string
+    isPrimary: boolean
+    active: boolean
+  }>
+
+  // Entitlement de Publicação / Assinatura
+  publicationEntitlement: {
+    hasEntitlement: boolean
+    planCode?: string | null
+    planName?: string | null
+    isFounder?: boolean
+    expiresAt?: string | null
+  }
+
+  // Checklist de Prontidão Operacional Canônico
+  checklist: Array<{
+    key: string
+    title: string
+    ready: boolean
+    detail: string
+  }>
+
+  // Linha do tempo operacional / auditoria
+  history: Array<{
+    id: string
+    type: 'REVIEW' | 'STATUS_CHANGE'
+    decisionOrAction: string
+    reasonCode: string | null
+    notes: string | null
+    reviewerOrActorId: string
+    createdAt: string
+  }>
 }
 
 /** Parameters for retrieving the admin profile review queue */

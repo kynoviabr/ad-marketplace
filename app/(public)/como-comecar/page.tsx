@@ -31,7 +31,6 @@ export default async function HowToStartPage() {
   const en = locale === 'en'
 
   const signupHref = localizePathname('/signup', locale)
-  const anuncieHref = localizePathname('/anuncie', locale)
   const canonicalUrl = buildCanonicalUrl('/como-comecar', undefined, locale)
   const siteUrl = getSeoConfig().siteUrl
 
@@ -373,7 +372,7 @@ export default async function HowToStartPage() {
               <Link href={signupHref} className="velvet-guide-btn-primary">
                 {content.cta.primaryBtn} <span aria-hidden="true">→</span>
               </Link>
-              <Link href={anuncieHref} className="velvet-guide-btn-secondary">
+              <Link href={signupHref} className="velvet-guide-btn-secondary">
                 {content.cta.secondaryBtn}
               </Link>
             </div>

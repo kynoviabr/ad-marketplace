@@ -98,13 +98,12 @@ describe('R11.2A — Professional Guide (Como começar na velvet.)', () => {
     expect(guide).not.toContain('Didit')
   })
 
-  it('Section 5: CTAs link to canonical signup and anuncie', () => {
+  it('Section 5: CTAs link directly to canonical signup', () => {
     expect(guide).toContain('Começar meu perfil')
     expect(guide).toContain('Start my profile')
     expect(guide).toContain('Anuncie na velvet.')
     expect(guide).toContain('Advertise on velvet.')
     expect(guide).toContain("localizePathname('/signup', locale)")
-    expect(guide).toContain("localizePathname('/anuncie', locale)")
   })
 
   it('links to /como-comecar from the professional acquisition page (/anuncie)', () => {
