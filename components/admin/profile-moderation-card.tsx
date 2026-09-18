@@ -4,6 +4,145 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { moderateProfileAction } from '@/modules/moderation/actions'
 import type { PendingProfileQueueItem } from '@/modules/moderation/types'
+import type { OfferingStatus } from '@/modules/offerings/types'
+import {
+  structuredOfferGroups,
+  structuredOfferLabels,
+  structuredOfferValueLabels,
+} from '@/modules/offerings/admin-presentation'
+
+function OfferingBadge({ status }: { status: OfferingStatus }) {
+  const label = structuredOfferValueLabels[status] ?? 'Não informado'
+
+  const styles: Record<OfferingStatus, { bg: string; text: string; border: string }> = {
+    OFFERED: {
+      bg: 'rgba(6, 95, 70, 0.35)',
+      text: '#34d399',
+      border: '1px solid rgba(16, 185, 129, 0.3)',
+    },
+    NOT_OFFERED: {
+      bg: 'rgba(153, 27, 27, 0.25)',
+      text: '#f87171',
+      border: '1px solid rgba(239, 68, 68, 0.25)',
+    },
+    UNSPECIFIED: {
+      bg: 'rgba(55, 65, 81, 0.35)',
+      text: '#9ca3af',
+      border: '1px solid rgba(75, 85, 99, 0.25)',
+    },
+  }
+
+  const current = styles[status] || styles.UNSPECIFIED
+
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        fontSize: '0.6875rem',
+        fontWeight: 500,
+        padding: '0.125rem 0.5rem',
+        borderRadius: '9999px',
+        backgroundColor: current.bg,
+        color: current.text,
+        border: current.border,
+        whiteSpace: 'nowrap',
+        lineHeight: 1.3,
+      }}
+    >
+      {label}
+    </span>
+  )
+}
+
+function ProfileOfferingsModerationView({
+  profile,
+}: {
+  profile: Pick<PendingProfileQueueItem, 'offerings'>
+}) {
+  const statusMap = new Map<string, OfferingStatus>(
+    profile.offerings.map((item) => [item.option_code, item.status])
+  )
+
+  return (
+    <div style={{ marginTop: '1rem' }}>
+      <strong
+        style={{
+          display: 'block',
+          fontSize: '0.75rem',
+          color: '#9ca3af',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginBottom: '0.75rem',
+        }}
+      >
+        Oferta estruturada
+      </strong>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '0.75rem',
+        }}
+      >
+        {structuredOfferGroups.map((group) => (
+          <div
+            key={group.id}
+            style={{
+              backgroundColor: '#1f2937',
+              border: '1px solid #374151',
+              borderRadius: '0.375rem',
+              padding: '0.75rem',
+            }}
+          >
+            <h4
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                color: '#e5e7eb',
+                textTransform: 'uppercase',
+                letterSpacing: '0.025em',
+                margin: '0 0 0.5rem 0',
+                paddingBottom: '0.375rem',
+                borderBottom: '1px solid #374151',
+              }}
+            >
+              {group.title}
+            </h4>
+            <ul
+              style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.375rem',
+              }}
+            >
+              {group.items.map((code) => {
+                const status = statusMap.get(code) || 'UNSPECIFIED'
+                return (
+                  <li
+                    key={code}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '0.8rem',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <span style={{ color: '#d1d5db' }}>{structuredOfferLabels[code]}</span>
+                    <OfferingBadge status={status} />
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface ProfileModerationCardProps {
   initialProfiles: PendingProfileQueueItem[]
@@ -82,12 +221,7 @@ export function ProfileModerationCard({ initialProfiles }: ProfileModerationCard
                 WhatsApp: {profile.whatsapp_phone || 'N/A'} • Fone: {profile.direct_phone || 'N/A'} • Telegram: {profile.telegram_username || 'N/A'}
               </p>
             </div>
-            <div style={{ marginTop: '0.75rem' }}>
-              <strong style={{ fontSize: '0.75rem', color: '#9ca3af', textTransform: 'uppercase' }}>Oferta estruturada</strong>
-              <p style={{ fontSize: '0.8rem', color: '#d1d5db', lineHeight: 1.7 }}>
-                {profile.offerings.length ? profile.offerings.map((item) => `${item.option_code}: ${item.status}`).join(' · ') : 'Todos os itens: UNSPECIFIED'}
-              </p>
-            </div>
+            <ProfileOfferingsModerationView profile={profile} />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
