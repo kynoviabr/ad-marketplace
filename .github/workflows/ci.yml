@@ -16,8 +16,21 @@ jobs:
   lint-type:
     name: Lint & Typecheck
     runs-on: ubuntu-latest
+    outputs:
+      has_supabase: ${{ steps.check-secret.outputs.has_supabase }}
 
     steps:
+      - name: Check Supabase Secret
+        id: check-secret
+        env:
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -n "$SERVICE_ROLE" ]; then
+            echo "has_supabase=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_supabase=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -95,8 +108,8 @@ jobs:
   test-integration:
     name: Integration Tests (Live Supabase)
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.SUPABASE_SERVICE_ROLE_KEY != ''
     needs: [lint-type, test-unit, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.lint-type.outputs.has_supabase == 'true'
 
     steps:
       - name: Checkout
