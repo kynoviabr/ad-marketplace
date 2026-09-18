@@ -122,7 +122,7 @@ export default async function HowToStartPage() {
               visibility: 'Privado',
               visibilityType: 'is-private',
               whatYouDo: 'Cadastre seu e-mail e crie uma senha exclusiva para acessar seu painel de gestão com total privacidade.',
-              whatVelvetChecks: 'Validação de e-mail e proteção de credenciais para garantir que apenas você acerte seu perfil.',
+              whatVelvetChecks: 'Validação de e-mail e proteção de credenciais para garantir que apenas você acesse seu perfil.',
             },
             {
               idx: '02',
