@@ -12,6 +12,12 @@ import {
 } from '@/modules/admin/actions'
 import { formatDate } from '@/lib/i18n/format'
 import { useI18n } from '@/components/i18n'
+import type { OfferingCode, OfferingStatus } from '@/modules/offerings/types'
+import {
+  structuredOfferGroups,
+  structuredOfferLabels,
+  structuredOfferValueLabels,
+} from '@/modules/offerings/admin-presentation'
 
 interface AdminProfileReviewPanelProps {
   detail: AdminProfileDetailedReview
@@ -910,33 +916,105 @@ export function AdminProfileReviewPanel({
               </h3>
               {detail.offerings.length === 0 ? (
                 <p style={{ color: '#9ca3af', fontSize: '.85rem', margin: 0 }}>Nenhum serviço estruturado especificado.</p>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '.5rem' }}>
-                  {detail.offerings.map((offering) => (
-                    <div
-                      key={offering.optionCode}
-                      style={{
-                        backgroundColor: '#111827',
-                        padding: '.5rem .75rem',
-                        borderRadius: '.25rem',
-                        fontSize: '.8rem',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <span style={{ color: '#d1d5db' }}>{offering.optionCode}</span>
-                      <span
+              ) : (() => {
+                const statusMap = new Map<string, OfferingStatus>()
+                for (const item of detail.offerings) {
+                  statusMap.set(item.optionCode, item.status as OfferingStatus)
+                }
+
+                return (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                      gap: '0.75rem',
+                    }}
+                  >
+                    {structuredOfferGroups.map((group) => (
+                      <div
+                        key={group.id}
                         style={{
-                          color: offering.status === 'OFFERED' ? '#10b981' : offering.status === 'NOT_OFFERED' ? '#f87171' : '#6b7280',
-                          fontWeight: 600,
+                          backgroundColor: '#111827',
+                          border: '1px solid #374151',
+                          borderRadius: '0.375rem',
+                          padding: '0.75rem',
                         }}
                       >
-                        {offering.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                        <h4
+                          style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: '#e5e7eb',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.025em',
+                            margin: '0 0 0.5rem 0',
+                            paddingBottom: '0.375rem',
+                            borderBottom: '1px solid #374151',
+                          }}
+                        >
+                          {group.title}
+                        </h4>
+                        <ul
+                          style={{
+                            listStyle: 'none',
+                            padding: 0,
+                            margin: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.375rem',
+                          }}
+                        >
+                          {group.items.map((code) => {
+                            const status = statusMap.get(code) || 'UNSPECIFIED'
+                            const label = structuredOfferValueLabels[status] ?? 'Não informado'
+                            const isOffered = status === 'OFFERED'
+                            const isNotOffered = status === 'NOT_OFFERED'
+
+                            return (
+                              <li
+                                key={code}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  fontSize: '0.8rem',
+                                  gap: '0.5rem',
+                                }}
+                              >
+                                <span style={{ color: '#d1d5db' }}>{structuredOfferLabels[code]}</span>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    fontSize: '0.6875rem',
+                                    fontWeight: 500,
+                                    padding: '0.125rem 0.5rem',
+                                    borderRadius: '9999px',
+                                    backgroundColor: isOffered
+                                      ? 'rgba(6, 95, 70, 0.35)'
+                                      : isNotOffered
+                                      ? 'rgba(153, 27, 27, 0.25)'
+                                      : 'rgba(55, 65, 81, 0.35)',
+                                    color: isOffered ? '#34d399' : isNotOffered ? '#f87171' : '#9ca3af',
+                                    border: isOffered
+                                      ? '1px solid rgba(16, 185, 129, 0.3)'
+                                      : isNotOffered
+                                      ? '1px solid rgba(239, 68, 68, 0.25)'
+                                      : '1px solid rgba(75, 85, 99, 0.25)',
+                                    whiteSpace: 'nowrap',
+                                    lineHeight: 1.3,
+                                  }}
+                                >
+                                  {label}
+                                </span>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
             </div>
           </section>
         )}
