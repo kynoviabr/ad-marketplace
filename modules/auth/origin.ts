@@ -67,18 +67,27 @@ export function resolveTrustedAuthOrigin(
   configuredAppUrl?: string,
   nodeEnv?: 'development' | 'production' | 'test' | string
 ): string {
-  const envAppUrl =
-    configuredAppUrl !== undefined
-      ? configuredAppUrl
-      : (typeof process !== 'undefined'
-          ? process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000'
-          : 'http://localhost:3000')
-
   const envNodeEnv = (
     nodeEnv !== undefined
       ? nodeEnv
       : (typeof process !== 'undefined' ? process.env.NODE_ENV || 'development' : 'development')
   ) as 'development' | 'production' | 'test'
+
+  const isProduction = envNodeEnv === 'production'
+  const fallbackOrigin = isProduction ? 'https://velvetgirls.club' : 'http://localhost:3000'
+
+  let envAppUrl =
+    configuredAppUrl !== undefined
+      ? configuredAppUrl
+      : (typeof process !== 'undefined'
+          ? process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || fallbackOrigin
+          : fallbackOrigin)
+
+  // In production, if envAppUrl was defaulted to localhost (e.g. from local .env during build),
+  // override with canonical production origin
+  if (isProduction && configuredAppUrl === undefined && (envAppUrl === 'http://localhost:3000' || envAppUrl === 'http://localhost:3000/')) {
+    envAppUrl = 'https://velvetgirls.club'
+  }
 
   if (typeof envAppUrl !== 'string' || !envAppUrl || envAppUrl !== envAppUrl.trim()) {
     throw new Error('INVALID_APP_ORIGIN')
@@ -91,7 +100,6 @@ export function resolveTrustedAuthOrigin(
     throw new Error('INVALID_APP_ORIGIN')
   }
 
-  const isProduction = envNodeEnv === 'production'
   const isLocalhost =
     parsed.hostname === 'localhost' ||
     parsed.hostname === '127.0.0.1' ||

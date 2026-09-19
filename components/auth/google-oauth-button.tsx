@@ -54,9 +54,11 @@ export function GoogleOAuthButton({ intent, label, className = '' }: GoogleOAuth
         if (result.success && result.url) {
           window.location.href = result.url
         } else {
+          console.error('[GoogleOAuthButton] Action error:', result.error)
           setErrorMessage(result.error || t('auth.googleOAuthError'))
         }
-      } catch {
+      } catch (err) {
+        console.error('[GoogleOAuthButton] Unexpected catch error:', err)
         setErrorMessage(t('auth.googleOAuthError'))
       }
     })

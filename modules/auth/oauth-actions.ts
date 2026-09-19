@@ -18,23 +18,23 @@ export async function startGoogleOAuthAction(intent: OAuthIntent): Promise<{
   url?: string
   error?: string
 }> {
-  if (intent !== 'ADVERTISER' && intent !== 'CLIENT' && intent !== 'LOGIN') {
-    return { success: false, error: 'Intenção de acesso inválida.' }
-  }
-
-  const token = createSignedOAuthIntent(intent)
-  const cookieStore = await cookies()
-  const trustedOrigin = getTrustedAuthCallbackOrigin()
-
-  cookieStore.set('velvet_oauth_intent', token, {
-    httpOnly: true,
-    secure: trustedOrigin.startsWith('https:') || process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 600, // 10 minutes
-  })
-
   try {
+    if (intent !== 'ADVERTISER' && intent !== 'CLIENT' && intent !== 'LOGIN') {
+      return { success: false, error: 'Intenção de acesso inválida.' }
+    }
+
+    const token = createSignedOAuthIntent(intent)
+    const cookieStore = await cookies()
+    const trustedOrigin = getTrustedAuthCallbackOrigin()
+
+    cookieStore.set('velvet_oauth_intent', token, {
+      httpOnly: true,
+      secure: trustedOrigin.startsWith('https:') || process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 600, // 10 minutes
+    })
+
     const supabase = await createServerClient()
     const redirectTo = `${trustedOrigin}/auth/callback`
 
@@ -50,15 +50,18 @@ export async function startGoogleOAuthAction(intent: OAuthIntent): Promise<{
     })
 
     if (error) {
+      console.error('[startGoogleOAuthAction] Supabase signInWithOAuth error:', error.message)
       return { success: false, error: error.message }
     }
 
     if (!data?.url) {
+      console.error('[startGoogleOAuthAction] Provedor Google não retornou URL')
       return { success: false, error: 'Provedor Google não configurado.' }
     }
 
     return { success: true, url: data.url }
   } catch (err: any) {
+    console.error('[startGoogleOAuthAction] Unexpected error:', err)
     return { success: false, error: err?.message || 'Erro inesperado na autenticação.' }
   }
 }
